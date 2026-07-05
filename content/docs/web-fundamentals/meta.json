@@ -1,6 +1,6 @@
 {
-  "title": "Web Fundamentals",
-  "order": [
+  "title": "Fundamentals",
+  "pages": [
     "html",
     "css",
     "javascript"

@@ -1,0 +1,686 @@
+---
+title: React
+---
+
+### 1. React Basics & Philosophy
+
+Imagine you are building a custom workstation. You could buy a pre-configured office desk with drawers, cable holes, and stands built-in (that is Angular). Or, you could buy raw IKEA table tops, legs, brackets, and drawers (that is **React**). With React, you build exactly what you want, but you are responsible for choosing and assembling all the pieces (routing, state management, validation).
+
+React is a **declarative, component-based JavaScript library** for building user interfaces, developed and maintained by Meta (Facebook) and a community of developers. Unlike Angular, React is **opinionatedly thin** — it focuses strictly on the **View layer** of the application. For routing, state management, and HTTP requests, developers rely on the rich React ecosystem (e.g., React Router, Redux, Zustand, Axios).
+
+```
+Imperative (Step-by-step instructions):
+"Go down to the lobby, walk out the front door, turn right, walk 3 blocks, and stop."
+
+Declarative (Result-oriented description):
+"I want to be at the coffee shop at 3rd Avenue."
+```
+
+React is **declarative**. You describe *what* the UI should look like for a given state, and React handles the updates to make the browser match that description. You don't write manual DOM selectors (`document.getElementById`) or append elements yourself.
+
+#### Library vs. Framework Comparison
+
+| Feature | React | Angular |
+| --- | --- | --- |
+| **Category** | UI Library | Full Web Framework |
+| **Language** | JS / JSX / TS | TypeScript |
+| **DOM Model** | Virtual DOM (reconciliation) | Real DOM (incremental/Ivy engine) |
+| **Data Flow** | Unidirectional (One-way) | Bidirectional (Two-way) |
+| **Core Philosophy** | Plain JavaScript-first (CSS-in-JS, HTML-in-JS) | Separate HTML templates, CSS, and TS |
+
+<Callout type="warn" title="📋 Unidirectional Data Flow">
+In React, data flows in one direction: **downward** from parent components to child components via props. Children cannot update parent data directly; they must trigger callback functions passed down as props to request changes.
+</Callout>
+
+<Quiz question={"Which of the following statements is TRUE about React?"} options={["React is an opinionated framework that provides built-in routing out-of-the-box", "React uses declarative programming, where you describe what the UI should look like", "React supports native two-way data binding on all input elements", "React directly updates the browser's real DOM on every small state change"]} answerIndex={1}>
+React is a declarative library focused on the view layer. You describe the desired UI state, and React manages updating the DOM. Data flow is unidirectional, and it uses a Virtual DOM.
+</Quiz>
+
+---
+
+### 2. Virtual DOM & Reconciliation
+
+Directly manipulating the browser's **Real DOM** is slow and expensive. When you change an element's text using the Real DOM, the browser has to recalculate the page layout and repaint the screen (a process called reflow and repaint). Doing this hundreds of times a second freezes the browser.
+
+To solve this, React uses a **Virtual DOM** — a lightweight, in-memory copy of the Real DOM made of plain JavaScript objects.
+
+#### The Reconciliation Process (Diffing)
+
+When a component's state or props change:
+1. **Render**: React generates a new Virtual DOM tree representing the updated UI.
+2. **Diffing**: React compares this new Virtual DOM tree with the previous Virtual DOM tree using a highly optimized comparison algorithm.
+3. **Reconciliation**: React calculates the minimum number of changes required and updates *only* those specific modified nodes in the browser's Real DOM.
+
+```
+State Change 
+   |
+   v
+Render New Virtual DOM Tree
+   |
+   v
+Diff with Old Virtual DOM Tree  <--- (React's O(n) heuristic algorithm)
+   |
+   v
+Reconcile (Batch update only modified nodes in Real DOM)
+```
+
+<Callout type="info" title="💡 Reconciliation Rules">
+React's diffing algorithm relies on two assumptions to achieve `O(n)` complexity:
+- Two elements of different types will produce different trees. If you change a `<div>` to a `<span>`, React destroys the entire div subtree and builds the span subtree from scratch.
+- Lists of elements need unique, stable **keys** to help React identify which items were added, moved, or deleted across renders.
+</Callout>
+
+<Quiz question={"How does the Virtual DOM improve browser rendering performance?"} options={["It bypasses the browser completely and renders directly on the GPU", "It creates a lightweight representation of the DOM in memory, calculates the minimum changes, and updates only those in the real DOM", "It converts HTML code into binary assembly code", "It caches all network requests automatically"]} answerIndex={1}>
+The Virtual DOM acts as a draft space in memory. React compares draft versions (diffing) and performs batch updates to the real DOM only where changes actually occurred, reducing expensive layout recalculations.
+</Quiz>
+
+---
+
+### 3. JSX (JavaScript XML)
+
+**JSX** is a syntax extension for JavaScript that allows you to write HTML-like markup directly inside JavaScript files. It combines UI structure and component logic in one place.
+
+Browsers do not understand JSX. A compiler (like Babel or SWC) compiles JSX code into standard JavaScript calls (`React.createElement` or the modern `jsx()` runtime function) before rendering.
+
+#### Compilation Example
+
+```jsx
+// What you write (JSX)
+const element = <h1 className="title">Hello World</h1>;
+
+// What it compiles to (Plain JavaScript)
+const element = React.createElement('h1', { className: 'title' }, 'Hello World');
+```
+
+#### The Rules of JSX
+
+To write valid JSX, you must follow three strict rules:
+
+1. **Return a Single Root Element**: You cannot return multiple sibling HTML tags. They must be wrapped in a single parent tag (like `<div>` or a **React Fragment** `<></>`). Fragments allow you to group elements without adding extra wrapper nodes to the DOM.
+2. **Close All Tags**: Every tag must be explicitly closed, including self-closing elements (e.g., `<img />`, `<input />`, `<br />`).
+3. **Use camelCase Attributes**: Because JSX compiles into JavaScript, attributes are mapped to JS properties. HTML attributes become camelCase (e.g., `class` becomes `className`, `onclick` becomes `onClick`, and `for` becomes `htmlFor`).
+
+```jsx
+// Valid JSX using a Fragment, self-closing tag, and camelCase properties
+function ProfileCard({ name, avatarUrl }) {
+  return (
+    <>
+      <h2 className="profile-name">{name}</h2>
+      <img src={avatarUrl} alt={name} className="avatar-img" />
+      <hr />
+    </>
+  );
+}
+```
+
+<Callout type="error" title="⚠️ JavaScript Expressions inside JSX">
+You can write any valid JavaScript expression (variables, function calls, math, ternaries) inside JSX by wrapping it in curly braces `{ }`. Do not put statements (like `if` or `for` loops) inside curly braces; use ternary operators or array `map` functions instead.
+</Callout>
+
+<Quiz question={"Which of the following is an invalid JSX snippet?"} options={["`<div className=\"card\"><h3>Title</h3></div>`", "`<br />`", "`<h1>Header</h1><p>Paragraph</p>`", "`<input type=\"text\" />`"]} answerIndex={2}>
+JSX must return a single root element. Option 3 is invalid because it contains two sibling elements (`<h1>` and `<p>`) without a parent container or a Fragment `<></>`.
+</Quiz>
+
+---
+
+### 4. Components & Props
+
+Components are the independent, reusable building blocks of a React user interface. 
+- **Functional Components (Modern)**: Simple JavaScript functions that accept `props` and return JSX. They use **Hooks** to manage state and lifecycles.
+- **Class Components (Legacy)**: ES6 classes extending `React.Component`. They use `this.state` and lifecycle methods (like `componentDidMount`). They are considered legacy and should not be used in new code.
+
+#### Props (Properties)
+
+Props are read-only, immutable values passed from a parent component to a child component, behaving exactly like arguments passed to a function.
+
+```jsx
+// Child Component: Receives props, destructures name and role
+function UserCard({ name, role = 'Guest' }) {
+  return (
+    <div className="user-card">
+      <h3>{name}</h3>
+      <p>Role: {role}</p>
+    </div>
+  );
+}
+
+// Parent Component: Passes data down as attributes
+function App() {
+  return (
+    <div className="app-container">
+      <UserCard name="Alice" role="Admin" />
+      <UserCard name="Bob" /> {/* role defaults to 'Guest' */}
+    </div>
+  );
+}
+```
+
+#### The `children` Prop
+
+Every component receives a special prop called `children`. It contains whatever content is nested between the opening and closing tags of the component.
+
+```jsx
+// Layout Component
+function Box({ children }) {
+  return <div style={{ border: '2px solid black', padding: '10px' }}>{children}</div>;
+}
+
+// Usage
+function App() {
+  return (
+    <Box>
+      <h2>Inside the Box</h2>
+      <p>This is rendered via props.children.</p>
+    </Box>
+  );
+}
+```
+
+<Callout type="warn" title="📋 Props are Read-Only">
+A component must never modify its own props. If you need to change data in response to user actions, you must use **State**, not props.
+</Callout>
+
+<Quiz question={"What is the main difference between Props and State in React?"} options={["Props are mutable within the component, while State is immutable", "Props are managed internally by the component, while State is passed down by the parent", "Props are read-only data passed from parents, while State is mutable data managed internally by the component", "There is no difference; they are different names for variables"]} answerIndex={2}>
+Props are passed from parent components and are read-only (immutable). State is declared and managed internally by the component itself and is designed to change over time (mutable).
+</Quiz>
+
+---
+
+### 5. State Management (`useState`)
+
+State represents a component's memory — data that changes over time in response to user input, network calls, or timers. When a component's state changes, React schedules a re-render of that component and its children.
+
+#### `useState` Hook Syntax
+
+```javascript
+import { useState } from 'react';
+
+const [count, setCount] = useState(0); 
+// [currentValue, setterFunction] = useState(initialValue)
+```
+
+#### State as a Snapshot
+
+React state updates are not executed immediately; they are scheduled for the next render. Think of state like a snapshot of the UI at a specific point in time.
+
+```javascript
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  const handleClick = () => {
+    setCount(count + 1);
+    console.log(count); // Output: 0! Not 1.
+  };
+}
+```
+
+Because `count` is a snapshot variable, its value remains `0` throughout the execution of `handleClick`. The updated value of `1` is only available during the next render cycle.
+
+#### Functional Updates (Batching & Consecutive Updates)
+
+React batches multiple state updates inside event handlers to prevent unnecessary re-renders. If you need to update a state variable multiple times in a row based on its previous value, pass an **updater function** to the setter:
+
+```javascript
+const handleIncrement = () => {
+  // Correct way to queue consecutive state changes
+  setCount(prevCount => prevCount + 1);
+  setCount(prevCount => prevCount + 1);
+  setCount(prevCount => prevCount + 1);
+  // The count will increment by 3, not 1.
+};
+```
+
+<Callout type="error" title="⚠️ Never Mutate State Directly">
+Always update state using the setter function returned by `useState`. Directly modifying arrays or objects (e.g., `myArray.push('new')` or `myObject.name = 'newName'`) does not trigger a re-render because the reference to the object has not changed. Always create a new copy:
+```javascript
+// WRONG: state.push(newItem);
+// RIGHT:
+setItems([...items, newItem]); // Array spreading
+setProfile({ ...profile, name: 'Alice' }); // Object spreading
+```
+</Callout>
+
+<Quiz question={"What happens if you run `setCount(count + 1)` three times consecutively in a single event handler?"} options={["The count increases by 3 because updates are executed instantly", "The count increases by 1 because React batches the updates and uses the current render's count snapshot", "The count does not change at all", "React throws a compilation error"]} answerIndex={1}>
+React batches state updates and evaluates `setCount(count + 1)` three times using the original `count` value from the snapshot. To increase the count by 3, you must use functional state updates: `setCount(prev => prev + 1)`.
+</Quiz>
+
+---
+
+### 6. Component Lifecycle & Effects (`useEffect`)
+
+The `useEffect` hook allows functional components to perform side effects (such as data fetching, manual DOM manipulation, setting up event listeners, or connecting to web sockets).
+
+#### The Synchronization Mental Model
+
+Do not think of `useEffect` in terms of class lifecycle hooks (`componentDidMount`, `componentDidUpdate`, `componentWillUnmount`). Instead, think of it as a way to **synchronize your component with an external system** based on state and props.
+
+#### The Dependency Array
+
+The behavior of `useEffect` is controlled by its second argument, the dependency array:
+
+| Dependency Array | Running Behavior | Analogy |
+| --- | --- | --- |
+| **No Dependency Array**<br/>`useEffect(() => {})` | Runs after **every single render** of the component. | A reporter who writes a story on every minor event. |
+| **Empty Dependency Array**<br/>`useEffect(() => {}, [])` | Runs **only once**, immediately after the component mounts. | A welcome sign that is only set up when the store opens. |
+| **With Dependencies**<br/>`useEffect(() => {}, [id])` | Runs on mount, and **whenever the `id` value changes** between renders. | A weather display that updates only when the location changes. |
+
+#### The Cleanup Function
+
+If your effect sets up an ongoing task (like a timer, a document event listener, or a web socket connection), you must return a **cleanup function** from the effect. React will execute this cleanup function before the component unmounts or before the effect runs again.
+
+```javascript
+import { useState, useEffect } from 'react';
+
+function MouseTracker() {
+  const [coords, setCoords] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setCoords({ x: e.clientX, y: e.clientY });
+    };
+
+    // 1. Setup side-effect
+    window.addEventListener('mousemove', handleMouseMove);
+
+    // 2. Return cleanup function to prevent memory leaks
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []); // Runs once on mount, cleans up on unmount
+
+  return <p>Mouse: {coords.x}, {coords.y}</p>;
+}
+```
+
+<Callout type="error" title="⚠️ Memory Leaks from Stale Closures">
+Failing to clean up event listeners or timers can lead to memory leaks, causing your app to slow down or crash as memory usage increases.
+</Callout>
+
+<Quiz question={"When does the cleanup function returned inside `useEffect` execute?"} options={["Only when the component is first rendered", "Right before the component unmounts, or before the effect re-runs due to dependency changes", "Only when the page is reloaded", "Every time the component state is read"]} answerIndex={1}>
+The cleanup function runs right before the component is destroyed (unmounted) or immediately before the effect is re-executed due to a dependency change, cleaning up resources from the previous run.
+</Quiz>
+
+---
+
+### 7. Ref Management (`useRef`)
+
+`useRef` is a hook that provides a way to persist mutable values across renders without triggering a new render when the value changes. It is also used to reference DOM nodes directly.
+
+`useRef` returns a mutable object with a single property: `.current`.
+
+```javascript
+import { useRef } from 'react';
+
+const myRef = useRef(initialValue); // Returns { current: initialValue }
+```
+
+#### Common Use Cases
+
+1. **Accessing DOM Elements Directly** (e.g., focusing an input):
+```jsx
+import { useRef } from 'react';
+
+function AutoFocusInput() {
+  const inputRef = useRef(null);
+
+  const handleFocus = () => {
+    // Accesses the real DOM node and calls focus()
+    inputRef.current.focus();
+  };
+
+  return (
+    <>
+      <input ref={inputRef} type="text" />
+      <button onClick={handleFocus}>Focus Input</button>
+    </>
+  );
+}
+```
+
+2. **Storing Mutable Values without Re-rendering** (e.g., tracking a timer ID):
+```javascript
+import { useState, useRef } from 'react';
+
+function Timer() {
+  const [seconds, setSeconds] = useState(0);
+  const timerId = useRef(null); // Holds the interval ID
+
+  const startTimer = () => {
+    if (timerId.current !== null) return;
+    timerId.current = setInterval(() => {
+      setSeconds(prev => prev + 1);
+    }, 1000);
+  };
+
+  const stopTimer = () => {
+    clearInterval(timerId.current);
+    timerId.current = null; // Does NOT trigger a re-render
+  };
+}
+```
+
+| Feature | State (`useState`) | Ref (`useRef`) |
+| --- | --- | --- |
+| **Triggers Re-render?** | **Yes** | **No** |
+| **Persistence?** | Persists across renders | Persists across renders |
+| **Primary Use Case** | Data rendered on the screen | DOM refs, timer IDs, tracking renders |
+
+<Quiz question={"Which of the following is true about updating a Ref (`myRef.current = newValue`)?"} options={["It schedules a component re-render", "It works exactly like a state update and is batched", "It does NOT trigger a re-render of the component", "It throws an error if called inside an event handler"]} answerIndex={2}>
+Updating a ref's `.current` property changes its value immediately and persists across renders, but it does *not* trigger a component re-render.
+</Quiz>
+
+---
+
+### 8. Performance Optimization Hooks
+
+By default, when a parent component renders, **all of its child components render recursively**, regardless of whether their props changed. React offers optimization hooks to prevent unnecessary work.
+
+#### `React.memo`
+
+`React.memo` is a higher-order component that wraps a functional component. It performs a shallow comparison of the component's props and prevents a re-render if the props have not changed.
+
+```jsx
+import React from 'react';
+
+const ChildComponent = React.memo(({ name }) => {
+  console.log('Child rendered!');
+  return <p>{name}</p>;
+});
+```
+
+#### `useMemo`
+
+`useMemo` caches (memoizes) the **result of an expensive calculation** so that it doesn't have to be recalculated on every render unless its dependencies change.
+
+```javascript
+import { useMemo } from 'react';
+
+const expensiveResult = useMemo(() => {
+  return runHeavyCalculation(data);
+}, [data]); // Recalculates only when 'data' changes
+```
+
+#### `useCallback`
+
+`useCallback` caches a **function definition itself** between renders. 
+
+When you pass a function to a memoized child component, the parent creates a *new function instance* on every render, which breaks the child's `React.memo` optimization. Wrapping the parent function in `useCallback` keeps the function reference identical.
+
+```javascript
+import { useCallback } from 'react';
+
+const handleAction = useCallback(() => {
+  doSomething(id);
+}, [id]); // Returns the same function reference unless 'id' changes
+```
+
+<Callout type="warn" title="📋 Premature Optimization Caution">
+Do not wrap every function and calculation in these hooks. They have performance overhead (maintaining dependency arrays, checking caches). Use them only when a component is demonstrably slow or experiences rendering bottlenecks.
+</Callout>
+
+<Quiz question={"Why would passing a standard callback function `const handleClick = () => {}` break `React.memo` on a child component?"} options={["React.memo does not support components that accept functions", "Functions are primitives and cannot be compared", "A new function reference is created in memory on every parent render, failing shallow equality checks", "It causes an infinite compilation loop"]} answerIndex={2}>
+In JavaScript, functions are objects. Every time a parent component renders, it instantiates a new function reference in memory. Since `React.memo` performs a shallow check (`oldProps.onClick === newProps.onClick`), it sees a different reference and triggers a re-render. `useCallback` resolves this by caching the function reference.
+</Quiz>
+
+---
+
+### 9. Advanced State & Context
+
+As your application grows, passing props down through multiple layers of components (called **Prop Drilling**) becomes difficult to manage.
+
+#### Context API (`useContext`)
+
+Context allows you to share global data (like themes, user info, or languages) across the entire component tree without passing props manually at every level.
+
+```
+Prop Drilling: Parent -> Child -> SubChild -> Target (Props passed through all)
+Context API:   Parent [Context Provider] -------------> Target [useContext]
+```
+
+#### Context API Example
+
+```jsx
+import { createContext, useContext, useState } from 'react';
+
+// 1. Create the Context
+const ThemeContext = createContext(null);
+
+// 2. Provider Component wrapping the tree
+export function ThemeProvider({ children }) {
+  const [theme, setTheme] = useState('dark');
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+// 3. Child Component consuming context directly
+function ThemeButton() {
+  const { theme, setTheme } = useContext(ThemeContext);
+  
+  return (
+    <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+      Current Theme: {theme}
+    </button>
+  );
+}
+```
+
+#### `useReducer`
+
+For components with complex state logic (e.g., state with multiple sub-values or state transitions dependent on previous actions), `useReducer` is preferred over `useState`.
+
+```javascript
+import { useReducer } from 'react';
+
+// 1. Define reducer function containing state transition rules
+function reducer(state, action) {
+  switch (action.type) {
+    case 'increment': return { count: state.count + 1 };
+    case 'decrement': return { count: state.count - 1 };
+    default: throw new Error();
+  }
+}
+
+// 2. Usage inside component
+function Counter() {
+  const [state, dispatch] = useReducer(reducer, { count: 0 });
+
+  return (
+    <>
+      <p>Count: {state.count}</p>
+      <button onClick={() => dispatch({ type: 'increment' })}>+</button>
+      <button onClick={() => dispatch({ type: 'decrement' })}>-</button>
+    </>
+  );
+}
+```
+
+<Quiz question={"What problem is the Context API primarily designed to solve?"} options={["Asynchronous API fetching issues", "Direct state mutation errors", "Prop drilling across deeply nested components", "CSS style inheritance conflicts"]} answerIndex={2}>
+The Context API provides a way to share values between components without having to explicitly pass a prop through every intermediate level of the tree (solving prop drilling).
+</Quiz>
+
+---
+
+### 10. Lists & Keys
+
+When rendering lists of components from an array, you must assign a unique `key` prop to each item.
+
+```jsx
+const tasks = [
+  { id: 't1', text: 'Learn React' },
+  { id: 't2', text: 'Build a project' }
+];
+
+function TaskList() {
+  return (
+    <ul>
+      {tasks.map(task => (
+        // Key prop is required here
+        <li key={task.id}>{task.text}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+#### Why are Keys important?
+
+Keys act as identifiers for elements in a list. They help React identify which items have changed, been added, or been removed in the array. This allows React to move DOM nodes instead of destroying and re-creating them from scratch during reconciliation.
+
+<Callout type="error" title="⚠️ The Index-As-Key Anti-pattern">
+Avoid using the array `index` as a key (e.g., `key={index}`). If the list is sorted, filtered, or has elements inserted/removed, the indices of items will change. This causes React to misidentify items, leading to UI rendering bugs (such as input field text mismatch) and degraded performance. Always use stable, unique IDs from your data source.
+</Callout>
+
+<Quiz question={"Why is using an array index as a `key` considered bad practice in React list rendering?"} options={["It triggers a compilation error and halts the development server", "It prevents you from using CSS flexbox styles", "It can cause rendering bugs and state issues when list items are reordered, deleted, or inserted", "Indices occupy too much browser memory"]} answerIndex={2}>
+If list items are reordered, their index changes but their data stays the same. React relies on the key to match DOM nodes to data; if keys change, React may render stateful elements incorrectly or re-render items unnecessarily.
+</Quiz>
+
+---
+
+### 11. Forms: Controlled vs. Uncontrolled
+
+Forms in React handle input elements in one of two ways:
+
+1. **Controlled Components**: The input's current value is driven by React **State**. The state is the **single source of truth** for the input.
+2. **Uncontrolled Components**: The input's value is handled by the browser **DOM** itself. React accesses the input's current value on-demand using a `ref`.
+
+#### Controlled vs Uncontrolled Examples
+
+```jsx
+// 1. Controlled Component (State-driven)
+function ControlledForm() {
+  const [name, setName] = useState('');
+
+  return (
+    <input 
+      value={name} 
+      onChange={(e) => setName(e.target.value)} 
+    />
+  );
+}
+
+// 2. Uncontrolled Component (DOM-driven)
+import { useRef } from 'react';
+
+function UncontrolledForm() {
+  const inputRef = useRef(null);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert('Submitted value: ' + inputRef.current.value);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input ref={inputRef} type="text" />
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+```
+
+<Callout type="info" title="💡 Which should you use?">
+Use **Controlled Components** for almost all standard form scenarios. They make features like real-time validation, input formatting (e.g., auto-formatting phone numbers), and dynamic button disabling simple. Uncontrolled components are useful for simple forms with minimal logic or when integrating with non-React libraries.
+</Callout>
+
+<Quiz question={"Which component type maintains form values in React state as the single source of truth?"} options={["Uncontrolled Component", "Controlled Component", "Ref-linked Component", "State-less Component"]} answerIndex={1}>
+Controlled Components synchronize the input value with React state, making React the single source of truth for the input's value.
+</Quiz>
+
+---
+
+### 12. Routing (React Router)
+
+React Router is the standard library used to handle client-side routing in React SPAs, allowing navigation without page reloads.
+
+#### Routing Configuration Example
+
+```jsx
+import { BrowserRouter, Routes, Route, Link, useParams } from 'react-router-dom';
+
+function UserProfile() {
+  // Accessing route parameters (e.g., /user/42 -> userId = 42)
+  const { userId } = useParams();
+  return <h2>Profile of User: {userId}</h2>;
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <nav>
+        <Link to="/">Home</Link> | <Link to="/user/123">My Profile</Link>
+      </nav>
+
+      <Routes>
+        <Route path="/" element={<h1>Home Page</h1>} />
+        <Route path="/user/:userId" element={<UserProfile />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+#### Lazy Loading Routes
+
+To optimize initial page load times, you can split your Javascript bundle by lazy-loading route components using `React.lazy` and wrapping the routes in a `<Suspense>` boundary.
+
+```jsx
+import React, { Suspense } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
+// Lazy load the component
+const HeavyDashboard = React.lazy(() => import('./HeavyDashboard'));
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Suspense fallback={<div>Loading Page...</div>}>
+        <Routes>
+          <Route path="/dashboard" element={<HeavyDashboard />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  );
+}
+```
+
+<Quiz question={"Which component is required to wrap lazy-loaded components and display a loading fallback UI?"} options={["`<Loading>`", "`<Suspense>`", "`<LazyRoute>`", "`<Fallback>`"]} answerIndex={1}>
+`<Suspense>` wraps lazy-loaded components and displays the specified fallback UI (like a spinner or loading text) while the child component code bundle is being fetched.
+</Quiz>
+
+---
+
+### 13. Rules of Hooks & Common Gotchas
+
+Hooks are JavaScript functions, but they enforce two strict rules that must be followed for React to execute them correctly:
+
+1. **Only Call Hooks at the Top Level**: Do not call hooks inside loops, conditional statements (`if`), or nested functions. Hooks must be called in the exact same order on every render.
+2. **Only Call Hooks from React Functions**: Call hooks only from React functional components or custom hooks. Do not call them from plain JavaScript functions.
+
+#### Common Gotchas to Avoid
+
+<Callout type="error" title="1. Infinite Loop in useEffect">
+**The Gotcha:** Modifying a state variable inside `useEffect` while listing that same variable in the dependency array:
+```javascript
+useEffect(() => {
+  setCount(count + 1); // Triggers re-render, running the effect again -> Infinite Loop!
+}, [count]);
+```
+**The Solution:** Correctly configure your dependency array or use a functional update that does not depend on the outer state variable.
+</Callout>
+
+<Callout type="error" title="2. Stale Closures in Effects/Callbacks">
+**The Gotcha:** Referencing a state variable inside `useEffect` or `useCallback` without declaring it in the dependency array. The hook remembers the variable value from when it was first declared (stale reference).  
+**The Solution:** Add the referenced state variables to the dependency array.
+</Callout>
+
+<Callout type="warn" title="💡 TCS FA/ILP Key Facts to Memorize">
+- React is a **Library**, not a Framework.
+- **Reconciliation** is the sync between Virtual DOM and Real DOM.
+- **JSX** attributes use camelCase (e.g. `className`, `htmlFor`).
+- Hooks must **always** start with the prefix `use` (e.g. `useState`, `useMyHook`).
+- Class components are legacy; functional components with Hooks are modern best practice.
+</Callout>

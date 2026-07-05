@@ -1,7 +1,0 @@
-{
-  "title": "APIs & Data",
-  "order": [
-    "http",
-    "graphql"
-  ]
-}

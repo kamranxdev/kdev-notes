@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "index",
+    "---Web Development---",
+    "web-fundamentals",
+    "web-frameworks",
+    "---Backend & Databases---",
+    "programming",
+    "database",
+    "---Systems & Integration---",
+    "unix-linux",
+    "rest-json-xml"
+  ]
+}
