@@ -63,28 +63,12 @@ a[target="_blank"] { color: red; }
 "What does `div > p` select?" — It selects only **direct child** `<p>` elements, not nested ones. Compare with `div p` which selects ALL descendants. Also watch for `p.intro` vs `.intro p` — totally different things! `p.intro` = a paragraph WITH class intro. `.intro p` = a paragraph INSIDE something with class intro.
 </Callout>
 
-Given this HTML: `<div><span><p>Hello</p></span></div>`, which selector will style the `<p>`?
-
-1.  `div > p`
-2.  `div p`
-3.  `span > div`
-4.  `div + p`
-
-Show Answer
-
+<Quiz question={"Given this HTML: `<div><span><p>Hello</p></span></div>`, which selector will style the `<p>`?"} options={["`div > p`", "`div p`", "`span > div`", "`div + p`"]} answerIndex={1}>
 B) `div p` — the descendant selector matches `<p>` at any depth inside `<div>`. Option A fails because `<p>` is a grandchild (not direct child) of `<div>`. The child selector `>` only matches immediate children.
-
-What is the difference between `p.intro` and `.intro p`?
-
-1.  They are the same thing
-2.  `p.intro` selects paragraphs with class "intro"; `.intro p` selects paragraphs inside elements with class "intro"
-3.  `p.intro` selects elements with id "intro"; `.intro p` selects class "intro"
-4.  `p.intro` is invalid CSS syntax
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the difference between `p.intro` and `.intro p`?"} options={["They are the same thing", "`p.intro` selects paragraphs with class \"intro\"; `.intro p` selects paragraphs inside elements with class \"intro\"", "`p.intro` selects elements with id \"intro\"; `.intro p` selects class \"intro\"", "`p.intro` is invalid CSS syntax"]} answerIndex={1}>
 B) `p.intro` means "a `<p>` element that HAS class intro" (no space = same element). `.intro p` means "any `<p>` that is INSIDE an element with class intro" (space = descendant relationship). Completely different selections.
-
+</Quiz>
 ### Box Model
 
 **Why does the box model matter?** Here is the single most important thing to understand about CSS layout: _every single HTML element is a rectangular box_. Not some elements. Not just divs. EVERY element — paragraphs, headings, images, links — they are all invisible boxes sitting on the page.
@@ -146,28 +130,12 @@ This is why every modern CSS reset starts with `* { box-sizing: border-box; }` �
 Imagine two magnets placed end to end — they don't stack their forces, the stronger one wins. Vertical margins work the same way. When element A has `margin-bottom: 30px` and element B has `margin-top: 20px`, the gap between them is **30px** (not 50px) — the larger margin absorbs the smaller one. This ONLY happens vertically. Horizontal margins never collapse.
 </Callout>
 
-What is the total width of an element with: `width: 300px; padding: 20px; border: 5px solid; margin: 10px;`?
-
-1.  300px
-2.  350px
-3.  370px
-4.  350px content + 20px margin on each side
-
-Show Answer
-
+<Quiz question={"What is the total width of an element with: `width: 300px; padding: 20px; border: 5px solid; margin: 10px;`?"} options={["300px", "350px", "370px", "350px content + 20px margin on each side"]} answerIndex={1}>
 B) 350px — width(300) + padding(20x2) + border(5x2) = 350px. Margin is not part of the element's width but adds to total space occupied (370px total space). Remember: by default, `width` only sets the content area.
-
-Two adjacent elements: first has `margin-bottom: 40px`, second has `margin-top: 25px`. What is the gap between them?
-
-1.  65px
-2.  40px
-3.  25px
-4.  32.5px
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Two adjacent elements: first has `margin-bottom: 40px`, second has `margin-top: 25px`. What is the gap between them?"} options={["65px", "40px", "25px", "32.5px"]} answerIndex={1}>
 B) 40px — vertical margins collapse. The larger margin wins, so the gap is 40px, not 65px. This only happens with vertical margins (top/bottom), never horizontal (left/right).
-
+</Quiz>
 ### Specificity & Cascade
 
 **Why does specificity exist?** Imagine you have 3 bosses. Boss A says "paint the wall blue." Boss B says "paint the wall red." Boss C says "paint the wall green." Whose instruction do you follow? You need a pecking order — a way to decide who wins.
@@ -210,28 +178,12 @@ p.intro        { }  /* 0,0,1,1 */
 If two rules have the same specificity, the one that appears **later** in the CSS wins — like the last person to speak in an argument gets the final word. Also: `!important` overrides everything (but avoid using it — it is the nuclear option and the exam loves to test edge cases with it).
 </Callout>
 
-Which selector has the highest specificity?
-
-1.  `#nav .menu li`
-2.  `div#nav ul.menu li`
-3.  `body div ul li`
-4.  `.nav .menu .item`
-
-Show Answer
-
+<Quiz question={"Which selector has the highest specificity?"} options={["`#nav .menu li`", "`div#nav ul.menu li`", "`body div ul li`", "`.nav .menu .item`"]} answerIndex={1}>
 B) `div#nav ul.menu li` — specificity is 0,1,1,3 (1 ID + 1 class + 3 elements). A is 0,1,1,1. C is 0,0,0,4. D is 0,0,3,0. Remember: one ID (0,1,0,0) beats any number of classes or elements.
-
-Two rules target the same element: `.header { color: blue; }` appears on line 10, and `.header { color: red; }` appears on line 50. What color is the text?
-
-1.  Blue — first rule wins
-2.  Red — last rule wins when specificity is equal
-3.  Browser default color
-4.  Depends on the HTML structure
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Two rules target the same element: `.header { color: blue; }` appears on line 10, and `.header { color: red; }` appears on line 50. What color is the text?"} options={["Blue \u2014 first rule wins", "Red \u2014 last rule wins when specificity is equal", "Browser default color", "Depends on the HTML structure"]} answerIndex={1}>
 B) Red. When two selectors have the same specificity (both are `.header` = 0,0,1,0), the cascade rule kicks in: the one that appears LATER in the stylesheet wins. This is the "C" in CSS — Cascading.
-
+</Quiz>
 ### Display & Position
 
 #### Display property
@@ -313,28 +265,12 @@ This is like the difference between someone **leaving the room** vs someone putt
 An `absolute` element looks UP the DOM tree for the nearest ancestor that has `position: relative`, `absolute`, or `fixed`. If none found, it positions relative to `<html>` (the viewport). This is why you almost always see `position: relative` on a parent when using `position: absolute` on a child — the parent becomes the reference point.
 </Callout>
 
-What is the difference between `display: none` and `visibility: hidden`?
-
-1.  No difference — both hide the element
-2.  `display: none` removes the element from flow; `visibility: hidden` hides it but it still takes space
-3.  `visibility: hidden` removes the element from flow; `display: none` keeps the space
-4.  Both remove the element from document flow
-
-Show Answer
-
+<Quiz question={"What is the difference between `display: none` and `visibility: hidden`?"} options={["No difference \u2014 both hide the element", "`display: none` removes the element from flow; `visibility: hidden` hides it but it still takes space", "`visibility: hidden` removes the element from flow; `display: none` keeps the space", "Both remove the element from document flow"]} answerIndex={1}>
 B) `display: none` removes the element completely — it takes no space, as if it was never there. `visibility: hidden` makes it invisible but it still occupies its space in the layout. Think: leaving the room vs wearing an invisibility cloak.
-
-What does `position: absolute` do?
-
-1.  Positions the element relative to its normal position
-2.  Positions the element relative to the viewport
-3.  Positions the element relative to the nearest positioned ancestor
-4.  Keeps the element in normal document flow
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does `position: absolute` do?"} options={["Positions the element relative to its normal position", "Positions the element relative to the viewport", "Positions the element relative to the nearest positioned ancestor", "Keeps the element in normal document flow"]} answerIndex={2}>
 C) It removes the element from normal flow and positions it relative to the nearest ancestor that has a position value other than `static`. If no positioned ancestor exists, it uses the document body. Remember: `relative` = nudge from where you were; `absolute` = teleport to exact coordinates inside your parent.
-
+</Quiz>
 ### Flexbox
 
 **Why does Flexbox exist?** Before Flexbox, centering a div vertically was a legendary CSS struggle. Developers used hacks with tables, floats, and negative margins just to put something in the middle of the page. Flexbox was invented to solve this: it gives you a simple, powerful way to arrange elements in a row or column, with total control over spacing and alignment.
@@ -407,28 +343,12 @@ If you flip `flex-direction` to `column`, these axes SWAP — `justify-content` 
 .item { flex: 0 0 200px; }   /* fixed 200px, don't grow, don't shrink */
 ```
 
-Which CSS property is used to align items along the main axis in a flex container?
-
-1.  `align-items`
-2.  `justify-content`
-3.  `flex-direction`
-4.  `align-content`
-
-Show Answer
-
+<Quiz question={"Which CSS property is used to align items along the main axis in a flex container?"} options={["`align-items`", "`justify-content`", "`flex-direction`", "`align-content`"]} answerIndex={1}>
 B) `justify-content` — it aligns items along the main axis. `align-items` aligns along the cross axis. Remember: "justify" = main axis, "align" = cross axis.
-
-You have a flex container with `flex-direction: column`. Which property controls horizontal alignment of the items?
-
-1.  `justify-content`
-2.  `align-items`
-3.  `flex-wrap`
-4.  `flex-basis`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"You have a flex container with `flex-direction: column`. Which property controls horizontal alignment of the items?"} options={["`justify-content`", "`align-items`", "`flex-wrap`", "`flex-basis`"]} answerIndex={1}>
 B) `align-items`. When `flex-direction` is `column`, the main axis becomes vertical and the cross axis becomes horizontal. Since `align-items` controls the cross axis, it now controls horizontal alignment. This axis-swap is a common exam trap.
-
+</Quiz>
 ### CSS Grid
 
 **Why does Grid exist if we have Flexbox?** Flexbox is one-dimensional — it handles a row OR a column. Grid is two-dimensional — it handles rows AND columns at the same time. Think of Flexbox as arranging items on a clothesline (one direction). Grid is like arranging items on a chessboard (rows and columns simultaneously).
@@ -491,17 +411,9 @@ In practice, you often use Grid for the overall page structure and Flexbox for i
 `em` is relative to the **parent's** font-size. So if you nest elements with `em` sizes, they compound like interest. A parent at `2em` with a child at `2em` = the child is 4x the root size. And the grandchild at `2em` = 8x. This is why `rem` (root em) was invented — it ALWAYS references the root element, no matter how deeply nested. Use `rem` for font sizes to stay sane.
 </Callout>
 
-If root font-size is 16px, what is `2.5rem` in pixels?
-
-1.  25px
-2.  32px
-3.  40px
-4.  48px
-
-Show Answer
-
+<Quiz question={"If root font-size is 16px, what is `2.5rem` in pixels?"} options={["25px", "32px", "40px", "48px"]} answerIndex={2}>
 C) 40px — `rem` is always relative to root font-size. 2.5 x 16px = 40px. It does not matter how many elements this is nested inside — `rem` always looks at the root.
-
+</Quiz>
 ### Colors & Backgrounds
 
 **Why so many color formats?** Different formats exist for different use cases: named colors are readable, hex is compact, RGB gives precise control, and RGBA adds transparency. For the exam, know all formats and especially understand `opacity` vs `rgba`.
@@ -625,17 +537,9 @@ tr:nth-child(even) { background: #f4f4f4; }
 The order must be **:link → :visited → :hover → :active** (remember: **L**o**V**e **HA**te). If the order is wrong, some states get overridden by later rules due to equal specificity. For example, if `:hover` comes before `:visited`, visited links will not show the hover color.
 </Callout>
 
-Which pseudo-element requires the `content` property to work?
-
-1.  `::first-line`
-2.  `::before`
-3.  `::first-letter`
-4.  `:hover`
-
-Show Answer
-
+<Quiz question={"Which pseudo-element requires the `content` property to work?"} options={["`::first-line`", "`::before`", "`::first-letter`", "`:hover`"]} answerIndex={1}>
 B) `::before` (and `::after`) require the `content` property — without it, they will not render at all. Even if you want nothing visible, you need `content: ""`. Note: `:hover` is a pseudo-CLASS (single colon), not a pseudo-element.
-
+</Quiz>
 ### Transitions & Animations
 
 **Why do transitions exist?** Without transitions, CSS changes happen instantly — a button goes from blue to red in 0 milliseconds. That feels jarring and cheap. Transitions add smooth, gradual changes that make your UI feel polished and professional. Think of it like a dimmer switch vs a light switch — both control brightness, but the dimmer does it smoothly.
@@ -711,17 +615,9 @@ Without this tag in HTML `<head>`, media queries will NOT work on mobile devices
 `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
 </Callout>
 
-In a mobile-first approach, which media query do you use to add styles for larger screens?
-
-1.  `@media (max-width: 768px)`
-2.  `@media (min-width: 768px)`
-3.  `@media (screen)`
-4.  `@media (device-width: 768px)`
-
-Show Answer
-
+<Quiz question={"In a mobile-first approach, which media query do you use to add styles for larger screens?"} options={["`@media (max-width: 768px)`", "`@media (min-width: 768px)`", "`@media (screen)`", "`@media (device-width: 768px)`"]} answerIndex={1}>
 B) `min-width` means "apply these styles when the screen is AT LEAST this wide." In mobile-first, you write base styles for small screens, then use `min-width` breakpoints to progressively add styles for larger screens. `max-width` is for desktop-first (scaling down).
-
+</Quiz>
 ### Shorthand Properties
 
 Shorthand properties let you set multiple related properties in one line. Less typing, cleaner code. But you need to remember the order of values.
@@ -746,70 +642,23 @@ font: italic bold 16px/1.5 Arial, sans-serif;
 Margin, padding, and border-radius with 4 values always go **clockwise**: Top → Right → Bottom → Left. Remember: **TR**ou**BL**e (TRBL). For 3 values: top, left/right (shared), bottom. For 2 values: top/bottom (shared), left/right (shared).
 </Callout>
 
-What does `margin: 10px 20px 30px;` mean?
-
-1.  top: 10px, right: 20px, bottom: 30px, left: 20px
-2.  top: 10px, right: 20px, bottom: 30px, left: 0
-3.  top: 10px, right: 30px, bottom: 20px, left: 10px
-4.  top: 10px, right: 20px, bottom: 30px, left: 30px
-
-Show Answer
-
+<Quiz question={"What does `margin: 10px 20px 30px;` mean?"} options={["top: 10px, right: 20px, bottom: 30px, left: 20px", "top: 10px, right: 20px, bottom: 30px, left: 0", "top: 10px, right: 30px, bottom: 20px, left: 10px", "top: 10px, right: 20px, bottom: 30px, left: 30px"]} answerIndex={0}>
 A) 3-value shorthand: top = 10px, right = 20px, bottom = 30px, left = same as right = 20px. When the left value is missing, it mirrors the right value.
-
+</Quiz>
 ### More Practice Questions
 
-An element has `width: 200px; box-sizing: border-box; padding: 20px; border: 5px solid;`. What is the total width on screen?
-
-1.  250px
-2.  200px
-3.  150px
-4.  210px
-
-Show Answer
-
+<Quiz question={"An element has `width: 200px; box-sizing: border-box; padding: 20px; border: 5px solid;`. What is the total width on screen?"} options={["250px", "200px", "150px", "210px"]} answerIndex={1}>
 B) 200px. With `box-sizing: border-box`, the width includes padding and border. The content area shrinks to 150px (200 - 20*2 - 5*2) to accommodate, but the total on-screen width remains 200px.
-
-What is the specificity of the selector `div.container > ul li a:hover`?
-
-1.  0,0,2,4
-2.  0,0,1,4
-3.  0,1,1,3
-4.  0,0,2,3
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the specificity of the selector `div.container > ul li a:hover`?"} options={["0,0,2,4", "0,0,1,4", "0,1,1,3", "0,0,2,3"]} answerIndex={0}>
 A) 0,0,2,4. Count: IDs = 0. Classes/pseudo-classes = `.container` + `:hover` = 2. Elements = `div` + `ul` + `li` + `a` = 4. The `>` combinator has no specificity value.
-
-You want a transparent background on a div WITHOUT making its child text transparent. Which approach works?
-
-1.  `opacity: 0.5`
-2.  `background: rgba(0, 0, 0, 0.5)`
-3.  `visibility: hidden`
-4.  `display: none`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"You want a transparent background on a div WITHOUT making its child text transparent. Which approach works?"} options={["`opacity: 0.5`", "`background: rgba(0, 0, 0, 0.5)`", "`visibility: hidden`", "`display: none`"]} answerIndex={1}>
 B) `rgba` makes only the background transparent. `opacity` would make the entire element AND all children transparent — you cannot override it on children. This is one of the most practical CSS distinctions to understand.
-
-A flex container has `flex-direction: row` and `justify-content: space-between`. Where do the items appear?
-
-1.  All items centered horizontally
-2.  First item at the start, last item at the end, equal space between them
-3.  Equal space around each item
-4.  Items stacked vertically
-
-Show Answer
-
+</Quiz>
+<Quiz question={"A flex container has `flex-direction: row` and `justify-content: space-between`. Where do the items appear?"} options={["All items centered horizontally", "First item at the start, last item at the end, equal space between them", "Equal space around each item", "Items stacked vertically"]} answerIndex={1}>
 B) `space-between` places the first item flush to the start edge and the last item flush to the end edge, distributing remaining space equally between items. No space before the first or after the last.
-
-An element has `position: relative; top: 20px;`. What happens?
-
-1.  The element moves 20px from the top of the viewport
-2.  The element moves 20px down from its normal position, but its original space is still reserved
-3.  The element moves 20px down and other elements fill its original space
-4.  Nothing — `top` does not work with relative positioning
-
-Show Answer
-
+</Quiz>
+<Quiz question={"An element has `position: relative; top: 20px;`. What happens?"} options={["The element moves 20px from the top of the viewport", "The element moves 20px down from its normal position, but its original space is still reserved", "The element moves 20px down and other elements fill its original space", "Nothing \u2014 `top` does not work with relative positioning"]} answerIndex={1}>
 B) With `position: relative`, the element shifts 20px down from where it WOULD have been, but its original space in the document flow is preserved. Other elements do not move to fill the gap — they act as if the element is still in its original position.
+</Quiz>

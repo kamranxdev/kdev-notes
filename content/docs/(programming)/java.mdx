@@ -151,34 +151,11 @@ class Demo {
 
 ```
 
-What is the output of this code?
-
-```java
-class Test {
-    int x;
-    String s;
-
-    void run() {
-        int y;
-        System.out.println(x);
-        System.out.println(s);
-        System.out.println(y);
-    }
-}
-
-```
-
-1.  0, null, 0
-2.  0, null, then compile error on the third print
-3.  Compile error on all three prints
-4.  Runtime NullPointerException
-
-Show Answer
-
+<Quiz question={"What is the output of this code?\n\n```java\nclass Test {\n    int x;\n    String s;\n\n    void run() {\n        int y;\n        System.out.println(x);\n        System.out.println(s);\n        System.out.println(y);\n    }\n}\n\n```"} options={["0, null, 0", "0, null, then compile error on the third print", "Compile error on all three prints", "Runtime NullPointerException"]} answerIndex={1}>
 B) 0, null, then compile error on the third print  
   
 `x` is a class field (int) — defaults to `0`. `s` is a class field (String) — defaults to `null`. But `y` is a **local variable** — it has no default. The compiler catches that `y` was never assigned and refuses to compile. The code won't even run.
-
+</Quiz>
 ### Wrapper Classes & Autoboxing
 
 Java has two kinds of data: **primitives** (`int`, `double`, `char`, etc.) and **objects**. The problem is — Java collections like `ArrayList` can ONLY store objects, not primitives. So you can't write `ArrayList<int>`.
@@ -546,35 +523,12 @@ System.out.println(x.equals(z)); // true — same content
 **Exam trick:** String literal concatenation at compile time (`"A" + "B"`) goes to the pool. Variable concatenation at runtime (`"A" + variable`) creates a new heap object.
 </Callout>
 
-**Q: What is the output?**
-```java
-String s1 = "Rahul";
-String s2 = new String("Rahul");
-System.out.println(s1 == s2);
-System.out.println(s1.equals(s2));
-```
+<Quiz question={"**Q: What is the output?**\n```java\nString s1 = \"Rahul\";\nString s2 = new String(\"Rahul\");\nSystem.out.println(s1 == s2);\nSystem.out.println(s1.equals(s2));\n```"} options={["true, true", "false, true", "true, false", "false, false"]} answerIndex={1}>
 
-**A)** true, true  
-**B)** false, true  
-**C)** true, false  
-**D)** false, false
+</Quiz>
+<Quiz question={"**Q: What does this code print?**\n```java\nString name = \"Amit\";\nname.toUpperCase();\nSystem.out.println(name);\n```"} options={["AMIT", "Amit", "amit", "Compilation error"]} answerIndex={1}>
 
-**Answer: B.** `s1` is in the String Pool, `s2` is a new object on the heap. `==` checks reference (different objects = false). `.equals()` checks content (both "Rahul" = true).
-
-**Q: What does this code print?**
-```java
-String name = "Amit";
-name.toUpperCase();
-System.out.println(name);
-```
-
-**A)** AMIT  
-**B)** Amit  
-**C)** amit  
-**D)** Compilation error
-
-**Answer: B.** Strings are immutable. `toUpperCase()` returns a NEW String "AMIT", but since it's not assigned back (`name = name.toUpperCase()`), the original `name` stays "Amit".
-
+</Quiz>
 ### StringBuilder & StringBuffer
 
 #### Why Does Immutability Cause Problems?
@@ -631,15 +585,9 @@ String result = sb.toString();
 **String** = text that stays the same. **StringBuilder** = text you need to build/modify (99% of real use cases). **StringBuffer** = same as StringBuilder but thread-safe (only use in multi-threaded code — rare).
 </Callout>
 
-**Q: Which is the most efficient way to concatenate 500 strings?**
+<Quiz question={"**Q: Which is the most efficient way to concatenate 500 strings?**"} options={["Using `+` operator in a loop", "Using `String.concat()` in a loop", "Using `StringBuilder.append()` in a loop", "All have the same performance"]} answerIndex={2}>
 
-**A)** Using `+` operator in a loop  
-**B)** Using `String.concat()` in a loop  
-**C)** Using `StringBuilder.append()` in a loop  
-**D)** All have the same performance
-
-**Answer: C.** Both A and B create a new String object on every iteration (500 temporary objects). StringBuilder modifies the same object in place — one object for all 500 operations.
-
+</Quiz>
 ### 6\. Arrays
 
 An array is a container that holds a **fixed number** of values of the **same type**. Think of it as a row of numbered boxes.
@@ -1007,31 +955,12 @@ System.out.println(amit.name);  // "Rahul" — the object was modified through t
 Java is **ALWAYS pass by value**. For primitives, it passes a copy of the value. For objects, it passes a **copy of the reference** (address) — so you can modify the object's contents but you cannot make the original variable point to a different object.
 </Callout>
 
-**Q: What is the output?**
-```java
-static void modify(int x) { x = x * 2; }
+<Quiz question={"**Q: What is the output?**\n```java\nstatic void modify(int x) { x = x * 2; }\n\nint num = 10;\nmodify(num);\nSystem.out.println(num);\n```"} options={["10", "20", "0", "Compilation error"]} answerIndex={0}>
 
-int num = 10;
-modify(num);
-System.out.println(num);
-```
+</Quiz>
+<Quiz question={"**Q: Which of these is valid method overloading?**"} options={["`int show(int a)` and `double show(int a)` \u2014 same params, different return", "`void show(int a)` and `void show(double a)` \u2014 different param types", "`void show(int a)` and `void show(int a)` \u2014 identical signatures", "None of the above"]} answerIndex={1}>
 
-**A)** 10  
-**B)** 20  
-**C)** 0  
-**D)** Compilation error
-
-**Answer: A.** Java passes primitives by value (a copy). The method modifies the copy, not the original. `num` remains 10.
-
-**Q: Which of these is valid method overloading?**
-
-**A)** `int show(int a)` and `double show(int a)` — same params, different return  
-**B)** `void show(int a)` and `void show(double a)` — different param types  
-**C)** `void show(int a)` and `void show(int a)` — identical signatures  
-**D)** None of the above
-
-**Answer: B.** Overloading requires different parameter types, number, or order. A is invalid (only return type differs). C is a duplicate method (compile error).
-
+</Quiz>
 ### 9\. OOP — Object-Oriented Programming
 
 **Why does OOP exist?** Imagine you're building a school management system. Without OOP (in "procedural" style), you'd have 100 loose functions like `getStudentName()`, `calculateFees()`, `assignTeacher()` — and 50 global variables floating around. When the system grows, you can't tell which function works with which data. Change one variable and three random functions break. It's chaos — like a kitchen where every chef shares the same 50 bowls with no labels.
@@ -1131,44 +1060,12 @@ class Student {
 
 ```
 
-What is the output?
-
-```java
-Student a = new Student();
-a.name = "Amit";
-Student b = a;
-b.name = "Priya";
-System.out.println(a.name);
-
-```
-
-1.  Amit
-2.  null
-3.  Priya
-4.  Compile error
-
-Show Answer
-
+<Quiz question={"What is the output?\n\n```java\nStudent a = new Student();\na.name = \"Amit\";\nStudent b = a;\nb.name = \"Priya\";\nSystem.out.println(a.name);\n\n```"} options={["Amit", "null", "Priya", "Compile error"]} answerIndex={2}>
 Priya. `b = a` makes both variables point to the same object. Changing `b.name` changes the object that `a` also references.
-
-How many objects are created in heap memory?
-
-```java
-Student s1 = new Student();
-Student s2 = new Student();
-Student s3 = s1;
-
-```
-
-1.  3
-2.  2
-3.  1
-4.  0
-
-Show Answer
-
+</Quiz>
+<Quiz question={"How many objects are created in heap memory?\n\n```java\nStudent s1 = new Student();\nStudent s2 = new Student();\nStudent s3 = s1;\n\n```"} options={["3", "2", "1", "0"]} answerIndex={1}>
 2\. Only `new` creates objects. `s3 = s1` just copies the reference — no new object is created.
-
+</Quiz>
 ### Constructors (VERY IMPORTANT)
 
 **Why do we need constructors?** Imagine you buy a new phone. Out of the box, it has no name set, no Wi-Fi configured, no language selected. Before you can use it, you go through a "setup wizard" that initializes everything. A constructor IS that setup wizard for an object — it runs the moment the object is born and sets up its initial state.
@@ -1255,28 +1152,9 @@ Student(String name, int age) {
 
 ```
 
-What happens when you compile and run this code?
-
-```java
-class Book {
-    String title;
-    Book(String title) {
-        this.title = title;
-    }
-}
-Book b = new Book();
-
-```
-
-1.  Creates a Book with title = null
-2.  Creates a Book with title = ""
-3.  Compile error — no default constructor available
-4.  Runtime exception
-
-Show Answer
-
+<Quiz question={"What happens when you compile and run this code?\n\n```java\nclass Book {\n    String title;\n    Book(String title) {\n        this.title = title;\n    }\n}\nBook b = new Book();\n\n```"} options={["Creates a Book with title = null", "Creates a Book with title = \"\"", "Compile error \u2014 no default constructor available", "Runtime exception"]} answerIndex={2}>
 Compile error. Since a parameterized constructor is defined, Java does NOT provide a free default constructor. `new Book()` fails because there's no no-arg constructor.
-
+</Quiz>
 ### Encapsulation
 
 **Why does hiding data matter?** Imagine your bank account balance is a `public` variable. Any piece of code, anywhere in the program, could do this:
@@ -1357,42 +1235,12 @@ Many beginners think getters/setters are pointless ceremony. But they let you:
 Almost every FA question about encapsulation follows this pattern: **private fields + public getters/setters**. If you see "write an encapsulated class" — make ALL fields `private` and provide `getX()` / `setX()` methods for each field.
 </Callout>
 
-Which of the following is a properly encapsulated class?
-
-1.  A class with all public fields and no methods
-2.  A class with all private fields and public getter/setter methods
-3.  A class with all protected fields
-4.  A class with default access fields and a constructor
-
-Show Answer
-
+<Quiz question={"Which of the following is a properly encapsulated class?"} options={["A class with all public fields and no methods", "A class with all private fields and public getter/setter methods", "A class with all protected fields", "A class with default access fields and a constructor"]} answerIndex={1}>
 B. Encapsulation = private fields + public getters/setters. This hides the data and provides controlled access through methods.
-
-What is the output?
-
-```java
-class Employee {
-    private int age;
-    public void setAge(int age) {
-        if (age > 0 && age < 120) this.age = age;
-    }
-    public int getAge() { return age; }
-}
-Employee e = new Employee();
-e.setAge(-5);
-System.out.println(e.getAge());
-
-```
-
-1.  \-5
-2.  Compile error
-3.  0
-4.  Runtime exception
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nclass Employee {\n    private int age;\n    public void setAge(int age) {\n        if (age > 0 && age < 120) this.age = age;\n    }\n    public int getAge() { return age; }\n}\nEmployee e = new Employee();\ne.setAge(-5);\nSystem.out.println(e.getAge());\n\n```"} options={["\\-5", "Compile error", "0", "Runtime exception"]} answerIndex={2}>
 0\. The setter rejects -5 (fails the `age > 0` check), so `age` keeps its default value of 0. This is encapsulation protecting the data.
-
+</Quiz>
 ### Inheritance
 
 **What problem does inheritance solve?** Imagine you're building a system with `Dog`, `Cat`, and `Bird` classes. All three have `name`, `age`, and an `eat()` method. Without inheritance, you'd copy-paste these into all three classes. Now imagine you need to add a `weight` field — you'd have to update three classes. With 20 animal types? That's 20 places to edit. Inheritance solves this: write the common stuff ONCE in an `Animal` parent class, and every child class gets it for free.
@@ -1500,39 +1348,12 @@ When you create a child object, the **parent constructor runs FIRST**, then the 
 Java supports **single inheritance only** — a class can extend only ONE class. No multiple class inheritance. However, a class CAN implement multiple interfaces.
 </Callout>
 
-What is the output?
-
-```java
-class Parent {
-    Parent() { System.out.print("P "); }
-}
-class Child extends Parent {
-    Child() { System.out.print("C "); }
-}
-new Child();
-
-```
-
-1.  C P
-2.  P C
-3.  C
-4.  Compile error
-
-Show Answer
-
+<Quiz question={"What is the output?\n\n```java\nclass Parent {\n    Parent() { System.out.print(\"P \"); }\n}\nclass Child extends Parent {\n    Child() { System.out.print(\"C \"); }\n}\nnew Child();\n\n```"} options={["C P", "P C", "C", "Compile error"]} answerIndex={2}>
 P C. Parent constructor always runs first. Even though we wrote `new Child()`, Java automatically calls `super()` before the child constructor body executes.
-
-Which statement about inheritance is FALSE?
-
-1.  A child class inherits public methods from the parent
-2.  Java supports single class inheritance only
-3.  super() must be the first statement in a child constructor
-4.  A child class inherits the parent's constructors
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which statement about inheritance is FALSE?"} options={["A child class inherits public methods from the parent", "Java supports single class inheritance only", "super() must be the first statement in a child constructor", "A child class inherits the parent's constructors"]} answerIndex={3}>
 D is FALSE. Constructors are NEVER inherited. The child must define its own constructors and can call the parent's constructor using `super()`.
-
+</Quiz>
 ### Polymorphism
 
 **Poly = many, morph = forms.** The word literally means "many forms." Same method name behaves differently depending on context.
@@ -1620,41 +1441,12 @@ System.out.println(a instanceof Cat);     // false
 | Where | Same class | Parent + child class |
 | Keyword | None | @Override |
 
-What is the output?
-
-```java
-class Vehicle {
-    void start() { System.out.print("Vehicle "); }
-}
-class Car extends Vehicle {
-    @Override
-    void start() { System.out.print("Car "); }
-}
-Vehicle v = new Car();
-v.start();
-
-```
-
-1.  Vehicle
-2.  Vehicle Car
-3.  Car
-4.  Compile error
-
-Show Answer
-
+<Quiz question={"What is the output?\n\n```java\nclass Vehicle {\n    void start() { System.out.print(\"Vehicle \"); }\n}\nclass Car extends Vehicle {\n    @Override\n    void start() { System.out.print(\"Car \"); }\n}\nVehicle v = new Car();\nv.start();\n\n```"} options={["Vehicle", "Vehicle Car", "Car", "Compile error"]} answerIndex={2}>
 Car. Runtime polymorphism in action. The reference type is `Vehicle` but the actual object is `Car`. At runtime, Java calls `Car`'s overridden `start()` method.
-
-Which is method overloading?
-
-1.  Child class redefines parent's method with same signature
-2.  Same class has multiple methods with same name but different parameters
-3.  Using @Override annotation
-4.  Parent reference pointing to child object
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which is method overloading?"} options={["Child class redefines parent's method with same signature", "Same class has multiple methods with same name but different parameters", "Using @Override annotation", "Parent reference pointing to child object"]} answerIndex={1}>
 B. Overloading = same name, different parameter lists, in the same class. A is overriding, C is related to overriding, D is upcasting.
-
+</Quiz>
 ### Abstraction
 
 **What is abstraction really?** You drive a car every day. You turn the steering wheel, press the accelerator, hit the brakes. Do you know how the engine combustion works? How the hydraulic braking system functions? No — and you don't need to. The steering wheel, pedals, and gear shift are the **abstract interface**. They hide the terrifying complexity underneath and give you a simple way to interact.
@@ -1763,38 +1555,12 @@ Before Java 8, interfaces could only have abstract methods. If you added a new m
 | Keyword | `extends` | `implements` |
 | When to use | Shared code between related classes | Define a contract (capability) |
 
-What happens when you try to compile this?
-
-```java
-abstract class Vehicle {
-    abstract void start();
-}
-class Bike extends Vehicle {
-    // no start() method
-}
-
-```
-
-1.  Compiles fine, start() is optional
-2.  Runs but throws exception when start() is called
-3.  Compiles fine because Bike inherits start()
-4.  Compile error — Bike must implement start() or be declared abstract
-
-Show Answer
-
+<Quiz question={"What happens when you try to compile this?\n\n```java\nabstract class Vehicle {\n    abstract void start();\n}\nclass Bike extends Vehicle {\n    // no start() method\n}\n\n```"} options={["Compiles fine, start() is optional", "Runs but throws exception when start() is called", "Compiles fine because Bike inherits start()", "Compile error \u2014 Bike must implement start() or be declared abstract"]} answerIndex={3}>
 Compile error. If a class extends an abstract class, it MUST implement ALL abstract methods. Otherwise, the class itself must be declared `abstract`.
-
-Which statement is TRUE about interfaces?
-
-1.  A class can implement only one interface
-2.  Interfaces can have constructors
-3.  Interface variables are implicitly public, static, and final
-4.  Interfaces cannot have any method with a body
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which statement is TRUE about interfaces?"} options={["A class can implement only one interface", "Interfaces can have constructors", "Interface variables are implicitly public, static, and final", "Interfaces cannot have any method with a body"]} answerIndex={2}>
 C. All variables in an interface are implicitly `public static final` (constants). A is false (multiple implements allowed), B is false (no constructors), D is false (Java 8+ default methods have bodies).
-
+</Quiz>
 ### 10\. Access Modifiers
 
 #### Why Do Access Levels Exist?
@@ -1833,15 +1599,9 @@ Think: "Public Parties Don't Panic" (Public, Protected, Default, Private)
 Also: "Default" access modifier means you write **NO keyword at all** — NOT the keyword `default`. Writing `default class Foo {}` is NOT default access — it's a syntax error (except inside interfaces where `default` means something else).
 </Callout>
 
-**Q: Class A and Class B are in the same package. Class A has a variable `int x;` (no access modifier). Can Class B access `x`?**
+<Quiz question={"**Q: Class A and Class B are in the same package. Class A has a variable `int x;` (no access modifier). Can Class B access `x`?**"} options={["Yes \u2014 default access allows same-package access", "No \u2014 no modifier means private", "No \u2014 it's a compile error to have no modifier", "Only if B extends A"]} answerIndex={0}>
 
-**A)** Yes — default access allows same-package access  
-**B)** No — no modifier means private  
-**C)** No — it's a compile error to have no modifier  
-**D)** Only if B extends A
-
-**Answer: A.** No modifier = default (package-private) access. Any class in the same package can access it. This is NOT the same as private.
-
+</Quiz>
 ### 11\. static Keyword
 
 Think of a classroom. Every student has their own name, their own marks, their own bag — that's **instance data** (belongs to each object). But the classroom itself has things that are shared — the class teacher's name, the room number, the total number of students. Those shared things belong to the class, not to any one student. That's what `static` is.
@@ -2088,20 +1848,9 @@ final class Immutable { }
 `String`, `Math`, and all wrapper classes (`Integer`, `Double`, etc.) are **final** — you can't extend them. Convention: final constants are named in `ALL_CAPS_WITH_UNDERSCORES`.
 </Callout>
 
-**Q: What happens when you compile this code?**
-```java
-final int x = 10;
-x = 20;
-System.out.println(x);
-```
+<Quiz question={"**Q: What happens when you compile this code?**\n```java\nfinal int x = 10;\nx = 20;\nSystem.out.println(x);\n```"} options={["Prints 20", "Prints 10", "Compilation error \u2014 cannot reassign final variable", "Runtime exception"]} answerIndex={2}>
 
-**A)** Prints 20  
-**B)** Prints 10  
-**C)** Compilation error — cannot reassign final variable  
-**D)** Runtime exception
-
-**Answer: C.** A `final` variable can only be assigned once. Trying to reassign it (`x = 20`) causes a compile-time error. The code never runs.
-
+</Quiz>
 ### 13\. Exception Handling
 
 #### What IS an Exception?
@@ -2227,35 +1976,12 @@ Avoid writing `catch (Exception e)` — it's too broad. It catches EVERY excepti
 **Good:** `catch (NumberFormatException e) { }` — handles only what you expect.
 </Callout>
 
-**Q: What is the output?**
-```java
-try {
-    System.out.println("A");
-    int x = 10 / 0;
-    System.out.println("B");
-} catch (ArithmeticException e) {
-    System.out.println("C");
-} finally {
-    System.out.println("D");
-}
-```
+<Quiz question={"**Q: What is the output?**\n```java\ntry {\n    System.out.println(\"A\");\n    int x = 10 / 0;\n    System.out.println(\"B\");\n} catch (ArithmeticException e) {\n    System.out.println(\"C\");\n} finally {\n    System.out.println(\"D\");\n}\n```"} options={["A B C D", "A C", "A C D", "A B D"]} answerIndex={2}>
 
-**A)** A B C D  
-**B)** A C  
-**C)** A C D  
-**D)** A B D
+</Quiz>
+<Quiz question={"**Q: Which of these is a checked exception?**"} options={["NullPointerException", "IOException", "ArithmeticException", "ArrayIndexOutOfBoundsException"]} answerIndex={1}>
 
-**Answer: C.** "A" prints. Then division by zero throws ArithmeticException — "B" is skipped. Catch block prints "C". Finally ALWAYS runs, so "D" prints.
-
-**Q: Which of these is a checked exception?**
-
-**A)** NullPointerException  
-**B)** IOException  
-**C)** ArithmeticException  
-**D)** ArrayIndexOutOfBoundsException
-
-**Answer: B.** IOException is a checked exception — the compiler forces you to handle it with try-catch or declare it with throws. The other three are all RuntimeExceptions (unchecked) — the compiler doesn't force you to handle them.
-
+</Quiz>
 ### 14\. Collections Basics
 
 <Callout type="warn" title="What PRA/Sprints Test">
@@ -2355,31 +2081,12 @@ cities.remove("Delhi");      // Removes it
 You can't write `ArrayList<int>` — collections only hold objects. Use the wrapper class: `ArrayList<Integer>`. Java autoboxes primitives automatically, but you must use the wrapper type in the angle brackets.
 </Callout>
 
-**Q: What is the output?**
-```java
-HashSet<String> set = new HashSet<>();
-set.add("Amit");
-set.add("Priya");
-set.add("Amit");
-System.out.println(set.size());
-```
+<Quiz question={"**Q: What is the output?**\n```java\nHashSet<String> set = new HashSet<>();\nset.add(\"Amit\");\nset.add(\"Priya\");\nset.add(\"Amit\");\nSystem.out.println(set.size());\n```"} options={["3", "2", "1", "Compilation error"]} answerIndex={1}>
 
-**A)** 3  
-**B)** 2  
-**C)** 1  
-**D)** Compilation error
+</Quiz>
+<Quiz question={"**Q: What happens when you call `put()` with an existing key in a HashMap?**"} options={["It throws a DuplicateKeyException", "It replaces the old value with the new value", "It ignores the new value and keeps the old one", "It stores both values under the same key"]} answerIndex={1}>
 
-**Answer: B.** HashSet does not allow duplicates. Adding "Amit" the second time is silently ignored. The set contains {"Amit", "Priya"} — size is 2.
-
-**Q: What happens when you call `put()` with an existing key in a HashMap?**
-
-**A)** It throws a DuplicateKeyException  
-**B)** It replaces the old value with the new value  
-**C)** It ignores the new value and keeps the old one  
-**D)** It stores both values under the same key
-
-**Answer: B.** HashMap keys are unique. If you `put("Amit", 95)` and then `put("Amit", 97)`, the value for "Amit" becomes 97. The old value (95) is replaced, not preserved.
-
+</Quiz>
 ### 15\. Common Coding Patterns (HSE & Interview)
 
 <Callout type="warn" title="What HackerRank Tests">
@@ -2544,633 +2251,178 @@ System.out.println("Max: " + max + ", Min: " + min);  // Max: 89, Min: 7
 
 ```
 
-Given the array `{5, 2, 8, 2, 5, 9}`, how many times will "Duplicate" be printed using the HashSet pattern above? And why would using an `ArrayList` instead of a `HashSet` for the `seen` collection be worse?
-
-Show Answer
-
+<Quiz question={"Given the array `{5, 2, 8, 2, 5, 9}`, how many times will \"Duplicate\" be printed using the HashSet pattern above? And why would using an `ArrayList` instead of a `HashSet` for the `seen` collection be worse?"}>
 **"Duplicate" prints 2 times** — once for the second `5` and once for the second `2`.  
   
 Using an `ArrayList` instead of a `HashSet` would work correctly but be **slower**. `ArrayList.contains()` is O(n) — it scans every element to check if something exists. `HashSet.add()` / `HashSet.contains()` is O(1) average — it uses hashing to jump directly to the answer. For an array of 1 million elements, that's the difference between 1 million operations and 1 trillion operations.
-
-The `isPrime()` method checks divisors up to `Math.sqrt(n)`. If you changed it to check up to `n/2` instead, would the method still return correct results? Would there be any downside?
-
-Show Answer
-
+</Quiz>
+<Quiz question={"The `isPrime()` method checks divisors up to `Math.sqrt(n)`. If you changed it to check up to `n/2` instead, would the method still return correct results? Would there be any downside?"}>
 **Yes, it would still be correct** — checking up to n/2 covers all possible factors since no factor (other than n itself) can be greater than n/2.  
   
 **The downside is performance.** For n = 1,000,000: sqrt(n) = 1,000 checks, but n/2 = 500,000 checks. The sqrt approach is about 500x faster in this case. The mathematical insight is that factors come in pairs — if `a * b = n` and `a <= b`, then `a <= sqrt(n)`. So you only need to check the smaller half of each pair.
-
+</Quiz>
 ### 16\. Practice Questions
 
 <Callout type="warn" title="Exam Strategy">
 FA Round 2 gives you subjective Java questions (write code or explain concepts). PRA tests practical coding. HSE gives HackerRank problems. Practice all three styles below.
 </Callout>
 
-What is the output of this code?
-
-```java
-int a = 5;
-int b = a++;
-int c = ++a;
-System.out.println(a + " " + b + " " + c);
-
-```
-
-1.  5 5 6
-2.  7 5 7
-3.  6 5 7
-4.  7 6 7
-
-Show Answer
-
+<Quiz question={"What is the output of this code?\n\n```java\nint a = 5;\nint b = a++;\nint c = ++a;\nSystem.out.println(a + \" \" + b + \" \" + c);\n\n```"} options={["5 5 6", "7 5 7", "6 5 7", "7 6 7"]} answerIndex={1}>
 B) 7 5 7  
   
 `b = a++`: b gets 5 (old value), then a becomes 6.  
 `c = ++a`: a becomes 7 first, then c gets 7.  
 Final: a=7, b=5, c=7.
-
-What is the output?
-
-```java
-String s1 = "Hello";
-String s2 = new String("Hello");
-System.out.println(s1 == s2);
-System.out.println(s1.equals(s2));
-
-```
-
-1.  true true
-2.  false false
-3.  false true
-4.  true false
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nString s1 = \"Hello\";\nString s2 = new String(\"Hello\");\nSystem.out.println(s1 == s2);\nSystem.out.println(s1.equals(s2));\n\n```"} options={["true true", "false false", "false true", "true false"]} answerIndex={2}>
 C) false true  
   
 `==` compares references. `s1` is from the String Pool, `s2` is a new object on the heap — different references, so `==` is false.  
 `.equals()` compares content — both contain "Hello", so it's true.
-
-What is the output?
-
-```java
-double d = 9.7;
-int x = (int) d;
-System.out.println(x);
-
-```
-
-1.  10
-2.  9.7
-3.  9
-4.  Compile error
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\ndouble d = 9.7;\nint x = (int) d;\nSystem.out.println(x);\n\n```"} options={["10", "9.7", "9", "Compile error"]} answerIndex={2}>
 C) 9  
   
 Casting a double to int **truncates** (chops off) the decimal part. It does NOT round. 9.7 becomes 9, not 10.
-
-What happens when you compile and run this?
-
-```java
-class Dog {
-    Dog(String name) {
-        System.out.println("Dog: " + name);
-    }
-}
-public class Main {
-    public static void main(String[] args) {
-        Dog d = new Dog();
-    }
-}
-
-```
-
-1.  Prints "Dog: null"
-2.  Prints nothing
-3.  Compile error
-4.  Runtime error
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What happens when you compile and run this?\n\n```java\nclass Dog {\n    Dog(String name) {\n        System.out.println(\"Dog: \" + name);\n    }\n}\npublic class Main {\n    public static void main(String[] args) {\n        Dog d = new Dog();\n    }\n}\n\n```"} options={["Prints \"Dog: null\"", "Prints nothing", "Compile error", "Runtime error"]} answerIndex={2}>
 C) Compile error  
   
 Since the class defines a parameterized constructor `Dog(String name)`, Java no longer provides a default no-arg constructor. Calling `new Dog()` (no arguments) fails because there's no matching constructor.
-
-What is the output?
-
-```java
-System.out.println(10 / 3);
-System.out.println(10.0 / 3);
-
-```
-
-1.  3 and 3.0
-2.  3 and 3.3333333333333335
-3.  3.33 and 3.33
-4.  3.3333333333333335 and 3.3333333333333335
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nSystem.out.println(10 / 3);\nSystem.out.println(10.0 / 3);\n\n```"} options={["3 and 3.0", "3 and 3.3333333333333335", "3.33 and 3.33", "3.3333333333333335 and 3.3333333333333335"]} answerIndex={1}>
 B) 3 and 3.3333333333333335  
   
 `10 / 3`: both are int, so integer division gives 3 (truncated).  
 `10.0 / 3`: 10.0 is double, so Java promotes 3 to double and does floating-point division → 3.333...
-
-What is the output?
-
-```java
-class A {
-    A() { System.out.print("A "); }
-}
-class B extends A {
-    B() { System.out.print("B "); }
-}
-class C extends B {
-    C() { System.out.print("C"); }
-}
-new C();
-
-```
-
-1.  C B A
-2.  A B C
-3.  C
-4.  A C
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nclass A {\n    A() { System.out.print(\"A \"); }\n}\nclass B extends A {\n    B() { System.out.print(\"B \"); }\n}\nclass C extends B {\n    C() { System.out.print(\"C\"); }\n}\nnew C();\n\n```"} options={["C B A", "A B C", "C", "A C"]} answerIndex={1}>
 B) A B C  
   
 Constructors execute from the **top of the hierarchy down**. When you create a C object: first A's constructor runs, then B's, then C's. Parent always before child.
-
-What is the output?
-
-```java
-class Parent {
-    void show() { System.out.println("Parent"); }
-}
-class Child extends Parent {
-    void show() { System.out.println("Child"); }
-}
-Parent obj = new Child();
-obj.show();
-
-```
-
-1.  Parent
-2.  Child
-3.  Compile error
-4.  Parent Child
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nclass Parent {\n    void show() { System.out.println(\"Parent\"); }\n}\nclass Child extends Parent {\n    void show() { System.out.println(\"Child\"); }\n}\nParent obj = new Child();\nobj.show();\n\n```"} options={["Parent", "Child", "Compile error", "Parent Child"]} answerIndex={1}>
 B) Child  
   
 This is **runtime polymorphism**. The reference type is Parent, but the actual object is Child. At runtime, Java calls the Child's overridden version of `show()`.
-
-What is the output?
-
-```java
-try {
-    System.out.print("A ");
-    int x = 10 / 0;
-    System.out.print("B ");
-} catch (ArithmeticException e) {
-    System.out.print("C ");
-} finally {
-    System.out.print("D");
-}
-
-```
-
-1.  A B C D
-2.  A C D
-3.  A B D
-4.  A D
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\ntry {\n    System.out.print(\"A \");\n    int x = 10 / 0;\n    System.out.print(\"B \");\n} catch (ArithmeticException e) {\n    System.out.print(\"C \");\n} finally {\n    System.out.print(\"D\");\n}\n\n```"} options={["A B C D", "A C D", "A B D", "A D"]} answerIndex={1}>
 B) A C D  
   
 "A" prints. Then `10/0` throws ArithmeticException. "B" is skipped (execution jumps to catch). "C" prints in catch. "D" prints in finally (always runs).
-
-Which line causes a compile error?
-
-```java
-String s = "Hello";
-int[] arr = {1, 2, 3};
-System.out.println(s.length);      // Line 1
-System.out.println(arr.length());   // Line 2
-
-```
-
-1.  Line 1 only
-2.  Line 2 only
-3.  Both lines
-4.  Neither line
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which line causes a compile error?\n\n```java\nString s = \"Hello\";\nint[] arr = {1, 2, 3};\nSystem.out.println(s.length);      // Line 1\nSystem.out.println(arr.length());   // Line 2\n\n```"} options={["Line 1 only", "Line 2 only", "Both lines", "Neither line"]} answerIndex={2}>
 C) Both lines  
   
 Line 1: String uses `.length()` with parentheses (method), not `.length`.  
 Line 2: Array uses `.length` without parentheses (field), not `.length()`.  
 Both are wrong and cause compile errors.
-
-What is the output?
-
-```java
-int x = 2;
-switch (x) {
-    case 1: System.out.print("A ");
-    case 2: System.out.print("B ");
-    case 3: System.out.print("C ");
-    default: System.out.print("D");
-}
-
-```
-
-1.  B
-2.  B C
-3.  B C D
-4.  A B C D
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nint x = 2;\nswitch (x) {\n    case 1: System.out.print(\"A \");\n    case 2: System.out.print(\"B \");\n    case 3: System.out.print(\"C \");\n    default: System.out.print(\"D\");\n}\n\n```"} options={["B", "B C", "B C D", "A B C D"]} answerIndex={2}>
 C) B C D  
   
 Execution starts at case 2 (matching value). Since there are no `break` statements, it **falls through** all subsequent cases: prints B, then C, then D.
-
-What is the output?
-
-```java
-String s = "Hello";
-s.concat(" World");
-System.out.println(s);
-
-```
-
-1.  Hello World
-2.  Hello
-3.  World
-4.  Compile error
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nString s = \"Hello\";\ns.concat(\" World\");\nSystem.out.println(s);\n\n```"} options={["Hello World", "Hello", "World", "Compile error"]} answerIndex={1}>
 B) Hello  
   
 Strings are **immutable**. `concat()` returns a NEW string but the result is not assigned to any variable. `s` still points to the original "Hello". To get "Hello World", you'd need: `s = s.concat(" World");`
-
-A `protected` member is accessible from:
-
-1.  Same class only
-2.  Same class + same package only
-3.  Same class + same package + subclass in other packages
-4.  Everywhere
-
-Show Answer
-
+</Quiz>
+<Quiz question={"A `protected` member is accessible from:"} options={["Same class only", "Same class + same package only", "Same class + same package + subclass in other packages", "Everywhere"]} answerIndex={2}>
 C) Same class + same package + subclass in other packages  
   
 `protected` allows access from: the same class, any class in the same package, and subclasses even in different packages. The only thing it blocks is non-subclass access from other packages.
-
-What's wrong with this code?
-
-```java
-class Demo {
-    int x = 10;
-    static void show() {
-        System.out.println(x);
-    }
-}
-
-```
-
-1.  No error — prints 10
-2.  Compile error — static method can't access instance variable
-3.  Runtime error
-4.  Prints 0
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What's wrong with this code?\n\n```java\nclass Demo {\n    int x = 10;\n    static void show() {\n        System.out.println(x);\n    }\n}\n\n```"} options={["No error \u2014 prints 10", "Compile error \u2014 static method can't access instance variable", "Runtime error", "Prints 0"]} answerIndex={1}>
 B) Compile error — static method can't access instance variable  
   
 `x` is an instance variable (non-static). The `show()` method is static. Static methods cannot access instance variables because they belong to the class, not any particular object. Fix: make x static, or access it through an object.
-
-What is the output?
-
-```java
-final int x = 10;
-x = 20;
-System.out.println(x);
-
-```
-
-1.  10
-2.  20
-3.  Compile error
-4.  Runtime error
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nfinal int x = 10;\nx = 20;\nSystem.out.println(x);\n\n```"} options={["10", "20", "Compile error", "Runtime error"]} answerIndex={2}>
 C) Compile error  
   
 `final` variables cannot be reassigned. Once `x` is set to 10, trying to change it to 20 causes a compile error: "cannot assign a value to final variable x".
-
-Which statement about abstract classes is FALSE?
-
-1.  An abstract class can have constructors
-2.  An abstract class can have concrete (non-abstract) methods
-3.  You can create an object of an abstract class using new
-4.  An abstract class can have instance variables
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which statement about abstract classes is FALSE?"} options={["An abstract class can have constructors", "An abstract class can have concrete (non-abstract) methods", "You can create an object of an abstract class using new", "An abstract class can have instance variables"]} answerIndex={2}>
 C) You can create an object of an abstract class using new  
   
 This is false. Abstract classes **cannot be instantiated**. You must create a concrete subclass that implements all abstract methods, then instantiate that subclass.
-
-What is the wrapper class for `char`?
-
-1.  Char
-2.  Character
-3.  CharWrapper
-4.  CharacterClass
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the wrapper class for `char`?"} options={["Char", "Character", "CharWrapper", "CharacterClass"]} answerIndex={1}>
 B) Character  
   
 The wrapper class for `char` is `Character` and for `int` is `Integer`. These two are the tricky ones — all other wrappers just capitalize the primitive name (byte → Byte, double → Double, etc.).
-
-What is the default value of an instance variable of type `boolean`?
-
-1.  true
-2.  false
-3.  0
-4.  null
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the default value of an instance variable of type `boolean`?"} options={["true", "false", "0", "null"]} answerIndex={1}>
 B) false  
   
 The default value for `boolean` instance variables is `false`. For numeric types it's `0`, for objects (including String) it's `null`.
-
-What happens when you run: `Integer.parseInt("12.5")`?
-
-1.  Returns 12
-2.  Returns 13
-3.  Throws NumberFormatException
-4.  Returns 12.5
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What happens when you run: `Integer.parseInt(\"12.5\")`?"} options={["Returns 12", "Returns 13", "Throws NumberFormatException", "Returns 12.5"]} answerIndex={2}>
 C) Throws NumberFormatException  
   
 `Integer.parseInt()` expects a valid integer string. "12.5" contains a decimal point, which is not valid for an integer. Use `Double.parseDouble("12.5")` and then cast to int if needed.
-
-A class can implement how many interfaces?
-
-1.  Only 1
-2.  Only 2
-3.  Multiple (no limit)
-4.  None — classes only extend
-
-Show Answer
-
+</Quiz>
+<Quiz question={"A class can implement how many interfaces?"} options={["Only 1", "Only 2", "Multiple (no limit)", "None \u2014 classes only extend"]} answerIndex={2}>
 C) Multiple (no limit)  
   
 A class can implement as many interfaces as needed: `class Duck implements Flyable, Swimmable, Walkable { }`. However, a class can only `extends` ONE class (single inheritance).
-
-What is the output?
-
-```java
-int i = 10;
-do {
-    System.out.print(i + " ");
-    i++;
-} while (i < 10);
-
-```
-
-1.  Nothing (no output)
-2.  10
-3.  10 11
-4.  Infinite loop
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nint i = 10;\ndo {\n    System.out.print(i + \" \");\n    i++;\n} while (i < 10);\n\n```"} options={["Nothing (no output)", "10", "10 11", "Infinite loop"]} answerIndex={1}>
 B) 10  
   
 A `do-while` loop runs the body **at least once** before checking the condition. It prints 10, increments i to 11, then checks `11 < 10` which is false, so it stops. Output: "10 ".
-
-Which is NOT valid method overloading?
-
-```java
-// Option A: int add(int a, int b) and double add(double a, double b)
-// Option B: int add(int a, int b) and int add(int a, int b, int c)
-// Option C: int add(int a, int b) and double add(int a, int b)
-// Option D: void add(int a) and void add(String a)
-
-```
-
-1.  Option A
-2.  Option B
-3.  Option C
-4.  Option D
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which is NOT valid method overloading?\n\n```java\n// Option A: int add(int a, int b) and double add(double a, double b)\n// Option B: int add(int a, int b) and int add(int a, int b, int c)\n// Option C: int add(int a, int b) and double add(int a, int b)\n// Option D: void add(int a) and void add(String a)\n\n```"} options={["Option A", "Option B", "Option C", "Option D"]} answerIndex={2}>
 C) Option C  
   
 Option C has the same method name AND same parameter types (int, int) — only the return type differs. Changing ONLY the return type is NOT valid overloading. Java can't distinguish which method to call just by return type. It causes a compile error.
-
-Where must `this()` or `super()` appear in a constructor?
-
-1.  Anywhere in the constructor
-2.  Must be the FIRST statement
-3.  Must be the LAST statement
-4.  Can appear multiple times
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Where must `this()` or `super()` appear in a constructor?"} options={["Anywhere in the constructor", "Must be the FIRST statement", "Must be the LAST statement", "Can appear multiple times"]} answerIndex={1}>
 B) Must be the FIRST statement  
   
 `this()` (constructor chaining) and `super()` (parent constructor call) must be the very first statement in a constructor. You also cannot use both in the same constructor — it's one or the other.
-
-What is the output?
-
-```java
-ArrayList<Integer> list = new ArrayList<>();
-list.add(10);
-list.add(20);
-list.add(30);
-list.remove(1);
-System.out.println(list);
-
-```
-
-1.  \[10, 30\]
-2.  \[20, 30\]
-3.  \[10, 20\]
-4.  \[10, 20, 30\]
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nArrayList<Integer> list = new ArrayList<>();\nlist.add(10);\nlist.add(20);\nlist.add(30);\nlist.remove(1);\nSystem.out.println(list);\n\n```"} options={["\\[10, 30\\]", "\\[20, 30\\]", "\\[10, 20\\]", "\\[10, 20, 30\\]"]} answerIndex={0}>
 A) \[10, 30\]  
   
 `list.remove(1)` removes the element at **index 1** (which is 20). After removal: \[10, 30\]. Note: `remove(int)` removes by index, `remove(Integer)` removes by value.
-
-Which of these is a CHECKED exception?
-
-1.  NullPointerException
-2.  ArrayIndexOutOfBoundsException
-3.  IOException
-4.  ArithmeticException
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which of these is a CHECKED exception?"} options={["NullPointerException", "ArrayIndexOutOfBoundsException", "IOException", "ArithmeticException"]} answerIndex={2}>
 C) IOException  
   
 IOException is a checked exception — the compiler forces you to handle it with try-catch or declare it with throws. The other three (NullPointerException, ArrayIndexOutOfBoundsException, ArithmeticException) are all RuntimeExceptions (unchecked) — handling them is optional.
-
-What is the output?
-
-```java
-class Animal {
-    void sound() { System.out.print("..."); }
-}
-class Dog extends Animal {
-    void sound() { System.out.print("Woof"); }
-    void fetch() { System.out.print(" Fetch!"); }
-}
-Animal a = new Dog();
-a.sound();
-a.fetch();
-
-```
-
-1.  Woof Fetch!
-2.  ... Fetch!
-3.  Woof, then compile error on a.fetch()
-4.  ..., then compile error on a.fetch()
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nclass Animal {\n    void sound() { System.out.print(\"...\"); }\n}\nclass Dog extends Animal {\n    void sound() { System.out.print(\"Woof\"); }\n    void fetch() { System.out.print(\" Fetch!\"); }\n}\nAnimal a = new Dog();\na.sound();\na.fetch();\n\n```"} options={["Woof Fetch!", "... Fetch!", "Woof, then compile error on a.fetch()", "..., then compile error on a.fetch()"]} answerIndex={2}>
 C) Compile error on a.fetch()  
   
 `a.sound()` works fine — it calls Dog's overridden version ("Woof") because of runtime polymorphism. But `a.fetch()` causes a **compile error** because the reference type is Animal, and Animal class doesn't have a `fetch()` method. The compiler checks the reference type, not the object type.
-
-What is the output?
-
-```java
-char c = 'A';
-int n = c + 1;
-System.out.println(n);
-System.out.println((char) n);
-
-```
-
-1.  66 and B
-2.  A1 and A1
-3.  66 and 66
-4.  Compile error
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nchar c = 'A';\nint n = c + 1;\nSystem.out.println(n);\nSystem.out.println((char) n);\n\n```"} options={["66 and B", "A1 and A1", "66 and 66", "Compile error"]} answerIndex={0}>
 A) 66 and B  
   
 `'A'` has ASCII value 65. Adding 1 gives 66 (printed as int). Casting `(char) 66` gives 'B' (the character with ASCII value 66).
-
-What is the output?
-
-```java
-try {
-    System.out.print("A ");
-    return;
-} finally {
-    System.out.print("B");
-}
-
-```
-
-1.  A
-2.  B
-3.  A B
-4.  Compile error
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\ntry {\n    System.out.print(\"A \");\n    return;\n} finally {\n    System.out.print(\"B\");\n}\n\n```"} options={["A", "B", "A B", "Compile error"]} answerIndex={2}>
 C) A B  
   
 The `finally` block runs even when there's a `return` statement in the try block. "A" prints, then before the method actually returns, "B" prints from finally.
-
-What happens?
-
-```java
-public static void main(String[] args) {
-    int x;
-    System.out.println(x);
-}
-
-```
-
-1.  Prints 0
-2.  Prints null
-3.  Compile error — variable not initialized
-4.  Runtime error
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What happens?\n\n```java\npublic static void main(String[] args) {\n    int x;\n    System.out.println(x);\n}\n\n```"} options={["Prints 0", "Prints null", "Compile error \u2014 variable not initialized", "Runtime error"]} answerIndex={2}>
 C) Compile error — variable not initialized  
   
 Local variables (declared inside a method) do NOT get default values. You must assign a value before using them. Instance variables (declared in a class) get defaults (int defaults to 0), but local variables do not.
-
-What is the output?
-
-```java
-String s = "ABCDEFG";
-System.out.println(s.substring(2, 5));
-
-```
-
-1.  CDE
-2.  BCDE
-3.  CDEF
-4.  BCD
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nString s = \"ABCDEFG\";\nSystem.out.println(s.substring(2, 5));\n\n```"} options={["CDE", "BCDE", "CDEF", "BCD"]} answerIndex={0}>
 A) CDE  
   
 `substring(2, 5)` returns characters from index 2 (inclusive) to index 5 (exclusive). Indices: A=0, B=1, C=2, D=3, E=4, F=5. So indices 2,3,4 give "CDE".
-
-What is the output?
-
-```java
-HashSet<Integer> set = new HashSet<>();
-set.add(1);
-set.add(2);
-set.add(1);
-set.add(3);
-set.add(2);
-System.out.println(set.size());
-
-```
-
-1.  5
-2.  3
-3.  4
-4.  2
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n\n```java\nHashSet<Integer> set = new HashSet<>();\nset.add(1);\nset.add(2);\nset.add(1);\nset.add(3);\nset.add(2);\nSystem.out.println(set.size());\n\n```"} options={["5", "3", "4", "2"]} answerIndex={1}>
 B) 3  
   
 A HashSet does not allow duplicates. Adding 1, 2, 1, 3, 2 — the duplicates (1 and 2 added twice) are ignored. The set contains {1, 2, 3}, so size is 3.
-
+</Quiz>
 <Callout type="error" title="HackerRank Gotchas — Details That Cost Marks">
 These are the small things most students miss on HackerRank exams. Memorize them:
 

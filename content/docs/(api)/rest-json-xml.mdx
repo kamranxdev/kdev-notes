@@ -760,279 +760,78 @@ try {
 
 ## Practice Questions
 
-Which HTTP method is used to CREATE a new resource?
-
-1.  GET
-2.  POST
-3.  PUT
-4.  PATCH
-
-Show Answer
-
+<Quiz question={"Which HTTP method is used to CREATE a new resource?"} options={["GET", "POST", "PUT", "PATCH"]} answerIndex={1}>
 B) POST — POST creates a new resource. PUT replaces an existing one.
-
-What does HTTP status code 404 mean?
-
-1.  Unauthorized
-2.  Bad Request
-3.  Not Found
-4.  Internal Server Error
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does HTTP status code 404 mean?"} options={["Unauthorized", "Bad Request", "Not Found", "Internal Server Error"]} answerIndex={2}>
 C) Not Found — The requested resource does not exist at the given URL.
-
-Which of the following is VALID JSON?
-
-1.  `{'name': 'Darshan'}`
-2.  `{name: "Darshan"}`
-3.  `{"name": "Darshan"}`
-4.  `{"name": "Darshan",}`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which of the following is VALID JSON?"} options={["`{'name': 'Darshan'}`", "`{name: \"Darshan\"}`", "`{\"name\": \"Darshan\"}`", "`{\"name\": \"Darshan\",}`"]} answerIndex={2}>
 C) `{"name": "Darshan"}` — JSON keys MUST be in double quotes. A has single quotes, B has no quotes, D has a trailing comma.
-
-Which REST principle states that each request must contain all information needed to process it?
-
-1.  Client-Server
-2.  Stateless
-3.  Cacheable
-4.  Layered System
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which REST principle states that each request must contain all information needed to process it?"} options={["Client-Server", "Stateless", "Cacheable", "Layered System"]} answerIndex={1}>
 B) Stateless — The server does not store session state. Every request must be self-contained.
-
-Which HTTP method is NOT idempotent?
-
-1.  GET
-2.  PUT
-3.  DELETE
-4.  POST
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which HTTP method is NOT idempotent?"} options={["GET", "PUT", "DELETE", "POST"]} answerIndex={3}>
 D) POST — Calling POST multiple times creates multiple resources. GET, PUT, and DELETE are idempotent.
-
-What is the difference between status codes 401 and 403?
-
-1.  401 = Server error, 403 = Client error
-2.  401 = Not authenticated, 403 = Authenticated but no permission
-3.  401 = Not found, 403 = Bad request
-4.  They mean the same thing
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the difference between status codes 401 and 403?"} options={["401 = Server error, 403 = Client error", "401 = Not authenticated, 403 = Authenticated but no permission", "401 = Not found, 403 = Bad request", "They mean the same thing"]} answerIndex={1}>
 B) 401 = Not authenticated (who are you?). 403 = Authenticated but forbidden (I know you, but you can't do this).
-
-What data format does SOAP exclusively use?
-
-1.  JSON
-2.  XML
-3.  HTML
-4.  Plain text
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What data format does SOAP exclusively use?"} options={["JSON", "XML", "HTML", "Plain text"]} answerIndex={1}>
 B) XML — SOAP uses XML exclusively. REST can use JSON, XML, HTML, or plain text.
-
-Which of the following is NOT a valid JSON data type?
-
-1.  string
-2.  number
-3.  undefined
-4.  null
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which of the following is NOT a valid JSON data type?"} options={["string", "number", "undefined", "null"]} answerIndex={2}>
 C) undefined — JSON supports: string, number, boolean, null, object, array. "undefined" is a JavaScript concept, NOT valid in JSON.
-
-What is the correct way to access the value "SQL" from this JSON?  
-`{"employee": {"skills": ["Java", "SQL", "Python"]}}`
-
-1.  `employee.skills[1]`
-2.  `employee.skills[2]`
-3.  `employee.skills.1`
-4.  `employee[skills][1]`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the correct way to access the value \"SQL\" from this JSON?  \n`{\"employee\": {\"skills\": [\"Java\", \"SQL\", \"Python\"]}}`"} options={["`employee.skills[1]`", "`employee.skills[2]`", "`employee.skills.1`", "`employee[skills][1]`"]} answerIndex={0}>
 A) employee.skills\[1\] — Arrays are zero-indexed. "Java" is \[0\], "SQL" is \[1\], "Python" is \[2\].
-
-Which status code should a REST API return after successfully CREATING a resource?
-
-1.  200 OK
-2.  201 Created
-3.  204 No Content
-4.  202 Accepted
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which status code should a REST API return after successfully CREATING a resource?"} options={["200 OK", "201 Created", "204 No Content", "202 Accepted"]} answerIndex={1}>
 B) 201 Created — Used specifically when a new resource has been successfully created (typically in response to POST).
-
-Which XML rule makes this invalid? `<Name>Darshan</name>`
-
-1.  Missing root element
-2.  Tags are case-sensitive — Name != name
-3.  Missing XML declaration
-4.  Missing attribute
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which XML rule makes this invalid? `<Name>Darshan</name>`"} options={["Missing root element", "Tags are case-sensitive \u2014 Name != name", "Missing XML declaration", "Missing attribute"]} answerIndex={1}>
 B) XML is case-sensitive. The opening tag `<Name>` does not match the closing tag `</name>`. They must have identical casing.
-
-In the URL `https://api.com/users/5?sort=name`, what is `5`?
-
-1.  Query parameter
-2.  Path parameter
-3.  Header
-4.  Request body
-
-Show Answer
-
+</Quiz>
+<Quiz question={"In the URL `https://api.com/users/5?sort=name`, what is `5`?"} options={["Query parameter", "Path parameter", "Header", "Request body"]} answerIndex={1}>
 B) Path parameter — It identifies a specific resource (user with id 5). Query parameters come after the ? mark (like sort=name).
-
-Which Java class is used to parse XML using the DOM approach?
-
-1.  SAXParser
-2.  JSONObject
-3.  DocumentBuilder
-4.  ObjectMapper
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which Java class is used to parse XML using the DOM approach?"} options={["SAXParser", "JSONObject", "DocumentBuilder", "ObjectMapper"]} answerIndex={2}>
 C) DocumentBuilder — Created from DocumentBuilderFactory.newInstance().newDocumentBuilder(). SAXParser is for SAX parsing. JSONObject is for JSON. ObjectMapper is Jackson (JSON).
-
-What does the Content-Type header specify?
-
-1.  The format the client wants in response
-2.  The format of data being sent in the request body
-3.  The authentication token
-4.  The API version
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does the Content-Type header specify?"} options={["The format the client wants in response", "The format of data being sent in the request body", "The authentication token", "The API version"]} answerIndex={1}>
 B) Content-Type tells the server the format of data in the request body (e.g., application/json). The Accept header tells the server what format the client wants in the response.
-
-Which is true about REST?
-
-1.  REST is a protocol like HTTP
-2.  REST requires XML format
-3.  REST is an architectural style that uses HTTP
-4.  REST maintains session state on the server
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which is true about REST?"} options={["REST is a protocol like HTTP", "REST requires XML format", "REST is an architectural style that uses HTTP", "REST maintains session state on the server"]} answerIndex={2}>
 C) REST is an architectural style (not a protocol) that uses HTTP. It is stateless (no server-side session) and supports multiple formats (JSON, XML, etc.).
-
-What is the output of this Java code?  
-`JSONObject obj = new JSONObject("{\"a\":10,\"b\":20}");   System.out.println(obj.getInt("a") + obj.getInt("b"));`
-
-1.  "1020"
-2.  30
-3.  Compile error
-4.  "a10b20"
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output of this Java code?  \n`JSONObject obj = new JSONObject(\"{\\\"a\\\":10,\\\"b\\\":20}\");   System.out.println(obj.getInt(\"a\") + obj.getInt(\"b\"));`"} options={["\"1020\"", "30", "Compile error", "\"a10b20\""]} answerIndex={1}>
 B) 30 — getInt() returns integer values. 10 + 20 = 30. If it were getString(), it would concatenate strings.
-
-How many root elements can an XML document have?
-
-1.  Unlimited
-2.  Two
-3.  Exactly one
-4.  Zero or more
-
-Show Answer
-
+</Quiz>
+<Quiz question={"How many root elements can an XML document have?"} options={["Unlimited", "Two", "Exactly one", "Zero or more"]} answerIndex={2}>
 C) Exactly one — Every well-formed XML document must have exactly one root element that contains all other elements.
-
-Which of the following is an advantage of JSON over XML?
-
-1.  JSON supports comments
-2.  JSON supports namespaces
-3.  JSON is less verbose and faster to parse
-4.  JSON is a protocol
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which of the following is an advantage of JSON over XML?"} options={["JSON supports comments", "JSON supports namespaces", "JSON is less verbose and faster to parse", "JSON is a protocol"]} answerIndex={2}>
 C) JSON is less verbose (no closing tags) and faster to parse. XML supports comments and namespaces, not JSON. Neither is a protocol.
-
-What does `conn.setDoOutput(true)` do in HttpURLConnection?
-
-1.  Enables reading the response
-2.  Sets the request timeout
-3.  Enables sending a request body (for POST/PUT)
-4.  Sets the response format to JSON
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does `conn.setDoOutput(true)` do in HttpURLConnection?"} options={["Enables reading the response", "Sets the request timeout", "Enables sending a request body (for POST/PUT)", "Sets the response format to JSON"]} answerIndex={2}>
 C) setDoOutput(true) enables writing data to the connection's output stream — required for sending request bodies in POST and PUT requests.
-
-Which method safely returns a default value if a JSON key doesn't exist?
-
-1.  `getString("key")`
-2.  `optString("key", "default")`
-3.  `getOrDefault("key")`
-4.  `findString("key")`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which method safely returns a default value if a JSON key doesn't exist?"} options={["`getString(\"key\")`", "`optString(\"key\", \"default\")`", "`getOrDefault(\"key\")`", "`findString(\"key\")`"]} answerIndex={1}>
 B) optString("key", "default") — The opt* methods return a default value instead of throwing an exception. getString() throws JSONException if the key is missing.
-
-What is the difference between PUT and PATCH?
-
-1.  PUT creates, PATCH deletes
-2.  PUT updates entire resource, PATCH updates partial resource
-3.  PUT is idempotent, PATCH is not — but both update
-4.  Both B and C are correct
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the difference between PUT and PATCH?"} options={["PUT creates, PATCH deletes", "PUT updates entire resource, PATCH updates partial resource", "PUT is idempotent, PATCH is not \u2014 but both update", "Both B and C are correct"]} answerIndex={3}>
 D) Both B and C. PUT replaces the entire resource (send all fields). PATCH updates only specified fields. PUT is idempotent; PATCH is not guaranteed to be.
-
-Which HTTP status code means "Success, but no response body"?
-
-1.  200
-2.  201
-3.  204
-4.  202
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which HTTP status code means \"Success, but no response body\"?"} options={["200", "201", "204", "202"]} answerIndex={2}>
 C) 204 No Content — The request was successful, but there is no content to return. Commonly used after DELETE operations.
-
-In XML, which of these is well-formed?
-
-1.  `<book><title>Java</book></title>`
-2.  `<book><title>Java</title></book>`
-3.  `<book><title>Java</book>`
-4.  `<book title=Java></book>`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"In XML, which of these is well-formed?"} options={["`<book><title>Java</book></title>`", "`<book><title>Java</title></book>`", "`<book><title>Java</book>`", "`<book title=Java></book>`"]} answerIndex={1}>
 B) Elements must be properly nested. A has wrong nesting order. C is missing closing tag for title. D has unquoted attribute value.
-
-What does `getElementsByTagName("employee")` return in DOM parsing?
-
-1.  A single Element
-2.  A NodeList of all matching elements
-3.  A String
-4.  A JSONArray
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does `getElementsByTagName(\"employee\")` return in DOM parsing?"} options={["A single Element", "A NodeList of all matching elements", "A String", "A JSONArray"]} answerIndex={1}>
 B) NodeList — It returns a NodeList containing all elements with the specified tag name. You iterate it with .item(i) and .getLength().
-
-Which of the following JSON values is valid?
-
-1.  `{"age": 25}`
-2.  `{"age": 25,}`
-3.  `{age: 25}`
-4.  `{"age": NaN}`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which of the following JSON values is valid?"} options={["`{\"age\": 25}`", "`{\"age\": 25,}`", "`{age: 25}`", "`{\"age\": NaN}`"]} answerIndex={0}>
 A) `{"age": 25}` — B has trailing comma (invalid). C has unquoted key (invalid). D has NaN which is not a valid JSON value (JSON numbers cannot be NaN or Infinity).
+</Quiz>

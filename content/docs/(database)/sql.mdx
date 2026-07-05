@@ -39,17 +39,9 @@ SQL commands are grouped by what they do. This is one of the most commonly teste
 "Which category does X command belong to?" — This is a guaranteed MCQ. Memorize the table above. Remember: TRUNCATE is DDL (not DML!), and SELECT is DML.
 </Callout>
 
-Which SQL command category does TRUNCATE belong to?
-
-1.  DML
-2.  DDL
-3.  DCL
-4.  TCL
-
-Show Answer
-
+<Quiz question={"Which SQL command category does TRUNCATE belong to?"} options={["DML", "DDL", "DCL", "TCL"]} answerIndex={1}>
 TRUNCATE is DDL (Data Definition Language), not DML. This is a common exam trap because TRUNCATE removes data like DELETE, but it operates on the table structure level. Key difference: DDL commands auto-commit and cannot be rolled back.
-
+</Quiz>
 ### Data Types
 
 Before you store data, the database needs to know _what kind_ of data each column will hold. You would not store someone's name in a number field, right? Data types are like labels on filing cabinet drawers — "this drawer only holds numbers," "this one holds text up to 50 characters."
@@ -72,17 +64,9 @@ Imagine you have a column for Indian state codes (always 2 characters: "MH", "KA
 Now imagine a column for employee names — "Raj" is 3 characters, "Darshanakrishnamurthy" is 21 characters. Use `VARCHAR(50)` — it only stores what you give it. `CHAR(50)` would waste space by padding "Raj" with 47 spaces.
 </Callout>
 
-If you define a column as `CHAR(10)` and store the value `'Hi'`, how many bytes does it occupy?
-
-1.  2 bytes
-2.  10 bytes
-3.  8 bytes
-4.  Depends on the database
-
-Hide Answer
-
+<Quiz question={"If you define a column as `CHAR(10)` and store the value `'Hi'`, how many bytes does it occupy?"} options={["2 bytes", "10 bytes", "8 bytes", "Depends on the database"]} answerIndex={2}>
 CHAR(10) always stores exactly 10 bytes. The value 'Hi' gets padded with 8 spaces to fill the remaining space. This is why VARCHAR is preferred for variable-length data — it only uses the bytes it needs.
-
+</Quiz>
 ### DDL — CREATE, ALTER, DROP
 
 DDL is about building and modifying the _structure_ — the table itself, not the data inside it. Think of it as construction work: you are building the filing cabinet (CREATE), adding a new drawer to it (ALTER), or demolishing the entire cabinet (DROP).
@@ -138,17 +122,9 @@ TRUNCATE TABLE employees;
 **Speed:** TRUNCATE is much faster than DELETE for large tables because it does not log individual row deletions.
 </Callout>
 
-You accidentally ran `TRUNCATE TABLE employees;` on production. Can you ROLLBACK to undo it?
-
-1.  Yes, ROLLBACK undoes any data changes
-2.  No, TRUNCATE is DDL and auto-commits — it cannot be rolled back
-3.  Yes, but only if you use SAVEPOINT first
-4.  No, but DELETE FROM employees can also not be rolled back
-
-Show Answer
-
+<Quiz question={"You accidentally ran `TRUNCATE TABLE employees;` on production. Can you ROLLBACK to undo it?"} options={["Yes, ROLLBACK undoes any data changes", "No, TRUNCATE is DDL and auto-commits \u2014 it cannot be rolled back", "Yes, but only if you use SAVEPOINT first", "No, but DELETE FROM employees can also not be rolled back"]} answerIndex={1}>
 TRUNCATE is a DDL command. In Oracle, all DDL commands issue an automatic COMMIT. Once committed, there is no going back with ROLLBACK. This is why TRUNCATE is dangerous on production. DELETE (DML) can be rolled back because it does not auto-commit.
-
+</Quiz>
 ### DML — INSERT, UPDATE, DELETE
 
 If DDL builds the cabinet, DML is what you do with the files inside it every day — adding new files (INSERT), updating information on existing files (UPDATE), and removing files you no longer need (DELETE).
@@ -197,17 +173,9 @@ DELETE FROM employees WHERE emp_id = 103;
 DELETE FROM employees;
 ```
 
-What happens if you run `UPDATE employees SET salary = salary * 2;` without a WHERE clause?
-
-1.  Error — WHERE is required for UPDATE
-2.  Only the first row gets updated
-3.  Every employee's salary gets doubled
-4.  Nothing happens without COMMIT
-
-Show Answer
-
+<Quiz question={"What happens if you run `UPDATE employees SET salary = salary * 2;` without a WHERE clause?"} options={["Error \u2014 WHERE is required for UPDATE", "Only the first row gets updated", "Every employee's salary gets doubled", "Nothing happens without COMMIT"]} answerIndex={2}>
 Without a WHERE clause, UPDATE affects ALL rows in the table. Every employee's salary gets doubled. This is why WHERE is critical — always specify which rows you want to change. The good news: since UPDATE is DML, you can ROLLBACK if you catch the mistake before COMMIT.
-
+</Quiz>
 ### SELECT & Filtering
 
 SELECT is the most important SQL command — it is how you **ask questions** to your database. Think of it like Google Search for your data. Want to know which employees earn more than 50,000? SELECT. Want a list of all departments? SELECT. You will use this in literally every exam and every real project.
@@ -273,28 +241,12 @@ SELECT * FROM employees ORDER BY salary DESC
 FETCH FIRST 5 ROWS ONLY;
 ```
 
-What does `SELECT DISTINCT dept_id FROM employees;` return?
-
-1.  All dept\_id values including duplicates
-2.  Only unique dept\_id values (no repeats)
-3.  The first dept\_id value only
-4.  Error — DISTINCT cannot be used with SELECT
-
-Show Answer
-
+<Quiz question={"What does `SELECT DISTINCT dept_id FROM employees;` return?"} options={["All dept\\_id values including duplicates", "Only unique dept\\_id values (no repeats)", "The first dept\\_id value only", "Error \u2014 DISTINCT cannot be used with SELECT"]} answerIndex={1}>
 DISTINCT removes duplicate values from the result. If employees table has dept\_ids: 10, 10, 20, 20, 30, the result will be just: 10, 20, 30. Useful when you want to know "which departments exist" without seeing repeats.
-
-Which query correctly finds employees whose name starts with 'D' and salary is above 40000?
-
-1.  `SELECT * FROM employees WHERE name LIKE 'D%' OR salary > 40000;`
-2.  `SELECT * FROM employees WHERE name LIKE 'D%' AND salary > 40000;`
-3.  `SELECT * FROM employees WHERE name = 'D%' AND salary > 40000;`
-4.  `SELECT * FROM employees WHERE name LIKE '%D' AND salary > 40000;`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which query correctly finds employees whose name starts with 'D' and salary is above 40000?"} options={["`SELECT * FROM employees WHERE name LIKE 'D%' OR salary > 40000;`", "`SELECT * FROM employees WHERE name LIKE 'D%' AND salary > 40000;`", "`SELECT * FROM employees WHERE name = 'D%' AND salary > 40000;`", "`SELECT * FROM employees WHERE name LIKE '%D' AND salary > 40000;`"]} answerIndex={1}>
 B is correct. AND means BOTH conditions must be true. OR would return employees whose name starts with D OR salary \> 40000 (too many results). Option C uses = instead of LIKE — the = operator does not support wildcards. Option D uses '%D' which means "ends with D", not "starts with D".
-
+</Quiz>
 ### Operators & Conditions
 
 Operators are the building blocks of your WHERE clause. They let you express conditions like "between these dates," "in this list," or "matching this pattern." Master these and you can filter anything.
@@ -333,18 +285,9 @@ NULL is not a value — it means "unknown." You **cannot** compare it with `=` o
 `WHERE salary = NULL` → always returns nothing (WRONG).  
 `WHERE salary IS NULL` → correct way to check for NULL.
 </Callout>
-
-`SELECT * FROM employees WHERE salary BETWEEN 30000 AND 50000;` — Does this include employees with salary exactly 30000 and exactly 50000?
-
-1.  No, BETWEEN excludes both boundaries
-2.  Yes, BETWEEN is inclusive on both ends
-3.  It includes 30000 but excludes 50000
-4.  It excludes 30000 but includes 50000
-
-Show Answer
-
+<Quiz question={"`SELECT * FROM employees WHERE salary BETWEEN 30000 AND 50000;` \u2014 Does this include employees with salary exactly 30000 and exactly 50000?"} options={["No, BETWEEN excludes both boundaries", "Yes, BETWEEN is inclusive on both ends", "It includes 30000 but excludes 50000", "It excludes 30000 but includes 50000"]} answerIndex={1}>
 BETWEEN is inclusive on BOTH ends. `BETWEEN 30000 AND 50000` is equivalent to `>= 30000 AND <= 50000`. Employees earning exactly 30000 or exactly 50000 will be included.
-
+</Quiz>
 ### SQL Functions
 
 Functions in SQL are pre-built tools that transform data. Instead of doing calculations in your application code, SQL lets you do it right inside the query. There are two types:
@@ -444,17 +387,9 @@ Aggregate functions crunch multiple rows into a single result. Think of them lik
 If you have 10 employees but 3 have NULL email, `COUNT(*)` = 10 but `COUNT(email)` = 7.
 </Callout>
 
-Table has 10 rows. Column "commission" has NULL in 4 rows. What does `SELECT COUNT(commission) FROM employees;` return?
-
-1.  10
-2.  4
-3.  6
-4.  NULL
-
-Show Answer
-
+<Quiz question={"Table has 10 rows. Column \"commission\" has NULL in 4 rows. What does `SELECT COUNT(commission) FROM employees;` return?"} options={["10", "4", "6", "NULL"]} answerIndex={3}>
 COUNT(column\_name) counts only NON-NULL values. Out of 10 rows, 4 have NULL commission, so 6 rows have non-NULL values. COUNT(commission) = 6. If you wanted all 10, use COUNT(*).
-
+</Quiz>
 ### GROUP BY & HAVING
 
 **Why does GROUP BY exist?** Imagine your manager asks: "What is the average salary _in each department_?" You cannot just run `AVG(salary)` — that gives you ONE number for the entire company. You need to first **group** employees by department, and THEN calculate the average within each group.
@@ -519,28 +454,12 @@ SQL does NOT execute in the order you write it. Understanding this order is the 
 | 5 | `SELECT` | Choose columns | Pick which info to read from each pile |
 | 6 | `ORDER BY` | Sort results | Arrange the final output |
 
-Which query correctly finds departments where the average salary exceeds 60000?
-
-1.  `SELECT dept_id, AVG(salary) FROM employees WHERE AVG(salary) > 60000 GROUP BY dept_id;`
-2.  `SELECT dept_id, AVG(salary) FROM employees GROUP BY dept_id HAVING AVG(salary) > 60000;`
-3.  `SELECT dept_id, AVG(salary) FROM employees GROUP BY dept_id WHERE AVG(salary) > 60000;`
-4.  `SELECT dept_id FROM employees HAVING AVG(salary) > 60000;`
-
-Show Answer
-
+<Quiz question={"Which query correctly finds departments where the average salary exceeds 60000?"} options={["`SELECT dept_id, AVG(salary) FROM employees WHERE AVG(salary) > 60000 GROUP BY dept_id;`", "`SELECT dept_id, AVG(salary) FROM employees GROUP BY dept_id HAVING AVG(salary) > 60000;`", "`SELECT dept_id, AVG(salary) FROM employees GROUP BY dept_id WHERE AVG(salary) > 60000;`", "`SELECT dept_id FROM employees HAVING AVG(salary) > 60000;`"]} answerIndex={1}>
 B is correct. Aggregate conditions (like AVG(salary) \> 60000) must go in HAVING, not WHERE. WHERE runs before grouping, so it has no idea what the average is yet. Option A puts the aggregate in WHERE (error). Option C has WHERE after GROUP BY (wrong syntax order). Option D is missing GROUP BY entirely.
-
-In the SQL execution order, which runs first — SELECT or WHERE?
-
-1.  SELECT, because it's written first
-2.  WHERE, because it runs at step 2 while SELECT runs at step 5
-3.  They run simultaneously
-4.  It depends on the database engine
-
-Show Answer
-
+</Quiz>
+<Quiz question={"In the SQL execution order, which runs first \u2014 SELECT or WHERE?"} options={["SELECT, because it's written first", "WHERE, because it runs at step 2 while SELECT runs at step 5", "They run simultaneously", "It depends on the database engine"]} answerIndex={1}>
 WHERE runs at step 2, long before SELECT at step 5. This is why you cannot use column aliases (defined in SELECT) in your WHERE clause — WHERE has already finished running by the time SELECT defines the alias. The execution order is: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY.
-
+</Quiz>
 ### JOINs
 
 **Why do JOINs exist?** In a well-designed database, data is split across multiple tables to avoid repetition. Employees are in one table, departments in another. But when your manager asks "show me each employee with their department name," that data lives in TWO tables. A JOIN combines them.
@@ -654,28 +573,12 @@ Think of it as Venn diagrams:
 "What is a Cartesian product?" → CROSS JOIN (no ON condition)
 </Callout>
 
-Employees table has 10 rows, Departments table has 5 rows. How many rows does `SELECT * FROM employees CROSS JOIN departments;` produce?
-
-1.  15
-2.  10
-3.  50
-4.  5
-
-Show Answer
-
+<Quiz question={"Employees table has 10 rows, Departments table has 5 rows. How many rows does `SELECT * FROM employees CROSS JOIN departments;` produce?"} options={["15", "10", "50", "5"]} answerIndex={3}>
 CROSS JOIN produces the Cartesian product — every row from the first table combined with every row from the second table. 10 x 5 = 50 rows. This is why CROSS JOIN is rarely used intentionally and why you should always specify an ON condition with other JOINs.
-
-You want ALL employees listed, including those not assigned to any department. Their department name should show NULL. Which JOIN do you use?
-
-1.  INNER JOIN
-2.  LEFT JOIN (employees LEFT JOIN departments)
-3.  RIGHT JOIN (employees RIGHT JOIN departments)
-4.  CROSS JOIN
-
-Show Answer
-
+</Quiz>
+<Quiz question={"You want ALL employees listed, including those not assigned to any department. Their department name should show NULL. Which JOIN do you use?"} options={["INNER JOIN", "LEFT JOIN (employees LEFT JOIN departments)", "RIGHT JOIN (employees RIGHT JOIN departments)", "CROSS JOIN"]} answerIndex={2}>
 LEFT JOIN keeps ALL rows from the left table (employees) and fills in NULL for unmatched rows from the right table (departments). INNER JOIN would exclude employees without a department. RIGHT JOIN would keep all departments, not all employees.
-
+</Quiz>
 ### Subqueries
 
 **Why do subqueries exist?** Sometimes the answer to your question depends on another question. Example: "Show me employees who earn more than the average salary." You cannot write `WHERE salary > AVG(salary)` — that is illegal in SQL (aggregate functions are not allowed in WHERE). So you need a subquery to first calculate the average, and then the outer query uses that result.
@@ -753,28 +656,12 @@ WHERE EXISTS (SELECT 1 FROM employees WHERE dept_id = d.dept_id);
 `< ALL` = less than the minimum. `< ANY` = less than the maximum.
 </Callout>
 
-Dept 20 has salaries: 40000, 50000, 60000. Which employees are returned by `WHERE salary > ALL (SELECT salary FROM employees WHERE dept_id = 20)`?
-
-1.  Employees earning more than 40000
-2.  Employees earning more than 50000
-3.  Employees earning more than 60000
-4.  All employees in dept 20
-
-Show Answer
-
+<Quiz question={"Dept 20 has salaries: 40000, 50000, 60000. Which employees are returned by `WHERE salary > ALL (SELECT salary FROM employees WHERE dept_id = 20)`?"} options={["Employees earning more than 40000", "Employees earning more than 50000", "Employees earning more than 60000", "All employees in dept 20"]} answerIndex={3}>
 \\> ALL means "greater than the MAXIMUM value in the list." The maximum salary in dept 20 is 60000, so only employees earning more than 60000 are returned. Think of ALL as "you must beat ALL of them" — which means beating the highest one.
-
-What is the key difference between a regular subquery and a correlated subquery?
-
-1.  A correlated subquery can return multiple rows; a regular subquery cannot
-2.  A regular subquery runs once; a correlated subquery re-runs for each outer row
-3.  A correlated subquery uses JOIN; a regular subquery uses WHERE
-4.  There is no difference — they are the same thing
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the key difference between a regular subquery and a correlated subquery?"} options={["A correlated subquery can return multiple rows; a regular subquery cannot", "A regular subquery runs once; a correlated subquery re-runs for each outer row", "A correlated subquery uses JOIN; a regular subquery uses WHERE", "There is no difference \u2014 they are the same thing"]} answerIndex={0}>
 A regular subquery is independent — it runs once, produces a result, and the outer query uses that result. A correlated subquery references a column from the outer query (like `e.dept_id`), so it must re-execute for each row of the outer query. This makes correlated subqueries slower but capable of row-specific comparisons.
-
+</Quiz>
 ### Set Operations
 
 Set operations let you combine the results of two separate SELECT queries. Think of them like math operations on sets: union (combine), intersection (overlap), and difference (subtract).
@@ -801,17 +688,9 @@ SELECT manager_id FROM employees;
 Both queries must have the **same number of columns** and **compatible data types**. You cannot UNION a query with 3 columns and another with 5 columns — SQL won't know how to combine them.
 </Callout>
 
-What is the difference between UNION and UNION ALL?
-
-1.  UNION sorts results; UNION ALL does not
-2.  UNION removes duplicates; UNION ALL keeps all rows including duplicates
-3.  UNION ALL is faster because it removes duplicates
-4.  There is no difference
-
-Show Answer
-
+<Quiz question={"What is the difference between UNION and UNION ALL?"} options={["UNION sorts results; UNION ALL does not", "UNION removes duplicates; UNION ALL keeps all rows including duplicates", "UNION ALL is faster because it removes duplicates", "There is no difference"]} answerIndex={2}>
 UNION removes duplicate rows from the combined result (which requires extra work to check for duplicates). UNION ALL keeps everything as-is, including duplicates. UNION ALL is actually faster because it skips the deduplication step. Use UNION ALL when you know there won't be duplicates or when you want to keep them.
-
+</Quiz>
 ### Constraints & Keys
 
 **Why do constraints exist?** Without constraints, anyone could insert garbage data: an employee with a negative salary, two employees with the same ID, an employee assigned to a department that does not exist. Constraints are the database's bouncers — they enforce rules so your data stays clean and consistent.
@@ -869,28 +748,12 @@ What happens when you delete a department that still has employees assigned to i
 | `ON DELETE SET NULL` | Set foreign key to NULL in child rows | Delete department 10 → employees in dept 10 get dept\_id = NULL |
 | `ON DELETE RESTRICT` | Prevent deletion if child rows exist (default) | Cannot delete department 10 while it has employees — error is thrown |
 
-A table has a PRIMARY KEY and three UNIQUE constraints. How many total unique identifier columns does it have?
-
-1.  1 — only PRIMARY KEY provides uniqueness
-2.  3 — only UNIQUE constraints count
-3.  4 — PRIMARY KEY is also a unique identifier
-4.  Error — a table cannot have both PRIMARY KEY and UNIQUE
-
-Show Answer
-
+<Quiz question={"A table has a PRIMARY KEY and three UNIQUE constraints. How many total unique identifier columns does it have?"} options={["1 \u2014 only PRIMARY KEY provides uniqueness", "3 \u2014 only UNIQUE constraints count", "4 \u2014 PRIMARY KEY is also a unique identifier", "Error \u2014 a table cannot have both PRIMARY KEY and UNIQUE"]} answerIndex={2}>
 The table has 4 unique identifier columns: 1 PRIMARY KEY + 3 UNIQUE constraints. PRIMARY KEY itself enforces uniqueness (it is UNIQUE + NOT NULL). A table can absolutely have both — one PRIMARY KEY and multiple UNIQUE constraints. Example: student\_id (PK), email (UNIQUE), phone (UNIQUE), aadhaar (UNIQUE).
-
-If a FOREIGN KEY is defined with `ON DELETE CASCADE`, what happens when the parent row is deleted?
-
-1.  Nothing — the child rows remain unchanged
-2.  The child rows' foreign key column is set to NULL
-3.  All child rows referencing that parent are also deleted
-4.  The deletion is blocked with an error
-
-Show Answer
-
+</Quiz>
+<Quiz question={"If a FOREIGN KEY is defined with `ON DELETE CASCADE`, what happens when the parent row is deleted?"} options={["Nothing \u2014 the child rows remain unchanged", "The child rows' foreign key column is set to NULL", "All child rows referencing that parent are also deleted", "The deletion is blocked with an error"]} answerIndex={1}>
 CASCADE means the delete "cascades" down to child rows. If you delete department 10, all employees with dept\_id = 10 are automatically deleted too. This is powerful but dangerous — use with caution. SET NULL would just set their dept\_id to NULL. RESTRICT (default) would block the deletion entirely.
-
+</Quiz>
 ### Normalization
 
 **Why does normalization matter?** Imagine a table where every employee row stores the department name, department location, and department manager. Now the HR department moves to a new office. You have to update the location in 200 employee rows. Miss even one? Your data is now inconsistent — some rows say "Mumbai," others say "Pune" for the same department.
@@ -924,28 +787,12 @@ Unnormalized data is like writing your home address on every form at school — 
 "Removing partial dependency achieves?" → 2NF
 </Callout>
 
-A table has columns: (student\_id PK, student\_name, dept\_id, dept\_name). Which normal form is violated and why?
-
-1.  1NF — because values are not atomic
-2.  2NF — because of partial dependency
-3.  3NF — because dept\_name depends on dept\_id, not on the primary key
-4.  No violation — the table is fully normalized
-
-Show Answer
-
+<Quiz question={"A table has columns: (student\\_id PK, student\\_name, dept\\_id, dept\\_name). Which normal form is violated and why?"} options={["1NF \u2014 because values are not atomic", "2NF \u2014 because of partial dependency", "3NF \u2014 because dept\\_name depends on dept\\_id, not on the primary key", "No violation \u2014 the table is fully normalized"]} answerIndex={2}>
 This violates 3NF. The dept\_name column depends on dept\_id (a non-key column), not directly on student\_id (the primary key). This is called a transitive dependency: student\_id → dept\_id → dept\_name. Fix: move dept\_name to a separate departments table with dept\_id as the primary key.
-
-A cell in a table contains "Java, Python, SQL" as a single value. Which normal form rule is violated?
-
-1.  1NF — values must be atomic (one value per cell)
-2.  2NF — partial dependency
-3.  3NF — transitive dependency
-4.  BCNF — determinant is not a candidate key
-
-Show Answer
-
+</Quiz>
+<Quiz question={"A cell in a table contains \"Java, Python, SQL\" as a single value. Which normal form rule is violated?"} options={["1NF \u2014 values must be atomic (one value per cell)", "2NF \u2014 partial dependency", "3NF \u2014 transitive dependency", "BCNF \u2014 determinant is not a candidate key"]} answerIndex={0}>
 1NF requires atomic values — each cell must contain exactly ONE value. A comma-separated list like "Java, Python, SQL" violates 1NF. The fix: create a separate skills table with one row per skill (student\_id, skill).
-
+</Quiz>
 ### Views
 
 **Why do views exist?** Imagine you have a complex query with 5 JOINs that you run 10 times a day. Instead of writing that monster query every time, you save it as a **view** — a virtual table that runs the query behind the scenes whenever you access it. Views also let you control what data different users can see.
@@ -981,17 +828,9 @@ DROP VIEW high_earners;
 
 </Callout>
 
-Does a view store data physically in the database?
-
-1.  Yes — it creates a copy of the data
-2.  No — it stores only the query definition and runs it each time
-3.  Yes — but only for the first access, then it caches
-4.  It depends on the database engine
-
-Show Answer
-
+<Quiz question={"Does a view store data physically in the database?"} options={["Yes \u2014 it creates a copy of the data", "No \u2014 it stores only the query definition and runs it each time", "Yes \u2014 but only for the first access, then it caches", "It depends on the database engine"]} answerIndex={0}>
 A regular view does NOT store data — it stores only the SELECT query definition. Every time you query the view, it re-executes the underlying query against the base tables. This means the view always shows the latest data. (Note: Materialized Views DO store data physically, but they are a separate concept.)
-
+</Quiz>
 ### Indexes
 
 **Why do indexes exist?** Without an index, searching for an employee named "Darshan" in a table of 1 million rows means the database scans every single row — like reading a 500-page book from page 1 to find one topic. An index is like the book's index at the back — you look up "Darshan," find it points to row 47892, and jump straight there.
@@ -1026,28 +865,12 @@ Indexes **speed up SELECT** (reads) but **slow down INSERT/UPDATE/DELETE** (writ
 The database automatically creates an index on PRIMARY KEY and UNIQUE columns. You never need to manually index these.
 </Callout>
 
-Which statement about indexes is FALSE?
-
-1.  Indexes speed up SELECT queries
-2.  Indexes slow down INSERT, UPDATE, DELETE operations
-3.  You should create indexes on every column for maximum performance
-4.  PRIMARY KEY columns are automatically indexed
-
-Show Answer
-
+<Quiz question={"Which statement about indexes is FALSE?"} options={["Indexes speed up SELECT queries", "Indexes slow down INSERT, UPDATE, DELETE operations", "You should create indexes on every column for maximum performance", "PRIMARY KEY columns are automatically indexed"]} answerIndex={1}>
 Indexing every column is a terrible idea. Each index must be maintained on every INSERT/UPDATE/DELETE, which adds overhead. Only index columns that are frequently used in WHERE, JOIN, or ORDER BY clauses. Over-indexing can actually make your database SLOWER overall because writes become expensive.
-
-You have a table with 10 million rows. Queries filtering by `WHERE city = 'Mumbai'` are slow. What is the best solution?
-
-1.  Add more RAM to the server
-2.  Create an index on the city column
-3.  Use TRUNCATE to remove unnecessary rows
-4.  Change the column data type to CHAR
-
-Show Answer
-
+</Quiz>
+<Quiz question={"You have a table with 10 million rows. Queries filtering by `WHERE city = 'Mumbai'` are slow. What is the best solution?"} options={["Add more RAM to the server", "Create an index on the city column", "Use TRUNCATE to remove unnecessary rows", "Change the column data type to CHAR"]} answerIndex={1}>
 Creating an index on the city column lets the database quickly locate all rows with city = 'Mumbai' without scanning all 10 million rows. This is the textbook use case for indexes — a column frequently used in WHERE conditions on a large table.
-
+</Quiz>
 ### Transactions & TCL
 
 **Why do transactions exist?** Imagine transferring Rs. 1000 from your account to a friend's account. This involves TWO operations: (1) subtract 1000 from your balance, (2) add 1000 to friend's balance. What if the system crashes after step 1 but before step 2? Your money vanishes into thin air. Transactions prevent this by treating both operations as ONE atomic unit — either BOTH succeed, or BOTH are undone.
@@ -1087,28 +910,12 @@ ROLLBACK TO sp2;  -- Undo DELETE but keep the UPDATE
 In Oracle, DDL statements (CREATE, ALTER, DROP, TRUNCATE) automatically issue a COMMIT. You **cannot rollback** a TRUNCATE or DROP. This also means if you had uncommitted DML changes, running a DDL statement will commit those too!
 </Callout>
 
-Which ACID property ensures that a bank transfer either fully completes or fully rolls back?
-
-1.  Consistency
-2.  Isolation
-3.  Durability
-4.  Atomicity
-
-Show Answer
-
+<Quiz question={"Which ACID property ensures that a bank transfer either fully completes or fully rolls back?"} options={["Consistency", "Isolation", "Durability", "Atomicity"]} answerIndex={3}>
 Atomicity means "all or nothing." Either the entire transaction (debit + credit) completes successfully, or the entire thing is rolled back. No half-done states. The word "atomic" comes from Greek "atomos" meaning "indivisible."
-
-You run an UPDATE, then a CREATE TABLE, then a ROLLBACK. What happens?
-
-1.  Both the UPDATE and CREATE TABLE are rolled back
-2.  Only the CREATE TABLE is rolled back
-3.  Nothing is rolled back — CREATE TABLE auto-committed everything
-4.  Error — ROLLBACK cannot follow CREATE TABLE
-
-Show Answer
-
+</Quiz>
+<Quiz question={"You run an UPDATE, then a CREATE TABLE, then a ROLLBACK. What happens?"} options={["Both the UPDATE and CREATE TABLE are rolled back", "Only the CREATE TABLE is rolled back", "Nothing is rolled back \u2014 CREATE TABLE auto-committed everything", "Error \u2014 ROLLBACK cannot follow CREATE TABLE"]} answerIndex={2}>
 In Oracle, CREATE TABLE is DDL, which triggers an automatic COMMIT. This commits both the CREATE TABLE AND any uncommitted changes before it (including your UPDATE). When you then run ROLLBACK, there is nothing to roll back — everything was already committed by the DDL statement.
-
+</Quiz>
 ### DCL — GRANT & REVOKE
 
 **Why does DCL exist?** In a company, not everyone should have the same access. An intern should not be able to DELETE employee records. The CEO's assistant might need to read salary data but never modify it. DCL controls who can do what.
@@ -1128,17 +935,9 @@ GRANT SELECT ON employees TO user1 WITH GRANT OPTION;
 This gives user1 the ability to grant the same permission to OTHER users. Like giving someone a master key AND the ability to make copies. Use carefully — it can lead to uncontrolled permission spreading.
 </Callout>
 
-What does `GRANT SELECT ON employees TO user1 WITH GRANT OPTION` do?
-
-1.  Gives user1 SELECT access only
-2.  Gives user1 SELECT access and the ability to grant SELECT to others
-3.  Gives user1 all permissions on employees
-4.  Creates a view for user1
-
-Show Answer
-
+<Quiz question={"What does `GRANT SELECT ON employees TO user1 WITH GRANT OPTION` do?"} options={["Gives user1 SELECT access only", "Gives user1 SELECT access and the ability to grant SELECT to others", "Gives user1 all permissions on employees", "Creates a view for user1"]} answerIndex={2}>
 WITH GRANT OPTION allows user1 to further grant the same privilege (SELECT on employees) to other users. Without this option, user1 can use SELECT but cannot pass the permission along.
-
+</Quiz>
 ### Miscellaneous Concepts
 
 #### CASE Expression
@@ -1224,112 +1023,33 @@ SELECT * FROM emp;
 
 ### Practice Questions
 
-Which SQL command is used to remove all rows from a table without logging individual row deletions?
-
-1.  DELETE
-2.  DROP
-3.  TRUNCATE
-4.  REMOVE
-
-Show Answer
-
+<Quiz question={"Which SQL command is used to remove all rows from a table without logging individual row deletions?"} options={["DELETE", "DROP", "TRUNCATE", "REMOVE"]} answerIndex={2}>
 C) TRUNCATE — removes all rows, keeps table structure, cannot be rolled back (DDL). DELETE logs each row and can be rolled back (DML).
-
-What is the output of: `SELECT COUNT(*) FROM employees WHERE commission IS NULL;` if 3 out of 10 employees have NULL commission?
-
-1.  7
-2.  3
-3.  10
-4.  0
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output of: `SELECT COUNT(*) FROM employees WHERE commission IS NULL;` if 3 out of 10 employees have NULL commission?"} options={["7", "3", "10", "0"]} answerIndex={1}>
 B) 3 — COUNT(*) counts all rows that match the WHERE condition. 3 employees have NULL commission.
-
-Which JOIN returns all rows from both tables, including unmatched rows?
-
-1.  INNER JOIN
-2.  LEFT JOIN
-3.  FULL OUTER JOIN
-4.  CROSS JOIN
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which JOIN returns all rows from both tables, including unmatched rows?"} options={["INNER JOIN", "LEFT JOIN", "FULL OUTER JOIN", "CROSS JOIN"]} answerIndex={2}>
 C) FULL OUTER JOIN — returns all rows from both tables. Unmatched rows get NULL for the other table's columns.
-
-Which clause is used to filter groups after GROUP BY?
-
-1.  WHERE
-2.  HAVING
-3.  FILTER
-4.  GROUP FILTER
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which clause is used to filter groups after GROUP BY?"} options={["WHERE", "HAVING", "FILTER", "GROUP FILTER"]} answerIndex={1}>
 B) HAVING — filters groups after GROUP BY. WHERE filters individual rows before grouping.
-
-A table with no repeating groups and only atomic values in each cell satisfies which normal form?
-
-1.  2NF
-2.  BCNF
-3.  1NF
-4.  3NF
-
-Show Answer
-
+</Quiz>
+<Quiz question={"A table with no repeating groups and only atomic values in each cell satisfies which normal form?"} options={["2NF", "BCNF", "1NF", "3NF"]} answerIndex={2}>
 C) 1NF (First Normal Form) — requires atomic values (no repeating groups, no comma-separated lists).
-
-What does `GRANT SELECT ON employees TO user1 WITH GRANT OPTION` do?
-
-1.  Gives user1 SELECT access only
-2.  Gives user1 SELECT access and the ability to grant SELECT to others
-3.  Gives user1 all permissions on employees
-4.  Creates a view for user1
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does `GRANT SELECT ON employees TO user1 WITH GRANT OPTION` do?"} options={["Gives user1 SELECT access only", "Gives user1 SELECT access and the ability to grant SELECT to others", "Gives user1 all permissions on employees", "Creates a view for user1"]} answerIndex={1}>
 B) WITH GRANT OPTION allows user1 to further grant the same privilege to other users.
-
-Which function returns the first non-NULL value from a list?
-
-1.  NVL
-2.  IFNULL
-3.  COALESCE
-4.  NULLIF
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which function returns the first non-NULL value from a list?"} options={["NVL", "IFNULL", "COALESCE", "NULLIF"]} answerIndex={2}>
 C) COALESCE — returns the first non-NULL value from any number of arguments. NVL only takes 2 arguments (Oracle-specific).
-
-What does `SELECT emp_name FROM employees WHERE salary > ALL (SELECT salary FROM employees WHERE dept_id = 20);` return?
-
-1.  Employees earning more than any employee in dept 20
-2.  Employees earning more than every employee in dept 20
-3.  Employees earning less than all in dept 20
-4.  Error — ALL cannot be used with subqueries
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does `SELECT emp_name FROM employees WHERE salary > ALL (SELECT salary FROM employees WHERE dept_id = 20);` return?"} options={["Employees earning more than any employee in dept 20", "Employees earning more than every employee in dept 20", "Employees earning less than all in dept 20", "Error \u2014 ALL cannot be used with subqueries"]} answerIndex={1}>
 B) \> ALL means greater than the MAXIMUM value returned by the subquery. So it returns employees earning more than every employee in dept 20.
-
-The ACID property that ensures a transaction is "all or nothing" is:
-
-1.  Consistency
-2.  Isolation
-3.  Durability
-4.  Atomicity
-
-Show Answer
-
+</Quiz>
+<Quiz question={"The ACID property that ensures a transaction is \"all or nothing\" is:"} options={["Consistency", "Isolation", "Durability", "Atomicity"]} answerIndex={3}>
 D) Atomicity — the transaction either completes entirely or not at all. If any part fails, the entire transaction is rolled back.
-
-What is the difference between `DELETE FROM employees;` and `TRUNCATE TABLE employees;`?
-
-1.  No difference — both do the same thing
-2.  DELETE is DDL, TRUNCATE is DML
-3.  DELETE can be rolled back, TRUNCATE cannot
-4.  TRUNCATE can use WHERE clause, DELETE cannot
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the difference between `DELETE FROM employees;` and `TRUNCATE TABLE employees;`?"} options={["No difference \u2014 both do the same thing", "DELETE is DDL, TRUNCATE is DML", "DELETE can be rolled back, TRUNCATE cannot", "TRUNCATE can use WHERE clause, DELETE cannot"]} answerIndex={2}>
 C) DELETE is DML (can be rolled back, logs each row deletion, can use WHERE). TRUNCATE is DDL (cannot be rolled back, removes all rows instantly, no WHERE clause).
+</Quiz>

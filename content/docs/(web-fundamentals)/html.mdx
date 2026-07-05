@@ -50,28 +50,12 @@ HTML has three building blocks. Understanding the difference between them is lik
 Some elements have NO content inside them — they're like a light switch (either on or off, no content in between). These are called **void elements** and they do NOT have a closing tag: `<br>`, `<hr>`, `<img>`, `<input>`, `<meta>`, `<link>`, `<area>`, `<col>`, `<embed>`, `<source>`, `<track>`, `<wbr>`. Exam asks "which tag is self-closing?"
 </Callout>
 
-Which of the following is TRUE about HTML?
-
-1.  HTML is a programming language used to create dynamic content
-2.  HTML tags are case-sensitive — \<P\> and \<p\> are different
-3.  HTML is a markup language that defines the structure of web content
-4.  HTML can perform calculations and logical operations
-
-Show Answer
-
+<Quiz question={"Which of the following is TRUE about HTML?"} options={["HTML is a programming language used to create dynamic content", "HTML tags are case-sensitive \u2014 \\<P\\> and \\<p\\> are different", "HTML is a markup language that defines the structure of web content", "HTML can perform calculations and logical operations"]} answerIndex={1}>
 HTML is a **markup language**, not a programming language. It defines structure (headings, paragraphs, lists) but cannot do math, loops, or logic. Tags are NOT case-sensitive — \<P\> and \<p\> are the same, though lowercase is convention.
-
-Which of these is a void (self-closing) element?
-
-1.  `<div>`
-2.  `<p>`
-3.  `<br>`
-4.  `<span>`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which of these is a void (self-closing) element?"} options={["`<div>`", "`<p>`", "`<br>`", "`<span>`"]} answerIndex={3}>
 `<br>` is a void element — it represents a line break and has no content, so it needs no closing tag. `<div>`, `<p>`, and `<span>` all have content between their opening and closing tags.
-
+</Quiz>
 ### Document Structure
 
 Every HTML page follows the same blueprint — think of it like a letter. Every letter has a format: the envelope info (who it's to, return address) and the actual letter content. An HTML page is the same:
@@ -110,17 +94,9 @@ Every HTML page follows the same blueprint — think of it like a letter. Every 
 `<!DOCTYPE html>` is NOT an HTML tag. It's a document type declaration. This is a frequent MCQ distractor.
 </Callout>
 
-Which of the following is TRUE about `<!DOCTYPE html>`?
-
-1.  It is the root element of an HTML page
-2.  It is a declaration that tells the browser to use HTML5 standards mode
-3.  It must be placed inside the `<head>` element
-4.  It is optional and has no effect on rendering
-
-Show Answer
-
+<Quiz question={"Which of the following is TRUE about `<!DOCTYPE html>`?"} options={["It is the root element of an HTML page", "It is a declaration that tells the browser to use HTML5 standards mode", "It must be placed inside the `<head>` element", "It is optional and has no effect on rendering"]} answerIndex={1}>
 `<!DOCTYPE html>` is a **declaration**, not a tag. It goes at the very top of the file (before `<html>`) and tells the browser to render using HTML5 standards mode. Without it, the browser may use quirks mode which causes inconsistent rendering.
-
+</Quiz>
 ### Text Formatting Tags
 
 When you write a document in Word, you bold important words, italicize book titles, and underline headings. HTML gives you the same tools — but with a twist: some tags are just about **looks**, and some carry **meaning**.
@@ -164,28 +140,12 @@ Why does this matter? Imagine a blind person using a screen reader. The screen r
 `<strong>` vs `<b>` — Both look bold, but `<strong>` tells screen readers and search engines the text is **important**. Same for `<em>` vs `<i>`. Exam loves asking the difference.
 </Callout>
 
-What is the key difference between `<strong>` and `<b>`?
-
-1.  `<strong>` makes text bigger, `<b>` makes it bold
-2.  They are completely identical in every way
-3.  `<strong>` carries semantic importance, `<b>` is only visual
-4.  `<b>` is HTML5, `<strong>` is deprecated
-
-Show Answer
-
+<Quiz question={"What is the key difference between `<strong>` and `<b>`?"} options={["`<strong>` makes text bigger, `<b>` makes it bold", "They are completely identical in every way", "`<strong>` carries semantic importance, `<b>` is only visual", "`<b>` is HTML5, `<strong>` is deprecated"]} answerIndex={0}>
 Both render as bold, but `<strong>` tells browsers, screen readers, and search engines that the text is **important**. `<b>` just makes it visually bold with no semantic meaning. Always prefer `<strong>` for important content.
-
-Which tag preserves whitespace and line breaks exactly as written in the source code?
-
-1.  `<code>`
-2.  `<p>`
-3.  `<pre>`
-4.  `<blockquote>`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which tag preserves whitespace and line breaks exactly as written in the source code?"} options={["`<code>`", "`<p>`", "`<pre>`", "`<blockquote>`"]} answerIndex={2}>
 `<pre>` (preformatted text) preserves all spaces, tabs, and newlines exactly as you typed them. Normal HTML collapses multiple spaces into one. `<code>` just changes the font to monospace — it does NOT preserve whitespace on its own.
-
+</Quiz>
 ### Lists
 
 Why do lists exist as separate tags? Can't you just type "1. First item" in a paragraph? You could, but the browser (and screen readers) wouldn't KNOW it's a list. By using list tags, you tell the browser "these items are related and ordered/unordered," which helps with accessibility, styling, and structure.
@@ -233,28 +193,12 @@ HTML gives you three types of lists:
 "Which tag is used for a description list?" — Answer: `<dl>` with `<dt>` (term) and `<dd>` (description). NOT `<ul>` or `<ol>`.
 </Callout>
 
-Which tag represents a single item inside a list?
-
-1.  `<list>`
-2.  `<item>`
-3.  `<dd>`
-4.  `<li>`
-
-Show Answer
-
+<Quiz question={"Which tag represents a single item inside a list?"} options={["`<list>`", "`<item>`", "`<dd>`", "`<li>`"]} answerIndex={3}>
 `<li>` (list item) is used inside both `<ul>` and `<ol>`. `<dd>` is for description definitions only (inside `<dl>`). There is no `<list>` or `<item>` tag in HTML.
-
-What does `<ol type="A" start="3">` produce?
-
-1.  A numbered list starting from 3
-2.  A list with items labeled C, D, E...
-3.  A list with items labeled A, B, C... starting from the 3rd item
-4.  An error — type and start cannot be used together
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does `<ol type=\"A\" start=\"3\">` produce?"} options={["A numbered list starting from 3", "A list with items labeled C, D, E...", "A list with items labeled A, B, C... starting from the 3rd item", "An error \u2014 type and start cannot be used together"]} answerIndex={0}>
 `type="A"` changes numbering to uppercase letters. `start="3"` starts counting from 3. Since A=1, B=2, C=3, the list starts at C and continues D, E, F... The start value is always a number, and the type determines how that number is displayed.
-
+</Quiz>
 ### Links & Images
 
 The "HT" in HTML stands for **HyperText** — text that links to other text. Links are what make the web a "web." Without them, every page would be an island. The `<a>` (anchor) tag is how you connect pages together.
@@ -316,28 +260,12 @@ Images use the `<img>` tag — a void element (no closing tag, because there's n
 The `alt` attribute is **required** for accessibility. It describes the image for screen readers and shows if the image fails to load. Exam asks: "Which attribute provides alternative text for an image?" — Answer: `alt`.
 </Callout>
 
-Which tag is used to define a hyperlink in HTML?
-
-1.  `<link>`
-2.  `<a>`
-3.  `<href>`
-4.  `<url>`
-
-Show Answer
-
+<Quiz question={"Which tag is used to define a hyperlink in HTML?"} options={["`<link>`", "`<a>`", "`<href>`", "`<url>`"]} answerIndex={3}>
 `<a>` (anchor) creates clickable hyperlinks. `<link>` is for external resources in the \<head\> (like CSS). There is no `<href>` or `<url>` tag — `href` is an attribute, not a tag.
-
-What does the `alt` attribute in `<img>` provide?
-
-1.  A tooltip when hovering over the image
-2.  Alternative text for screen readers and when the image fails to load
-3.  The image title displayed below the image
-4.  A link to an alternative image source
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does the `alt` attribute in `<img>` provide?"} options={["A tooltip when hovering over the image", "Alternative text for screen readers and when the image fails to load", "The image title displayed below the image", "A link to an alternative image source"]} answerIndex={1}>
 `alt` provides alternative text — it's read by screen readers for accessibility and displayed when the image can't load. The `title` attribute (not alt) provides the hover tooltip. Don't confuse the two.
-
+</Quiz>
 ### Tables
 
 Tables display data in rows and columns — like an Excel spreadsheet. But here's the important part: tables should ONLY be used for **tabular data** (student marks, price lists, schedules). In the early web, people used tables for page layout — that's now considered bad practice. Use CSS for layout.
@@ -416,28 +344,12 @@ Sometimes one cell needs to stretch across multiple columns or rows. Think of it
 Exam loves asking: "How to merge 3 columns?" — Answer: `colspan="3"`.
 </Callout>
 
-What does `colspan="3"` do in a table cell?
-
-1.  Creates 3 new columns in the table
-2.  Merges 3 cells vertically
-3.  Merges 3 cells horizontally across columns
-4.  Adds a 3-pixel border to the cell
-
-Show Answer
-
+<Quiz question={"What does `colspan=\"3\"` do in a table cell?"} options={["Creates 3 new columns in the table", "Merges 3 cells vertically", "Merges 3 cells horizontally across columns", "Adds a 3-pixel border to the cell"]} answerIndex={2}>
 `colspan="3"` makes a single cell stretch across 3 columns horizontally. Think "col" = column, "span" = stretch. `rowspan` does the same thing vertically. It doesn't create new columns — it merges existing ones.
-
-Which tag creates a header cell in a table?
-
-1.  `<td>`
-2.  `<th>`
-3.  `<thead>`
-4.  `<header>`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which tag creates a header cell in a table?"} options={["`<td>`", "`<th>`", "`<thead>`", "`<header>`"]} answerIndex={3}>
 `<th>` creates a header cell (bold and centered by default). `<td>` is for data cells. `<thead>` is a grouping element that wraps header rows — it's not a cell. `<header>` is a semantic page element, not related to tables.
-
+</Quiz>
 ### Forms & Input Elements
 
 Forms are how users **talk back** to a website. Every login page, search bar, registration form, and payment checkout is an HTML form. Without forms, the web would be read-only — like a newspaper you can never write a letter to.
@@ -594,39 +506,15 @@ Both prevent the user from changing a field. But there's a critical difference:
 `POST`: data in request body, not visible in URL, no length limit. Use for login/signup/file upload.
 </Callout>
 
-Which is NOT a valid HTML5 input type?
-
-1.  `email`
-2.  `date`
-3.  `phone`
-4.  `color`
-
-Show Answer
-
+<Quiz question={"Which is NOT a valid HTML5 input type?"} options={["`email`", "`date`", "`phone`", "`color`"]} answerIndex={3}>
 There is no `type="phone"`. The correct type for phone numbers is `tel`. This is a very common exam trick — `email`, `date`, and `color` are all valid HTML5 input types.
-
-What happens when a `disabled` input field is inside a submitted form?
-
-1.  Its value is sent to the server as empty
-2.  Its value is sent to the server normally
-3.  Its value is NOT sent to the server at all
-4.  The form submission is blocked
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What happens when a `disabled` input field is inside a submitted form?"} options={["Its value is sent to the server as empty", "Its value is sent to the server normally", "Its value is NOT sent to the server at all", "The form submission is blocked"]} answerIndex={0}>
 A `disabled` field's value is completely excluded from the form submission — the server never receives it. If you want a field the user can't edit but whose value IS sent, use `readonly` instead.
-
-Which tag creates a dropdown list?
-
-1.  `<input type="dropdown">`
-2.  `<list>`
-3.  `<select>`
-4.  `<dropdown>`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which tag creates a dropdown list?"} options={["`<input type=\"dropdown\">`", "`<list>`", "`<select>`", "`<dropdown>`"]} answerIndex={3}>
 `<select>` with `<option>` children creates a dropdown. There is no `type="dropdown"`, no `<list>` tag, and no `<dropdown>` tag in HTML.
-
+</Quiz>
 ### Semantic HTML5
 
 In the early days of HTML, developers built every layout with `<div>` tags. A page might have `<div id="header">`, `<div id="nav">`, `<div id="footer">`. The problem? A `<div>` means NOTHING. The browser, search engines, and screen readers have no idea whether a div is a navigation menu, a sidebar, or the main content.
@@ -672,28 +560,12 @@ Imagine you're organizing a library. You could put ALL books in boxes labeled "B
 "How many `<main>` elements per page?" — **Only ONE**
 </Callout>
 
-Which HTML5 element should contain navigation links?
-
-1.  `<navigation>`
-2.  `<nav>`
-3.  `<menu>`
-4.  `<links>`
-
-Show Answer
-
+<Quiz question={"Which HTML5 element should contain navigation links?"} options={["`<navigation>`", "`<nav>`", "`<menu>`", "`<links>`"]} answerIndex={3}>
 `<nav>` is the semantic HTML5 element specifically designed for navigation links. There is no `<navigation>` or `<links>` tag. `<menu>` exists but is for context menus, not site navigation.
-
-What is the main benefit of using semantic HTML elements over `<div>`?
-
-1.  They load faster than `<div>` elements
-2.  They have built-in CSS styling that `<div>` lacks
-3.  They give meaning to content, improving accessibility and SEO
-4.  They are required by HTML5 — pages won't render without them
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the main benefit of using semantic HTML elements over `<div>`?"} options={["They load faster than `<div>` elements", "They have built-in CSS styling that `<div>` lacks", "They give meaning to content, improving accessibility and SEO", "They are required by HTML5 \u2014 pages won't render without them"]} answerIndex={0}>
 Semantic elements describe the PURPOSE of their content. Screen readers can tell users "this is the navigation" instead of "this is div number 7." Search engines can understand your page structure. They don't load faster or have special CSS — it's all about meaning and accessibility.
-
+</Quiz>
 ### Audio, Video & Embeds
 
 Before HTML5, playing audio or video on a web page required third-party plugins like Adobe Flash. HTML5 changed that by adding native `<audio>` and `<video>` tags — no plugins needed.
@@ -737,17 +609,9 @@ Why the `<source>` tag inside? Different browsers support different file formats
 Most browsers block autoplay unless the video is `muted`. This is to prevent annoying auto-playing videos with sound. So if your exam question says "how to autoplay a video in Chrome?" — the answer needs BOTH `autoplay` AND `muted`.
 </Callout>
 
-Which attribute must be added along with `autoplay` for a video to auto-play in most modern browsers?
-
-1.  `controls`
-2.  `loop`
-3.  `muted`
-4.  `preload="auto"`
-
-Show Answer
-
+<Quiz question={"Which attribute must be added along with `autoplay` for a video to auto-play in most modern browsers?"} options={["`controls`", "`loop`", "`muted`", "`preload=\"auto\"`"]} answerIndex={2}>
 Modern browsers (Chrome, Firefox, Safari) block autoplay unless the video is `muted`. This is a user experience policy to prevent annoying auto-playing audio. So you need `<video autoplay muted>` for it to actually work.
-
+</Quiz>
 ### Meta Tags & Head
 
 The `<head>` section is like the backstage of a theatre — the audience (user) never sees it directly, but it controls everything: the page title in the browser tab, how the page looks on mobile, what search engines show in results, and which CSS/JS files to load.
@@ -781,17 +645,9 @@ The `<head>` section is like the backstage of a theatre — the audience (user) 
 "Which meta tag sets character encoding?" — `<meta charset="UTF-8">`
 </Callout>
 
-Which meta tag is essential for making a website responsive on mobile devices?
-
-1.  `<meta charset="UTF-8">`
-2.  `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
-3.  `<meta name="description" content="...">`
-4.  `<meta http-equiv="refresh" content="30">`
-
-Show Answer
-
+<Quiz question={"Which meta tag is essential for making a website responsive on mobile devices?"} options={["`<meta charset=\"UTF-8\">`", "`<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">`", "`<meta name=\"description\" content=\"...\">`", "`<meta http-equiv=\"refresh\" content=\"30\">`"]} answerIndex={1}>
 The viewport meta tag tells the browser to match the screen's width and not zoom out to desktop size. Without it, mobile browsers render the page at ~980px wide and let users pinch-zoom — making the site unusable on phones.
-
+</Quiz>
 ### HTML Entities
 
 Here's a problem: what if you want to display the text `<p>` on your web page? If you type `<p>` in your HTML, the browser will think it's a paragraph tag, not text to display. HTML entities solve this — they're special codes that represent characters which would otherwise be interpreted as HTML.
@@ -818,17 +674,9 @@ It's like escaping in real life. If you want to say the word "fire" in a crowded
 `&nbsp;` is the most asked entity. It creates a non-breaking space — the browser won't collapse it like regular spaces, and it prevents line breaks between two words. Normal HTML collapses "Hello     World" into "Hello World" — but `&nbsp;` preserves each space.
 </Callout>
 
-How do you display the less-than symbol (`<`) as text on a web page?
-
-1.  Just type `<` directly
-2.  Use `&lt;`
-3.  Use `&less;`
-4.  Wrap it in `<code>` tags
-
-Show Answer
-
+<Quiz question={"How do you display the less-than symbol (`<`) as text on a web page?"} options={["Just type `<` directly", "Use `&lt;`", "Use `&less;`", "Wrap it in `<code>` tags"]} answerIndex={2}>
 You must use the HTML entity `&lt;` (less than). Typing `<` directly would make the browser think it's the start of an HTML tag. There is no `&less;` entity, and `<code>` changes the font but doesn't prevent HTML interpretation.
-
+</Quiz>
 ### Global Attributes
 
 Most HTML attributes are tag-specific — `href` only works on `<a>`, `src` only works on `<img>`. But **global attributes** work on ANY HTML element. They're like universal settings — you can attach them to a `<div>`, a `<p>`, a `<span>`, anything.
@@ -856,17 +704,9 @@ Most HTML attributes are tag-specific — `href` only works on `<a>`, `src` only
 You can give one element multiple classes (`class="box red big"`) but only one id.
 </Callout>
 
-Which statement about `id` and `class` is TRUE?
-
-1.  Multiple elements can share the same `id`
-2.  `id` must be unique per page; `class` can be reused
-3.  `class` must be unique per page; `id` can be reused
-4.  Both `id` and `class` must be unique per page
-
-Show Answer
-
+<Quiz question={"Which statement about `id` and `class` is TRUE?"} options={["Multiple elements can share the same `id`", "`id` must be unique per page; `class` can be reused", "`class` must be unique per page; `id` can be reused", "Both `id` and `class` must be unique per page"]} answerIndex={3}>
 `id` MUST be unique — only one element per page can have a given id. `class` is reusable — hundreds of elements can share the same class. This is fundamental to CSS and JavaScript, and a guaranteed exam question.
-
+</Quiz>
 ### Block vs Inline Elements
 
 Every HTML element is either **block-level** or **inline**. This determines how the element behaves in the page flow.
@@ -890,17 +730,9 @@ Every HTML element is either **block-level** or **inline**. This determines how 
 Neither has semantic meaning — use them for styling/grouping only when no semantic element fits.
 </Callout>
 
-What's the difference between `<div>` and `<span>`?
-
-1.  `<div>` is inline, `<span>` is block
-2.  `<div>` is block, `<span>` is inline
-3.  Both are block-level elements
-4.  Both are inline elements
-
-Show Answer
-
+<Quiz question={"What's the difference between `<div>` and `<span>`?"} options={["`<div>` is inline, `<span>` is block", "`<div>` is block, `<span>` is inline", "Both are block-level elements", "Both are inline elements"]} answerIndex={1}>
 `<div>` is a block-level container — it starts on a new line and takes full width. `<span>` is an inline container — it stays in the flow of text and only takes the width of its content. Both are non-semantic (no meaning) and used purely for grouping/styling.
-
+</Quiz>
 ### iframes
 
 An `<iframe>` (inline frame) embeds another HTML page INSIDE your page. Think of it as a window within your window — you're looking at your page, and inside it there's a smaller window showing a completely different website or page.
@@ -928,17 +760,9 @@ Common uses: embedding YouTube videos, Google Maps, payment forms, or code edito
 The `sandbox` attribute is critical for security. Without it, an embedded page could run scripts, submit forms, or redirect your entire page. With `sandbox`, everything is restricted by default. You can selectively allow features: `sandbox="allow-scripts allow-forms"`.
 </Callout>
 
-What does the `sandbox` attribute do on an `<iframe>`?
-
-1.  It adds a visible border around the iframe
-2.  It restricts the embedded page's actions for security
-3.  It enables fullscreen mode for the iframe
-4.  It makes the iframe load lazily
-
-Show Answer
-
+<Quiz question={"What does the `sandbox` attribute do on an `<iframe>`?"} options={["It adds a visible border around the iframe", "It restricts the embedded page's actions for security", "It enables fullscreen mode for the iframe", "It makes the iframe load lazily"]} answerIndex={1}>
 The `sandbox` attribute applies security restrictions to the embedded content — by default it blocks scripts, form submissions, popups, and navigation. This prevents a malicious embedded page from hijacking your site.
-
+</Quiz>
 ### HTML5 APIs (Conceptual)
 
 HTML5 didn't just add new tags — it introduced powerful JavaScript APIs that let web pages do things that previously required plugins or native apps. You won't code these in the FA exam, but you need to know what each one does (1-2 MCQs possible).
@@ -962,17 +786,9 @@ HTML5 didn't just add new tags — it introduced powerful JavaScript APIs that l
 Key exam question: "Which storage is sent to the server with every request?" — **Only cookies.**
 </Callout>
 
-What is the key difference between `localStorage` and `sessionStorage`?
-
-1.  `localStorage` has a smaller size limit
-2.  `sessionStorage` persists after the browser is closed
-3.  `localStorage` data persists after closing the browser; `sessionStorage` is cleared when the tab closes
-4.  `localStorage` is sent to the server; `sessionStorage` is not
-
-Show Answer
-
+<Quiz question={"What is the key difference between `localStorage` and `sessionStorage`?"} options={["`localStorage` has a smaller size limit", "`sessionStorage` persists after the browser is closed", "`localStorage` data persists after closing the browser; `sessionStorage` is cleared when the tab closes", "`localStorage` is sent to the server; `sessionStorage` is not"]} answerIndex={3}>
 Both have ~5MB storage and are JS-only (not sent to server). The difference is persistence: `localStorage` stays until you manually clear it, even after closing and reopening the browser. `sessionStorage` is wiped the moment the tab closes. Neither is sent to the server — only cookies do that.
-
+</Quiz>
 ### FA Exam Traps & Tips
 
 <Callout type="error" title="Common traps in TCS FA">
@@ -1011,68 +827,21 @@ Both have ~5MB storage and are JS-only (not sent to server). The difference is p
 
 ### Practice MCQs
 
-Which attribute specifies the URL in an anchor tag?
-
-1.  `src`
-2.  `link`
-3.  `href`
-4.  `url`
-
-Show Answer
-
+<Quiz question={"Which attribute specifies the URL in an anchor tag?"} options={["`src`", "`link`", "`href`", "`url`"]} answerIndex={3}>
 `href` (Hypertext REFerence) specifies the URL in an anchor tag. `src` is used for `<img>`, `<script>`, and `<video>`. There is no `link` or `url` attribute.
-
-Which attribute makes an input field mandatory before form submission?
-
-1.  `mandatory`
-2.  `validate`
-3.  `required`
-4.  `necessary`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which attribute makes an input field mandatory before form submission?"} options={["`mandatory`", "`validate`", "`required`", "`necessary`"]} answerIndex={3}>
 `required` is the HTML5 attribute that prevents form submission until the field is filled. There is no `mandatory`, `validate`, or `necessary` attribute in HTML.
-
-Which input type hides the entered characters?
-
-1.  `hidden`
-2.  `secret`
-3.  `password`
-4.  `masked`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which input type hides the entered characters?"} options={["`hidden`", "`secret`", "`password`", "`masked`"]} answerIndex={3}>
 `type="password"` shows dots or asterisks instead of the actual characters typed. `type="hidden"` hides the ENTIRE field from view (used for tokens/IDs). There is no `secret` or `masked` type.
-
-Which of the following is a block-level element?
-
-1.  `<span>`
-2.  `<a>`
-3.  `<div>`
-4.  `<strong>`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which of the following is a block-level element?"} options={["`<span>`", "`<a>`", "`<div>`", "`<strong>`"]} answerIndex={3}>
 `<div>` is a block-level element — it starts on a new line and takes full width. `<span>`, `<a>`, and `<strong>` are all inline elements that stay in the flow of text.
-
-Which HTML entity represents a non-breaking space?
-
-1.  `&space;`
-2.  `&nbsp;`
-3.  `&sp;`
-4.  `&blank;`
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which HTML entity represents a non-breaking space?"} options={["`&space;`", "`&nbsp;`", "`&sp;`", "`&blank;`"]} answerIndex={1}>
 `&nbsp;` (non-breaking space) creates a space that the browser won't collapse and won't break a line at. Regular spaces get collapsed — typing 5 spaces shows as 1 space. `&nbsp;` preserves every space.
-
-How many `<main>` elements are allowed per HTML page?
-
-1.  As many as needed
-2.  Only one
-3.  One per section
-4.  None — `<main>` is not a valid HTML5 tag
-
-Show Answer
-
+</Quiz>
+<Quiz question={"How many `<main>` elements are allowed per HTML page?"} options={["As many as needed", "Only one", "One per section", "None \u2014 `<main>` is not a valid HTML5 tag"]} answerIndex={1}>
 Only ONE `<main>` element is allowed per page. It represents the dominant content of the `<body>`. Having multiple would confuse screen readers and search engines about which content is primary.
+</Quiz>

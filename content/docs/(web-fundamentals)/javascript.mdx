@@ -650,287 +650,63 @@ console.log(typeof prompt("test")); // "string" or "object" (null)
 
 ### Practice Questions — Output Prediction & Concepts
 
-What is the output of the following code?  
-`console.log(1 + "2" + 3);`
-
-1.  6
-2.  "123"
-3.  "15"
-4.  NaN
-
-Show Answer
-
+<Quiz question={"What is the output of the following code?  \n`console.log(1 + \"2\" + 3);`"} options={["6", "\"123\"", "\"15\"", "NaN"]} answerIndex={1}>
 ✅ B) "123" — `1 + "2"` hits a string so becomes `"12"`, then `"12" + 3` = `"123"`. Left-to-right evaluation.
-
-What does `typeof null` return?
-
-1.  "null"
-2.  "undefined"
-3.  "object"
-4.  "string"
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does `typeof null` return?"} options={["\"null\"", "\"undefined\"", "\"object\"", "\"string\""]} answerIndex={2}>
 ✅ C) "object" — This is a well-known historic bug in JavaScript that was never fixed to preserve backward compatibility.
-
-What does `typeof NaN` return?
-
-1.  "NaN"
-2.  "undefined"
-3.  "boolean"
-4.  "number"
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does `typeof NaN` return?"} options={["\"NaN\"", "\"undefined\"", "\"boolean\"", "\"number\""]} answerIndex={3}>
 ✅ D) "number" — NaN stands for "Not a Number" but is paradoxically of type "number". Always a top exam question.
-
-What is the output?  
-`console.log(0.1 + 0.2 == 0.3);`
-
-1.  true
-2.  false
-3.  NaN
-4.  undefined
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?  \n`console.log(0.1 + 0.2 == 0.3);`"} options={["true", "false", "NaN", "undefined"]} answerIndex={1}>
 ✅ B) false — Due to floating-point precision, `0.1 + 0.2` equals `0.30000000000000004`, not exactly `0.3`.
-
-What is the output?
-```java
-var x = 5;
-console.log(x++);
-console.log(x);
-```
-
-1.  5, 5
-2.  6, 6
-3.  5, 6
-4.  6, 5
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n```java\nvar x = 5;\nconsole.log(x++);\nconsole.log(x);\n```"} options={["5, 5", "6, 6", "5, 6", "6, 5"]} answerIndex={2}>
 ✅ C) 5, 6 — Post-increment `x++` returns the current value (5) THEN increments. Next line x is now 6.
-
-What is the output?
-```java
-console.log(a);
-var a = 10;
-```
-
-1.  10
-2.  ReferenceError
-3.  null
-4.  undefined
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n```java\nconsole.log(a);\nvar a = 10;\n```"} options={["10", "ReferenceError", "null", "undefined"]} answerIndex={3}>
 ✅ D) undefined — `var a` is hoisted to the top and initialised as `undefined`. The assignment `a = 10` happens later.
-
-What is the output?  
-`console.log(1 == "1");`  
-`console.log(1 === "1");`
-
-1.  true, true
-2.  false, false
-3.  true, false
-4.  false, true
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?  \n`console.log(1 == \"1\");`  \n`console.log(1 === \"1\");`"} options={["true, true", "false, false", "true, false", "false, true"]} answerIndex={2}>
 ✅ C) true, false — `==` converts "1" to number 1 before comparing (equal). `===` checks type too: number ≠ string (not equal).
-
-What is the output?  
-`console.log("5" - 3);`
-
-1.  "53"
-2.  "5-3"
-3.  2
-4.  NaN
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?  \n`console.log(\"5\" - 3);`"} options={["\"53\"", "\"5-3\"", "2", "NaN"]} answerIndex={2}>
 ✅ C) 2 — The `-` operator only does subtraction (no string concatenation). "5" is coerced to number 5, then 5 - 3 = 2.
-
-What is the output?
-```java
-let arr = [1, 2, 3, 4];
-let result = arr.filter(x => x > 2);
-console.log(result);
-```
-
-1.  \[1, 2\]
-2.  \[3, 4\]
-3.  \[2, 3, 4\]
-4.  true
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n```java\nlet arr = [1, 2, 3, 4];\nlet result = arr.filter(x => x > 2);\nconsole.log(result);\n```"} options={["\\[1, 2\\]", "\\[3, 4\\]", "\\[2, 3, 4\\]", "true"]} answerIndex={1}>
 ✅ B) \[3, 4\] — `filter` returns a new array with elements where the callback returns `true`. Only 3 and 4 are greater than 2.
-
-What is the output?
-```java
-let arr = [1, 2, 3];
-console.log(arr.map(x => x * 2));
-console.log(arr);
-```
-
-1.  \[2, 4, 6\], \[2, 4, 6\]
-2.  \[2, 4, 6\], \[1, 2, 3\]
-3.  \[1, 2, 3\], \[2, 4, 6\]
-4.  \[2, 4, 6\], undefined
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n```java\nlet arr = [1, 2, 3];\nconsole.log(arr.map(x => x * 2));\nconsole.log(arr);\n```"} options={["\\[2, 4, 6\\], \\[2, 4, 6\\]", "\\[2, 4, 6\\], \\[1, 2, 3\\]", "\\[1, 2, 3\\], \\[2, 4, 6\\]", "\\[2, 4, 6\\], undefined"]} answerIndex={1}>
 ✅ B) \[2, 4, 6\], \[1, 2, 3\] — `map` does NOT mutate the original array. It returns a new array. The original `arr` is unchanged.
-
-What is the output?
-```java
-function makeAdder(x) {
-  return function(y) {
-    return x + y;
-  };
-}
-const add5 = makeAdder(5);
-console.log(add5(3));
-```
-
-1.  undefined
-2.  3
-3.  5
-4.  8
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n```java\nfunction makeAdder(x) {\n  return function(y) {\n    return x + y;\n  };\n}\nconst add5 = makeAdder(5);\nconsole.log(add5(3));\n```"} options={["undefined", "3", "5", "8"]} answerIndex={3}>
 ✅ D) 8 — This is a closure. `add5` "closes over" `x = 5`. When called with `3`, it returns `5 + 3 = 8`.
-
-What is the output?  
-`console.log(NaN === NaN);`
-
-1.  true
-2.  false
-3.  undefined
-4.  TypeError
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?  \n`console.log(NaN === NaN);`"} options={["true", "false", "undefined", "TypeError"]} answerIndex={1}>
 ✅ B) false — NaN is the only value in JavaScript that is not equal to itself. Use `isNaN()` or `Number.isNaN()` to check for NaN.
-
-What is the output?
-```java
-let a = 10;
-function test() {
-  console.log(a);
-  var a = 20;
-}
-test();
-```
-
-1.  10
-2.  20
-3.  undefined
-4.  ReferenceError
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n```java\nlet a = 10;\nfunction test() {\n  console.log(a);\n  var a = 20;\n}\ntest();\n```"} options={["10", "20", "undefined", "ReferenceError"]} answerIndex={2}>
 ✅ C) undefined — Inside `test()`, `var a` is hoisted within the function scope. At `console.log(a)`, the local `a` exists but is `undefined` (not yet assigned). The outer `a = 10` is shadowed.
-
-What is the output?  
-`console.log(true + true + "1");`
-
-1.  "111"
-2.  3
-3.  "21"
-4.  "true true 1"
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?  \n`console.log(true + true + \"1\");`"} options={["\"111\"", "3", "\"21\"", "\"true true 1\""]} answerIndex={2}>
 ✅ C) "21" — Left to right: `true + true` → `1 + 1` → `2` (both booleans convert to numbers). Then `2 + "1"` → `"21"` (string concatenation).
-
-Which of the following values is TRUTHY in JavaScript?
-
-1.  0
-2.  ""
-3.  \[\]
-4.  null
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which of the following values is TRUTHY in JavaScript?"} options={["0", "\"\"", "\\[\\]", "null"]} answerIndex={2}>
 ✅ C) \[\] — An empty array is truthy in JavaScript. Only these 6 values are falsy: `false`, `0`, `""`, `null`, `undefined`, `NaN`. Empty arrays and objects are NOT falsy.
-
-What is the output?
-```java
-let arr = [10, 20, 30];
-console.log(arr.indexOf(20));
-console.log(arr.indexOf(99));
-```
-
-1.  1, 0
-2.  2, -1
-3.  1, -1
-4.  20, undefined
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n```java\nlet arr = [10, 20, 30];\nconsole.log(arr.indexOf(20));\nconsole.log(arr.indexOf(99));\n```"} options={["1, 0", "2, -1", "1, -1", "20, undefined"]} answerIndex={2}>
 ✅ C) 1, -1 — `indexOf` returns the index of the element (20 is at index 1). If not found, it returns -1 (99 is not in the array).
-
-What is the output?  
-`console.log(typeof undefined === typeof null);`
-
-1.  true
-2.  false
-3.  undefined
-4.  TypeError
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?  \n`console.log(typeof undefined === typeof null);`"} options={["true", "false", "undefined", "TypeError"]} answerIndex={1}>
 ✅ B) false — `typeof undefined` is `"undefined"`. `typeof null` is `"object"`. `"undefined" === "object"` is false.
-
-What is the output?
-```java
-let s = "Hello, World";
-console.log(s.substring(7, 12));
-```
-
-1.  "Hello"
-2.  "World"
-3.  "orld"
-4.  "World,"
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n```java\nlet s = \"Hello, World\";\nconsole.log(s.substring(7, 12));\n```"} options={["\"Hello\"", "\"World\"", "\"orld\"", "\"World,\""]} answerIndex={1}>
 ✅ B) "World" — `substring(7, 12)` extracts characters from index 7 up to (but not including) index 12. H(0)e(1)l(2)l(3)o(4),(5) (6)W(7)o(8)r(9)l(10)d(11) → "World".
-
-What is the output?
-```java
-const obj = { name: "test" };
-const key = "name";
-console.log(obj.key);
-console.log(obj[key]);
-```
-
-1.  "test", "test"
-2.  undefined, "test"
-3.  "test", undefined
-4.  undefined, undefined
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n```java\nconst obj = { name: \"test\" };\nconst key = \"name\";\nconsole.log(obj.key);\nconsole.log(obj[key]);\n```"} options={["\"test\", \"test\"", "undefined, \"test\"", "\"test\", undefined", "undefined, undefined"]} answerIndex={1}>
 ✅ B) undefined, "test" — `obj.key` looks for a property literally named "key" (not the variable) → undefined. `obj[key]` uses the variable's value "name" → `obj["name"]` → "test".
-
-What is the output?
-```java
-let x = 10;
-let y = 3;
-console.log(x % y);
-console.log(x ** y);
-```
-
-1.  3, 30
-2.  1, 1000
-3.  3, 1000
-4.  1, 30
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the output?\n```java\nlet x = 10;\nlet y = 3;\nconsole.log(x % y);\nconsole.log(x ** y);\n```"} options={["3, 30", "1, 1000", "3, 1000", "1, 30"]} answerIndex={1}>
 ✅ B) 1, 1000 — `%` is modulo: 10 ÷ 3 = 3 remainder **1**. `**` is exponentiation: 10³ = **1000**.
+</Quiz>

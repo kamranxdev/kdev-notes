@@ -21,17 +21,9 @@ Unix was built at Bell Labs in 1969. Linux is a free, open-source recreation of 
 
 </Callout>
 
-In Unix, `Report.txt` and `report.txt` are:
-
-1.  The same file
-2.  Two different files
-3.  An error — you can't have both
-4.  Depends on the directory
-
-Show Answer
-
+<Quiz question={"In Unix, `Report.txt` and `report.txt` are:"} options={["The same file", "Two different files", "An error \u2014 you can't have both", "Depends on the directory"]} answerIndex={1}>
 Unix is case-sensitive. `Report.txt` and `report.txt` are two completely separate files. This is different from Windows where they'd be the same file.
-
+</Quiz>
 ### File System Hierarchy
 
 **Why does this matter?** In Windows, you dump everything into C:\\Users or wherever you want. Unix is organized like a well-planned office building — every department has its floor, and if you need something, you know exactly which floor to go to.
@@ -54,17 +46,9 @@ Think of it as **an apartment building**:
 /etc = config, /tmp = temporary (wiped on reboot), /var = logs. These three come up most. Remember: **E**tc = **E**very **T**hing **C**onfigured. **T**mp = **T**e**M**porary. **V**ar = **V**aries (changes constantly).
 </Callout>
 
-A system administrator wants to check the configuration of a service. Which directory should they look in?
-
-1.  /home
-2.  /tmp
-3.  /etc
-4.  /bin
-
-Show Answer
-
+<Quiz question={"A system administrator wants to check the configuration of a service. Which directory should they look in?"} options={["/home", "/tmp", "/etc", "/bin"]} answerIndex={2}>
 `/etc` stores all system configuration files. Think "Every Thing Configured." If you need to change how a service behaves, its config file is in /etc.
-
+</Quiz>
 ### Essential Commands — Quick Reference
 
 **Why learn these?** In Unix, there's no "right-click > New Folder" or "drag file to trash." Everything happens through commands. Think of each command as a verb — `ls` = "look", `cd` = "go to", `cp` = "copy", `rm` = "delete". Once you learn 20 verbs, you can do anything.
@@ -193,28 +177,12 @@ chmod a+x file     # a(all) +(add) x(execute) → "everyone can execute"
 Memorize these three cold: `755` = rwxr-xr-x (typical script), `644` = rw-r--r-- (typical file), `777` = rwxrwxrwx (everything open). The math is always: r=4, w=2, x=1. Add per group.
 </Callout>
 
-A file has permissions `-rw-r-----`. What is the octal value?
-
-1.  644
-2.  640
-3.  740
-4.  620
-
-Show Answer
-
+<Quiz question={"A file has permissions `-rw-r-----`. What is the octal value?"} options={["644", "640", "740", "620"]} answerIndex={1}>
 Owner: rw- = 4+2+0 = **6**. Group: r-- = 4+0+0 = **4**. Others: --- = 0+0+0 = **0**. Answer: 640. The group can read but not write, and others have zero access.
-
-You want to make a shell script executable by the owner, but keep it read-only for everyone else. Which command?
-
-1.  chmod 777 script.sh
-2.  chmod 744 script.sh
-3.  chmod 644 script.sh
-4.  chmod 700 script.sh
-
-Show Answer
-
+</Quiz>
+<Quiz question={"You want to make a shell script executable by the owner, but keep it read-only for everyone else. Which command?"} options={["chmod 777 script.sh", "chmod 744 script.sh", "chmod 644 script.sh", "chmod 700 script.sh"]} answerIndex={1}>
 744 = Owner: rwx (7 = read+write+execute), Group: r-- (4 = read only), Others: r-- (4 = read only). The owner can execute it, everyone else can only read. Option D (700) would also make it executable for owner, but others can't even read it.
-
+</Quiz>
 ### grep — Pattern Searching
 
 **Why does grep exist?** Imagine you have a 10,000-line server log and something crashed at 3 AM. Are you going to read all 10,000 lines? No. You want to search for "error" or "failed" and see only those lines. That's grep — it's **Ctrl+F for the terminal**, but way more powerful.
@@ -251,17 +219,9 @@ Flags combine: `-i` (ignore case) + `-c` (count) = case-insensitive count.
 | `-c` | Count matches | c = **C**ount |
 | `-v` | Invert match | v = in**V**ert (show NON-matching lines) |
 
-You want to find all lines in `access.log` that do NOT contain "200 OK". Which command?
-
-1.  grep "200 OK" access.log
-2.  grep -c "200 OK" access.log
-3.  grep -v "200 OK" access.log
-4.  grep -n "200 OK" access.log
-
-Show Answer
-
+<Quiz question={"You want to find all lines in `access.log` that do NOT contain \"200 OK\". Which command?"} options={["grep \"200 OK\" access.log", "grep -c \"200 OK\" access.log", "grep -v \"200 OK\" access.log", "grep -n \"200 OK\" access.log"]} answerIndex={2}>
 `-v` inverts the match — it shows every line that does NOT contain the pattern. This is useful for filtering out noise and finding errors (anything that isn't "200 OK" is probably a problem).
-
+</Quiz>
 ### Pipes and Redirection
 
 **Why do pipes exist?** Remember the Unix philosophy — small tools chained together? Pipes are the chains. Each command does one thing well, and the pipe (`|`) connects them like LEGO bricks snapping together.
@@ -303,28 +263,12 @@ Read it like: "Show the log file, **then** keep only lines with '404', **then** 
 `>` **DESTROYS** whatever was in the file and writes fresh. `>>` **ADDS** to the end without touching existing content. If you use `>` on an important file by mistake, the old data is gone forever. This distinction is asked in almost every Unix exam.
 </Callout>
 
-What does `cat file1.txt file2.txt | sort | uniq > result.txt` do?
-
-1.  Sorts file1 and saves to result.txt, ignoring file2
-2.  Combines both files, sorts all lines, removes duplicates, saves to result.txt
-3.  Counts unique lines in both files
-4.  Compares file1 and file2 for differences
-
-Show Answer
-
+<Quiz question={"What does `cat file1.txt file2.txt | sort | uniq > result.txt` do?"} options={["Sorts file1 and saves to result.txt, ignoring file2", "Combines both files, sorts all lines, removes duplicates, saves to result.txt", "Counts unique lines in both files", "Compares file1 and file2 for differences"]} answerIndex={1}>
 `cat` concatenates both files into one stream. `sort` alphabetizes all lines. `uniq` removes consecutive duplicate lines. `>` saves the final result to result.txt (overwriting it if it existed). This is a classic Unix pipeline — four small tools doing one big job.
-
-You run `echo "hello" > greet.txt` three times. What does greet.txt contain?
-
-1.  hello hello hello
-2.  hello (three lines)
-3.  hello (one line)
-4.  The file is empty
-
-Show Answer
-
+</Quiz>
+<Quiz question={"You run `echo \"hello\" > greet.txt` three times. What does greet.txt contain?"} options={["hello hello hello", "hello (three lines)", "hello (one line)", "The file is empty"]} answerIndex={1}>
 `>` overwrites every time. Each run erases the file and writes "hello" fresh. After three runs, you still just have one "hello". If you wanted three lines, you'd use `>>` (append).
-
+</Quiz>
 ### Process Management
 
 **Why learn this?** When your Java app hangs on a server, you can't just click the X button — there's no GUI. You need to find the frozen process and kill it from the terminal. Process management is how you become the Task Manager of a Linux server.
@@ -372,17 +316,9 @@ fg               # bring a background process to the foreground
 `kill -9` = SIGKILL = force kill. This is the answer to "how do you force kill a process?" Also remember: `&` at the end = run in background.
 </Callout>
 
-A process with PID 5678 is frozen and not responding to `kill 5678`. What should you do?
-
-1.  kill -15 5678
-2.  kill -9 5678
-3.  stop 5678
-4.  rm 5678
-
-Show Answer
-
+<Quiz question={"A process with PID 5678 is frozen and not responding to `kill 5678`. What should you do?"} options={["kill -15 5678", "kill -9 5678", "stop 5678", "rm 5678"]} answerIndex={0}>
 `kill -9` sends SIGKILL, which the process cannot catch, ignore, or refuse. It's the "nuclear option" — the OS forcefully terminates the process. Regular `kill` sends SIGTERM (signal 15), which a frozen process might ignore.
-
+</Quiz>
 ### tar and gzip
 
 **Why?** You know how you right-click a folder in Windows and "Send to > Compressed (zipped) folder"? Unix has two separate steps for this: **tar** bundles files together (like putting papers in a folder), and **gzip** compresses the bundle (like vacuum-sealing the folder to make it smaller). Usually you do both at once.
@@ -448,28 +384,12 @@ sed 's/[0-9]//g' file.txt     # remove all digits (replace each digit with nothi
 Three things to remember: `s/old/new/` = substitute. `d` = delete. `-n` with `p` = print only specific lines. Add `/g` for global (all matches). Add `-i` to edit the actual file.
 </Callout>
 
-What does `sed 's/error/warning/' log.txt` do if a line contains "error: error occurred"?
-
-1.  Replaces both "error" with "warning"
-2.  Replaces only the first "error" with "warning"
-3.  Deletes the line
-4.  Does nothing — you need the -i flag
-
-Show Answer
-
+<Quiz question={"What does `sed 's/error/warning/' log.txt` do if a line contains \"error: error occurred\"?"} options={["Replaces both \"error\" with \"warning\"", "Replaces only the first \"error\" with \"warning\"", "Deletes the line", "Does nothing \u2014 you need the -i flag"]} answerIndex={1}>
 Without `/g`, sed only replaces the FIRST match on each line. The result would be "warning: error occurred" — the second "error" is untouched. To replace both, you'd need `s/error/warning/g`.
-
-Which command deletes all lines containing "DEBUG" from a file and saves the change?
-
-1.  sed '/DEBUG/d' file.txt
-2.  sed -i '/DEBUG/d' file.txt
-3.  sed 's/DEBUG//g' file.txt
-4.  grep -v "DEBUG" file.txt
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which command deletes all lines containing \"DEBUG\" from a file and saves the change?"} options={["sed '/DEBUG/d' file.txt", "sed -i '/DEBUG/d' file.txt", "sed 's/DEBUG//g' file.txt", "grep -v \"DEBUG\" file.txt"]} answerIndex={1}>
 Option A prints the result but doesn't save it. Option B uses `-i` (in-place) to actually modify the file. Option C removes the word "DEBUG" but keeps the rest of the line. Option D also works for filtering but doesn't modify the original file.
-
+</Quiz>
 ### awk — THE Most Important FA Round 2 Topic (15 marks)
 
 <Callout type="error" title="FA Round 2 — 15-20 marks">
@@ -871,28 +791,12 @@ Always check if a file exists before operating on it. This prevents ugly error m
 
 </Callout>
 
-What is wrong with this script? `NAME = "Darshan"; echo $NAME`
-
-1.  Missing shebang line
-2.  Spaces around = in variable assignment
-3.  Should use echo "$NAME" with quotes
-4.  Nothing — it works fine
-
-Show Answer
-
+<Quiz question={"What is wrong with this script? `NAME = \"Darshan\"; echo $NAME`"} options={["Missing shebang line", "Spaces around = in variable assignment", "Should use echo \"$NAME\" with quotes", "Nothing \u2014 it works fine"]} answerIndex={1}>
 Spaces around `=` in variable assignment cause an error. Bash interprets `NAME` as a command name, not a variable. The correct syntax is `NAME="Darshan"` with NO spaces. This is the single most common shell scripting mistake.
-
-Which operator checks if a number is greater than or equal to another in bash?
-
-1.  \>=
-2.  \-ge
-3.  \-gte
-4.  \-greq
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which operator checks if a number is greater than or equal to another in bash?"} options={["\\>=", "\\-ge", "\\-gte", "\\-greq"]} answerIndex={1}>
 `-ge` = **g**reater-or-**e**qual. Bash uses `-eq`, `-ne`, `-gt`, `-lt`, `-ge`, `-le` for numeric comparisons. The `>=` operator doesn't work in `[ ]` test brackets.
-
+</Quiz>
 ### Special Path Symbols
 
 These are shortcuts for navigating the file system. Think of them as **bookmarks**:
@@ -933,184 +837,56 @@ The format has 5 time fields followed by the command to run:
 `*` = "every" (every minute, every hour, etc.). `*/5` = "every 5th." Read left to right: minute, hour, day, month, weekday. So `0 9 * * 1` = "at minute 0, hour 9, any day, any month, on Monday."
 </Callout>
 
-What does the cron expression `0 0 * * 0` mean?
-
-1.  Every minute on Sunday
-2.  Midnight every day
-3.  Midnight every Sunday
-4.  Noon every Saturday
-
-Show Answer
-
+<Quiz question={"What does the cron expression `0 0 * * 0` mean?"} options={["Every minute on Sunday", "Midnight every day", "Midnight every Sunday", "Noon every Saturday"]} answerIndex={2}>
 Minute=0, Hour=0 (midnight), Day=* (any), Month=* (any), Weekday=0 (Sunday). So it runs at midnight every Sunday. Remember: 0 in the weekday field = Sunday.
-
+</Quiz>
 ### Practice Questions — Unix
 
-Which command lists all files including hidden files?
-
-1.  ls -l
-2.  ls -a
-3.  ls -R
-4.  ls -h
-
-Show Answer
-
+<Quiz question={"Which command lists all files including hidden files?"} options={["ls -l", "ls -a", "ls -R", "ls -h"]} answerIndex={1}>
 ✅ B) `ls -a` shows ALL files including hidden ones (starting with dot).
-
-What permissions does `chmod 755` assign?
-
-1.  rwxrwxrwx
-2.  rw-r--r--
-3.  rwxr-xr-x
-4.  rwxrwxr-x
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What permissions does `chmod 755` assign?"} options={["rwxrwxrwx", "rw-r--r--", "rwxr-xr-x", "rwxrwxr-x"]} answerIndex={2}>
 ✅ C) rwxr-xr-x. Owner=7(rwx), Group=5(r-x), Others=5(r-x).
-
-Which command counts words in a file?
-
-1.  wc -l file
-2.  wc -c file
-3.  wc -w file
-4.  count file
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which command counts words in a file?"} options={["wc -l file", "wc -c file", "wc -w file", "count file"]} answerIndex={2}>
 ✅ C) `wc -w` counts words. -l = lines, -c = bytes.
-
-What does `~` represent?
-
-1.  Root directory
-2.  Current directory
-3.  Parent directory
-4.  Home directory
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does `~` represent?"} options={["Root directory", "Current directory", "Parent directory", "Home directory"]} answerIndex={3}>
 ✅ D) Home directory of the current user. Root = /, Current = ., Parent = ..
-
-How to force kill process with PID 4521?
-
-1.  kill 4521
-2.  kill -15 4521
-3.  kill -9 4521
-4.  stop 4521
-
-Show Answer
-
+</Quiz>
+<Quiz question={"How to force kill process with PID 4521?"} options={["kill 4521", "kill -15 4521", "kill -9 4521", "stop 4521"]} answerIndex={2}>
 ✅ C) `kill -9` sends SIGKILL — force kill, cannot be caught or ignored.
-
-What is the numeric value of `rw-r--r--`?
-
-1.  755
-2.  644
-3.  600
-4.  666
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What is the numeric value of `rw-r--r--`?"} options={["755", "644", "600", "666"]} answerIndex={1}>
 ✅ B) 644. Owner: rw-=6, Group: r--=4, Others: r--=4.
-
-What does `ls | wc -l` do?
-
-1.  Lists files and counts characters
-2.  Counts files in current directory
-3.  Counts words in a file named ls
-4.  Lists files sorted by count
-
-Show Answer
-
+</Quiz>
+<Quiz question={"What does `ls | wc -l` do?"} options={["Lists files and counts characters", "Counts files in current directory", "Counts words in a file named ls", "Lists files sorted by count"]} answerIndex={1}>
 ✅ B) ls outputs filenames, pipe sends to wc -l which counts lines = number of files.
-
-Which grep flag makes search case-insensitive?
-
-1.  grep -n
-2.  grep -v
-3.  grep -i
-4.  grep -c
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which grep flag makes search case-insensitive?"} options={["grep -n", "grep -v", "grep -i", "grep -c"]} answerIndex={2}>
 ✅ C) `-i` = ignore case.
-
-Difference between `>` and `>>`?
-
-1.  \> appends; >> overwrites
-2.  \> reads; >> writes
-3.  \> overwrites; >> appends
-4.  Both do the same
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Difference between `>` and `>>`?"} options={["\\> appends; >> overwrites", "\\> reads; >> writes", "\\> overwrites; >> appends", "Both do the same"]} answerIndex={2}>
 ✅ C) `>` overwrites the file. `>>` appends to the end.
-
-Output of: `x=5; if [ $x -gt 3 ]; then echo "yes"; else echo "no"; fi`
-
-1.  no
-2.  yes
-3.  5
-4.  Error
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Output of: `x=5; if [ $x -gt 3 ]; then echo \"yes\"; else echo \"no\"; fi`"} options={["no", "yes", "5", "Error"]} answerIndex={1}>
 ✅ B) yes. 5 > 3 is true, so "yes" is printed.
-
-Which searches recursively for "password" in /etc?
-
-1.  grep "password" /etc
-2.  grep -r "password" /etc
-3.  find /etc -name "password"
-4.  grep -n "password" /etc
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which searches recursively for \"password\" in /etc?"} options={["grep \"password\" /etc", "grep -r \"password\" /etc", "find /etc -name \"password\"", "grep -n \"password\" /etc"]} answerIndex={1}>
 ✅ B) `grep -r` = recursive grep through all files in directory.
-
-Which directory stores temporary files cleared on reboot?
-
-1.  /var
-2.  /etc
-3.  /tmp
-4.  /home
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which directory stores temporary files cleared on reboot?"} options={["/var", "/etc", "/tmp", "/home"]} answerIndex={2}>
 ✅ C) `/tmp` stores temporary files cleared on reboot.
-
-Output of: `for i in 1 2 3; do echo $i; done`
-
-1.  1 2 3 (one line)
-2.  1, 2, 3 on separate lines
-3.  i i i
-4.  Error
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Output of: `for i in 1 2 3; do echo $i; done`"} options={["1 2 3 (one line)", "1, 2, 3 on separate lines", "i i i", "Error"]} answerIndex={1}>
 ✅ B) Each echo prints on a new line: 1, 2, 3 on separate lines.
-
-Which creates a gzip-compressed tar archive of `project/`?
-
-1.  tar -xvf project.tar.gz project/
-2.  tar -cvzf project.tar.gz project/
-3.  gzip project/
-4.  tar -tvf project.tar.gz
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Which creates a gzip-compressed tar archive of `project/`?"} options={["tar -xvf project.tar.gz project/", "tar -cvzf project.tar.gz project/", "gzip project/", "tar -tvf project.tar.gz"]} answerIndex={1}>
 ✅ B) `tar -cvzf`: c=Create, v=Verbose, z=gzip, f=File.
-
-Permissions `-rwxr-x---` in octal?
-
-1.  777
-2.  754
-3.  750
-4.  755
-
-Show Answer
-
+</Quiz>
+<Quiz question={"Permissions `-rwxr-x---` in octal?"} options={["777", "754", "750", "755"]} answerIndex={2}>
 ✅ C) 750. Owner: rwx=7, Group: r-x=5, Others: ---=0.
-
+</Quiz>
 <Callout type="error" title="HackerRank Gotchas — Unix Questions">
 
 
