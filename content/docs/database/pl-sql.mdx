@@ -7,8 +7,8 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 ## PL/SQL
 
-<Callout type="warn" title="📋 Exam scope">
-**PL/SQL appears ONLY in the FA exam — 5 MCQs.** Not in PRA or sprints. If FA is near, study this. Otherwise bookmark it.
+<Callout type="warn" title="📋 Scope">
+**PL/SQL** is Oracle's procedural extension to SQL — used for writing stored programs inside the database.
 </Callout>
 
 ### 1\. What is PL/SQL?
@@ -33,9 +33,9 @@ PL/SQL is like handing them a written note with ALL the instructions at once. Th
 B) SQL can already create tables. PL/SQL's purpose is adding programming constructs — decisions, loops, variables, exception handling — on top of SQL. It turns SQL from a "question-answer" tool into a full programming language inside the database.
 </Quiz>
 <Quiz question={"PL/SQL is specific to which database system?"} options={["MySQL","PostgreSQL","Oracle","SQL Server"]} answerIndex={2}>
-C) PL/SQL is Oracle's proprietary procedural extension. MySQL uses stored procedures with a different syntax, PostgreSQL has PL/pgSQL, and SQL Server has T-SQL. If the exam asks about PL/SQL, it's always Oracle.
+C) PL/SQL is Oracle's proprietary procedural extension. MySQL uses stored procedures with a different syntax, PostgreSQL has PL/pgSQL, and SQL Server has T-SQL. PL/SQL is always Oracle.
 </Quiz>
-### 2\. Block Structure — The #1 Exam Topic
+### 2\. Block Structure — The Core Structure
 
 Every PL/SQL program is organized into **blocks**. Think of a block like a recipe card:
 
@@ -63,7 +63,7 @@ END;
 The block ends with **END;** (semicolon) followed by **/** on the next line. The **/** tells Oracle to execute the block. Forgetting the **/** means your block just sits there doing nothing.
 </Callout>
 
-<Callout type="info" title="💡 Exam tip">
+<Callout type="info" title="💡 Tip">
 "Which section is mandatory?" → **BEGIN**. DECLARE and EXCEPTION are optional. The simplest valid block is just `BEGIN ... END;`
 </Callout>
 
@@ -153,7 +153,7 @@ ELSE
 END IF;
 ```
 <Callout type="error" title="⚠️ Spelling trap">
-It's **ELSIF** — not ELSEIF, not ELSE IF. The exam will offer all three as options. Pick ELSIF every time.
+It's **ELSIF** — not ELSEIF, not ELSE IF. Watch carefully when choosing between these options.
 </Callout>
 
 #### CASE Statement — Cleaner Multi-Way Branching
@@ -294,8 +294,8 @@ BEGIN
 END;
 /
 ```
-<Callout type="info" title="💡 Exam tip">
-The cursor FOR loop is the preferred way in real code because it's shorter and Oracle handles cleanup. But the exam loves to test the 4-step pattern (DECLARE → OPEN → FETCH → CLOSE), so know both.
+<Callout type="info" title="💡 Tip">
+The cursor FOR loop is the preferred way in real code because it's shorter and Oracle handles cleanup. But the 4-step pattern (DECLARE → OPEN → FETCH → CLOSE) is fundamental, so know both.
 </Callout>
 
 <Quiz question={"Correct sequence for an explicit cursor?"} options={["OPEN → DECLARE → FETCH → CLOSE","DECLARE → FETCH → OPEN → CLOSE","DECLARE → OPEN → FETCH → CLOSE","OPEN → FETCH → DECLARE → CLOSE"]} answerIndex={2}>
@@ -328,7 +328,7 @@ BEGIN
 END give_raise;
 /
 ```
-<Callout type="info" title="✅ Parameter modes — critical for exam">
+<Callout type="info" title="✅ Parameter Modes — Critical">
 **IN** — read-only input. The procedure can read it but not change it. This is the **default** if you don't specify a mode.  
 **OUT** — write-only output. The procedure sets a value that the caller can read after the call.  
 **IN OUT** — both directions. The caller passes a value in, the procedure can modify it, and the caller sees the change.
@@ -423,7 +423,7 @@ Inside a row-level trigger, you have access to the data being changed:
 | **UPDATE** | Values before update | Values after update |
 | **DELETE** | Values being deleted | NULL (nothing will exist after) |
 
-<Callout type="info" title="💡 Exam tip">
+<Callout type="info" title="💡 Tip">
 In a DELETE trigger, **:NEW is NULL** (the row is being removed — there's no "new" version). In an INSERT trigger, **:OLD is NULL** (the row didn't exist before). Only UPDATE has BOTH :OLD and :NEW.
 </Callout>
 
@@ -435,7 +435,7 @@ In a DELETE trigger, **:NEW is NULL** (the row is being removed — there's no "
 | **Statement-level** | Without FOR EACH ROW — fires once per statement regardless of how many rows are affected. |
 
 <Callout type="error" title="⚠️ BEFORE vs AFTER — key distinction">
-Only **BEFORE** triggers can modify :NEW values (because the data hasn't been written yet). AFTER triggers see the data after it's already committed — too late to change it. If the exam asks "which trigger can modify :NEW?" the answer is always BEFORE.
+Only **BEFORE** triggers can modify :NEW values (because the data hasn't been written yet). AFTER triggers see the data after it's already committed — too late to change it. The answer is always BEFORE.
 </Callout>
 
 <Quiz question={"In a BEFORE INSERT trigger, which holds the values being inserted?"} options={[":OLD",":NEW",":INSERTED","Both :OLD and :NEW"]} answerIndex={1}>
@@ -486,7 +486,7 @@ Inside WHEN OTHERS, you often want to know what went wrong:
 *   **SQLCODE** — returns the numeric error code (e.g., -1 for unique constraint violation)
 *   **SQLERRM** — returns the human-readable error message text
 
-<Callout type="info" title="💡 Exam tip">
+<Callout type="info" title="💡 Tip">
 "Which keyword handles exceptions in PL/SQL?" → **WHEN**. Not CATCH (that's Java), not HANDLE, not RESCUE (that's Ruby). The syntax is always `WHEN exception_name THEN`.
 </Callout>
 
@@ -570,7 +570,7 @@ C) The specification is the public interface — it declares what procedures and
 </Quiz>
 ### Practice Questions — PL/SQL (Mixed)
 
-These questions mix all topics. If you can get 80%+ right, you're ready for the FA exam's PL/SQL section.
+These questions mix all topics. Aim for 80%+ to confirm you have a solid grasp of PL/SQL.
 
 <Quiz question={"What is the assignment operator in PL/SQL?"} options={["\\=",":=","==","\\=\\>"]} answerIndex={1}>
 B) := is the assignment operator. = is for comparison only. == doesn't exist in PL/SQL. =\> is used for named parameter notation in procedure calls.

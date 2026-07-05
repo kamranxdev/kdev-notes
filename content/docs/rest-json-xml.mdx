@@ -37,7 +37,7 @@ REST is **not** a protocol like HTTP. It is a set of **guidelines/constraints** 
 | 5 | **Layered System** | Client doesn't know if it's talking directly to the server or through a load balancer/proxy. |
 | 6 | **Code on Demand** (optional) | Server can send executable code to the client (e.g., JavaScript). Rarely used. |
 
-<Callout type="warn" title="Exam Favorite">
+<Callout type="warn" title="Key Concept">
 **"Stateless"** is the most asked principle. It means: every request must contain ALL the information the server needs. The server does not store session info between requests.
 </Callout>
 
@@ -70,7 +70,7 @@ HTTP methods tell the server **what action** you want to perform. These are also
 
 ## HTTP Status Codes
 
-<Callout type="warn" title="Heavily Tested">
+<Callout type="warn" title="Important">
 Status codes appear in almost every REST-related question. Memorize these.
 </Callout>
 
@@ -177,7 +177,7 @@ Content-Type: application/json
 | **Use Case** | Web apps, mobile, microservices | Banking, enterprise (high security) |
 | **Learning Curve** | Easy | Complex |
 
-<Callout type="warn" title="Exam Tip">
+<Callout type="warn" title="Tip">
 If the question asks "which is faster?" → REST. If it asks "which uses only XML?" → SOAP. If it asks "which is a protocol?" → SOAP (REST is an architectural **style**).
 </Callout>
 
@@ -253,7 +253,7 @@ JSON was derived from JavaScript, but it is **language-independent**. Java, Pyth
 
 ### Valid vs Invalid JSON
 
-<Callout type="warn" title="Exam Favorite — Spot the Error">
+<Callout type="warn" title="Key Concept — Spot the Error">
 These questions appear frequently. You'll be shown JSON and asked if it's valid.
 </Callout>
 
@@ -289,7 +289,7 @@ These questions appear frequently. You'll be shown JSON and asked if it's valid.
 // Actually this IS valid JSON! A single value is valid.
 ```
 <Callout type="error" title="The #1 Rule">
-Keys in JSON MUST be in **double quotes**. Not single quotes. Not no quotes. **Double quotes only.** This is the most common trick question in exams.
+Keys in JSON MUST be in **double quotes**. Not single quotes. Not no quotes. **Double quotes only.** This is a commonly misunderstood behaviour.
 </Callout>
 
 ### Nested JSON Objects and Arrays
@@ -393,18 +393,18 @@ JsonNode node = mapper.readTree(json);
 String name = node.get("name").asText();  // "Darshan"
 ```
 <Callout type="info" title="Jackson vs org.json">
-**org.json** — simpler, good for quick parsing. Used in HackerRank.  
+**org.json** — simpler, good for quick parsing. Commonly used in Java exercises.  
 **Jackson** — industry standard. Can map JSON directly to Java classes. Used in Spring Boot.  
 **Gson** (by Google) — similar to Jackson but simpler API. `new Gson().fromJson(json, MyClass.class)`
 </Callout>
 
-## JSON Parsing — HackerRank Pattern
+## JSON Parsing Pattern
 
-<Callout type="warn" title="HSE Critical — Memorize This Template">
-In HackerRank, you'll be asked to fetch data from an API, parse the JSON response, and extract specific values. This is the exact pattern you need.
+<Callout type="warn" title="Memorize This Template">
+When working with APIs, you'll be asked to fetch data from an API, parse the JSON response, and extract specific values. This is the exact pattern you need.
 </Callout>
 
-#### Complete HackerRank Template: Fetch API + Parse JSON
+#### Complete Template: Fetch API + Parse JSON
 
 ```java
 import java.io.*;
@@ -524,7 +524,7 @@ while (page <= totalPages) {
 *   Attribute values must be in **quotes**: `id="101"`
 *   Prolog (declaration) is optional but recommended
 
-<Callout type="error" title="Common Exam Trick">
+<Callout type="error" title="Common Mistake">
 This XML is NOT well-formed:  
 `<Name>Darshan</name>` — case mismatch (N vs n)  
 `<br>` without closing → invalid (use `<br/>` for self-closing)
@@ -592,7 +592,7 @@ public class XMLParser {
 **DOM**: Loads entire tree → Easy to navigate → Uses more memory → Good for small files  
 **SAX**: Reads sequentially → Event-based → Uses less memory → Good for large files  
   
-For exams and HackerRank, DOM is used more often. SAX is asked as theory.
+In practice, DOM is used more often for API parsing. SAX is important for theory and large file handling.
 </Callout>
 
 ### JSON vs XML Comparison
@@ -610,7 +610,7 @@ For exams and HackerRank, DOM is used more often. SAX is asked as theory.
 | **Used In** | REST APIs, web apps, mobile | SOAP, config files, enterprise |
 | **Namespace** | Not supported | Supported |
 
-<Callout type="warn" title="Exam Tip">
+<Callout type="warn" title="Tip">
 "When to use JSON?" → Web APIs, lightweight, mobile apps  
 "When to use XML?" → Configuration files (pom.xml, web.xml), SOAP APIs, when you need namespaces or comments
 </Callout>
@@ -670,8 +670,8 @@ System.out.println("Response Code: " + code);
 
 ### Complete Template: Fetch + Parse + Extract
 
-<Callout type="warn" title="The Template That Solves 80% of HSE API Questions">
-Memorize this flow: URL → Connection → Read → Parse → Extract → Print
+<Callout type="warn" title="The Template That Solves Most API Problems">
+Memorise this flow: URL → Connection → Read → Parse → Extract → Print
 </Callout>
 
 ```java

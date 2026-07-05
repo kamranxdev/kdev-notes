@@ -41,8 +41,8 @@ These three terms confuse everyone. Think of them as nested boxes:
 | **JRE** | Java Runtime Environment | JVM + libraries (pre-built code). Enough to _run_ Java programs. | Engine + fuel + wheels |
 | **JDK** | Java Development Kit | JRE + development tools (compiler, debugger). Needed to _write_ Java programs. | The entire car factory |
 
-<Callout type="info" title="Exam Tip">
-**JDK contains JRE, which contains JVM.** JDK ⊃ JRE ⊃ JVM. If they ask "What do you need to develop Java programs?" — answer is JDK.
+<Callout type="info" title="Tip">
+**JDK contains JRE, which contains JVM.** JDK ⊃ JRE ⊃ JVM. To develop Java programs, you need the JDK.
 </Callout>
 
 ### The main() Method — Entry Point
@@ -66,7 +66,7 @@ Why each keyword matters:
 | `void` | main() doesn't return any value to JVM. It just runs and exits. |
 | `String[] args` | Accepts command-line arguments. `args` is an array of Strings passed when you run the program. |
 
-<Callout type="error" title="Common Exam Trap">
+<Callout type="error" title="Common Mistake">
 If you change the signature — like removing `static` or changing `String[]` to `int[]` — the program compiles but the JVM won't find the entry point and throws **NoSuchMethodError**.
 </Callout>
 
@@ -87,7 +87,7 @@ Data types tell Java what kind of value a variable holds. Java has two categorie
 | `char` | 2 bytes | 0 to 65,535 (Unicode) | `char grade = 'A';` |
 | `boolean` | ~1 bit | true or false | `boolean passed = true;` |
 
-<Callout type="error" title="Exam Traps — Data Types">
+<Callout type="error" title="Watch Out — Data Types">
 
 
 *   `long` values need an **L** suffix: `long x = 100L;`
@@ -125,7 +125,7 @@ When the JVM creates an object with `new`, it allocates a block of memory and **
 </Callout>
 
 <Callout type="error" title="WHY local variables DON'T get defaults">
-**Local variables (inside methods) have NO default values.** If you try to use a local variable without assigning a value, Java gives a **compile error**. This is intentional — using an uninitialized local variable is almost always a bug. Instead of silently giving you `0` or `null` and letting a logic error slip through, the compiler forces you to explicitly assign a value. It catches the mistake at compile time so you don't debug it at runtime. This is a very common exam question.
+**Local variables (inside methods) have NO default values.** If you try to use a local variable without assigning a value, Java gives a **compile error**. This is intentional — using an uninitialized local variable is almost always a bug. Instead of silently giving you `0` or `null` and letting a logic error slip through, the compiler forces you to explicitly assign a value. It catches the mistake at compile time so you don't debug it at runtime. This is a commonly misunderstood behaviour.
 </Callout>
 
 <Callout type="info" title="Analogy">
@@ -216,7 +216,7 @@ System.out.println(a.equals(b));  // true  (compares actual values)
 Integer c = 100;
 Integer d = 100;
 System.out.println(c == d);       // true! (same cached object)
-// This inconsistency is an exam favorite. Always use .equals() for wrappers.
+// This inconsistency trips up many developers. Always use .equals() for wrappers.
 
 ```
 
@@ -236,14 +236,14 @@ String s2 = String.valueOf(42);        // works for any type → String
 String s3 = "" + 42;                  // quick trick: concatenate with empty string
 
 ```
-<Callout type="info" title="Exam tip">
-`int` → `Integer` and `char` → `Character` — these two are the only ones where the wrapper name is very different from the primitive. All others just capitalize the first letter. This is a common MCQ trap.
+<Callout type="info" title="Tip">
+`int` → `Integer` and `char` → `Character` — these two are the only ones where the wrapper name is very different from the primitive. All others just capitalize the first letter.
 </Callout>
 
-### 3\. Type Conversions (CRITICAL for HackerRank)
+### 3\. Type Conversions
 
-<Callout type="warn" title="What HackerRank Tests">
-HackerRank problems frequently require converting between String, int, and double. Know `Integer.parseInt()`, `Double.parseDouble()`, and `String.valueOf()` by heart.
+<Callout type="warn" title="Practical Application">
+Real-world problems often require converting between String, int, and double. Know `Integer.parseInt()`, `Double.parseDouble()`, and `String.valueOf()` by heart.
 </Callout>
 
 #### Widening (Implicit) — Automatic, Safe
@@ -273,7 +273,7 @@ int big = 130;
 byte b = (byte) big;  // b = -126 (overflow! 130 exceeds byte range -128 to 127)
 
 ```
-<Callout type="error" title="Exam Trap — Truncation, Not Rounding">
+<Callout type="error" title="Common Mistake — Truncation, Not Rounding">
 `(int) 3.99` gives **3**, not 4. Casting to int always **truncates** (cuts off decimals). Use `Math.round()` if you want rounding.
 </Callout>
 
@@ -287,7 +287,7 @@ byte b = (byte) big;  // b = -126 (overflow! 130 exceeds byte range -128 to 127)
 | char | int | `(int) 'A'` | Gives ASCII value: 65 |
 | int | char | `(char) 65` | Gives character: 'A' |
 
-<Callout type="error" title="Trap — Integer.parseInt with decimal string">
+<Callout type="error" title="Common Mistake — Integer.parseInt with decimal string">
 `Integer.parseInt("12.5")` throws **NumberFormatException** — even though 12.5 is a number, it's not an integer. Use `Double.parseDouble("12.5")` then cast.
 </Callout>
 
@@ -316,7 +316,7 @@ System.out.println(a / b);   // 3  (integer division — NOT 3.5!)
 System.out.println(a % b);   // 1  (remainder/modulus)
 
 ```
-<Callout type="error" title="Critical Exam Trap — Integer Division">
+<Callout type="error" title="Critical Mistake — Integer Division">
 `7 / 2` gives `3` (NOT 3.5). When both operands are integers, Java does **integer division** and drops the decimal. To get 3.5, make one operand a double: `7.0 / 2` or `(double) 7 / 2`.
 </Callout>
 
@@ -390,15 +390,15 @@ int c = 5;
 int d = ++c;   // PRE-increment: c becomes 6 FIRST, then d gets 6
 
 ```
-<Callout type="error" title="Exam Trap — Post vs Pre Increment">
+<Callout type="error" title="Common Mistake — Post vs Pre Increment">
 `int a = 5; int b = a++;` → **b = 5, a = 6** (a++ returns the OLD value, then increments).  
 `int a = 5; int b = ++a;` → **b = 6, a = 6** (++a increments FIRST, then returns the new value).
 </Callout>
 
-### 5\. Strings (HEAVILY TESTED)
+### 5\. Strings
 
-<Callout type="warn" title="Exam Frequency">
-String questions appear in **every single exam** — FA MCQs, FA subjective, PRA, HSE. You'll get asked about equals() vs ==, substring(), immutability, and the String Pool in multiple ways.
+<Callout type="warn" title="Key Concept">
+Strings are one of the most commonly used types in Java. Understanding equals() vs ==, substring(), immutability, and the String Pool is essential for writing correct code.
 </Callout>
 
 #### What IS a String?
@@ -502,7 +502,7 @@ System.out.println(a.equals(c));   // true  (same CONTENT — both contain "Hell
 
 ```
 
-Here's another tricky scenario that appears in exams:
+Here's another tricky scenario worth understanding:
 
 ```java
 String x = "Priya";
@@ -515,12 +515,12 @@ System.out.println(x == z);      // false — runtime concatenation creates a ne
 System.out.println(x.equals(z)); // true — same content
 
 ```
-<Callout type="error" title="Most Common Exam Question">
+<Callout type="error" title="Most Important String Concept">
 **`==` compares REFERENCES** (are they the same object in memory?).  
 **`.equals()` compares CONTENT** (do they contain the same characters?).  
 **Always use `.equals()` to compare Strings.** Using `==` on Strings created with `new` keyword returns false even if the content is the same.  
   
-**Exam trick:** String literal concatenation at compile time (`"A" + "B"`) goes to the pool. Variable concatenation at runtime (`"A" + variable`) creates a new heap object.
+**Key insight:** String literal concatenation at compile time (`"A" + "B"`) goes to the pool. Variable concatenation at runtime (`"A" + variable`) creates a new heap object.
 </Callout>
 
 <Quiz question={"**Q: What is the output?**\n```java\nString s1 = \"Rahul\";\nString s2 = new String(\"Rahul\");\nSystem.out.println(s1 == s2);\nSystem.out.println(s1.equals(s2));\n```"} options={["true, true", "false, true", "true, false", "false, false"]} answerIndex={1}>
@@ -581,7 +581,7 @@ String result = sb.toString();
 | Speed | Slow for modifications | Fastest | Slower than StringBuilder |
 | When to use | Text that doesn't change | Building strings in loops (single-threaded) | Building strings in loops (multi-threaded) |
 
-<Callout type="info" title="Exam Quick Rule">
+<Callout type="info" title="Quick Rule">
 **String** = text that stays the same. **StringBuilder** = text you need to build/modify (99% of real use cases). **StringBuffer** = same as StringBuilder but thread-safe (only use in multi-threaded code — rare).
 </Callout>
 
@@ -616,10 +616,10 @@ for (int m : marks) {
 }
 
 ```
-<Callout type="error" title="Exam Trap — length vs length()">
+<Callout type="error" title="Common Mistake — length vs length()">
 `array.length` — NO parentheses (it's a field).  
 `string.length()` — WITH parentheses (it's a method).  
-Mixing them up is a compile error and a common MCQ trap.
+Mixing them up is a compile error.
 </Callout>
 
 #### Useful Array Operations
@@ -655,12 +655,12 @@ for (int i = 0; i < grid.length; i++) {
 
 ```
 
-### Array of Objects (FA Critical)
+### Array of Objects
 
-In HackerRank FA questions, you'll almost always need to create an **array of custom objects** — not just an array of `int` or `String`. You create a class, then make an array where each element is an object of that class.
+A very common pattern in Java is to create an **array of custom objects** — not just an array of `int` or `String`. You create a class, then make an array where each element is an object of that class.
 
-<Callout type="info" title="Why this is critical">
-Nearly every FA Round 2 Java question follows this pattern: "Create a class → read input → store objects in an array → filter/search → print result." If you can't work with arrays of objects, you can't solve FA questions.
+<Callout type="info" title="Why this matters">
+A fundamental Java pattern is: "Create a class → store objects in an array → filter/search → return result." Mastering this pattern is essential for writing real Java programs.
 </Callout>
 
 #### Step 1: Define the class
@@ -720,10 +720,10 @@ for (Student s : students) {
 | Use when you need the index number | Use when you just need each element |
 | Can modify the array | Read-only — can't change the array |
 
-**For FA questions, for-each is usually enough** — you're iterating to find/filter, not to modify.
+**When iterating to find/filter elements, for-each is usually the cleanest choice** — you don't need the index.
 </Callout>
 
-#### Step 4: Search/Filter (the FA pattern)
+#### Step 4: Search/Filter
 
 ```java
 // Find a student by name (case-insensitive)
@@ -787,8 +787,8 @@ switch (day) {
 }
 
 ```
-<Callout type="error" title="Exam Trap — Missing break">
-Without `break`, execution "falls through" to the next case. If case 2 has no break, it runs case 2 AND case 3 AND every case below until it hits a break or the end of switch. This is a very common exam question.
+<Callout type="error" title="Common Mistake — Missing break">
+Without `break`, execution "falls through" to the next case. If case 2 has no break, it runs case 2 AND case 3 AND every case below until it hits a break or the end of switch. This is a commonly misunderstood behaviour.
 </Callout>
 
 #### Loops
@@ -840,7 +840,7 @@ for (int i = 0; i < 5; i++) {
 <Callout type="info" title="Key Difference">
 **while** checks condition first — may run 0 times.  
 **do-while** runs body first — always runs at least 1 time.  
-Exam loves asking: "What's the output of this do-while when condition is initially false?"
+A common question: "What's the output of this do-while when condition is initially false?"
 </Callout>
 
 ### 8\. Methods
@@ -1104,7 +1104,7 @@ Student s2 = new Student("Darshan", 22);   // Calls parameterized constructor
 Student s3 = new Student("Amit");           // Calls 1-param → chains to 2-param
 
 ```
-<Callout type="error" title="Critical Exam Trap — Default Constructor">
+<Callout type="error" title="Critical Mistake — Default Constructor">
 Java provides a free default (no-arg) constructor **only if you don't write ANY constructor**. The moment you write even one parameterized constructor, Java stops providing the default one. So `new Student()` will give a **compile error** if you only have `Student(String name)`.
 </Callout>
 
@@ -1231,8 +1231,8 @@ Many beginners think getters/setters are pointless ceremony. But they let you:
 
 </Callout>
 
-<Callout type="warn" title="FA Pattern">
-Almost every FA question about encapsulation follows this pattern: **private fields + public getters/setters**. If you see "write an encapsulated class" — make ALL fields `private` and provide `getX()` / `setX()` methods for each field.
+<Callout type="warn" title="Key Pattern">
+The standard encapsulation pattern is: **private fields + public getters/setters**. When writing an encapsulated class — make ALL fields `private` and provide `getX()` / `setX()` methods for each field.
 </Callout>
 
 <Quiz question={"Which of the following is a properly encapsulated class?"} options={["A class with all public fields and no methods", "A class with all private fields and public getter/setter methods", "A class with all protected fields", "A class with default access fields and a constructor"]} answerIndex={1}>
@@ -1289,7 +1289,7 @@ d.bark();             // Dog's own method: "Buddy says Woof!"
 | public and protected methods | private fields/methods (exist but not directly accessible) |
 | Default (package) members if same package |  |
 
-<Callout type="error" title="Critical: Constructors Are NOT Inherited">
+<Callout type="error" title="Important: Constructors Are NOT Inherited">
 If the parent has a constructor `Animal(String name)`, the child does NOT automatically get it. The child must define its OWN constructor and use `super()` to call the parent's.
 </Callout>
 
@@ -1344,7 +1344,7 @@ These two get confused constantly. Quick difference:
 When you create a child object, the **parent constructor runs FIRST**, then the child constructor. This is true even if you don't explicitly call `super()` — Java adds `super()` automatically (calling the parent's no-arg constructor).
 </Callout>
 
-<Callout type="error" title="Exam Fact">
+<Callout type="error" title="Key Fact">
 Java supports **single inheritance only** — a class can extend only ONE class. No multiple class inheritance. However, a class CAN implement multiple interfaces.
 </Callout>
 
@@ -1593,8 +1593,8 @@ From most open to most restrictive: **public → protected → default → priva
 Think: "Public Parties Don't Panic" (Public, Protected, Default, Private)
 </Callout>
 
-<Callout type="error" title="Exam Trap — Default is NOT Private">
-**default (package-private) is NOT the same as private!** Default access means any class in the **same package** can access it. Private means ONLY the same class. This is a very common exam confusion.  
+<Callout type="error" title="Common Mistake — Default is NOT Private">
+**default (package-private) is NOT the same as private!** Default access means any class in the **same package** can access it. Private means ONLY the same class. This is a commonly misunderstood distinction.  
   
 Also: "Default" access modifier means you write **NO keyword at all** — NOT the keyword `default`. Writing `default class Foo {}` is NOT default access — it's a syntax error (except inside interfaces where `default` means something else).
 </Callout>
@@ -1644,7 +1644,7 @@ A regular method needs an object to run: `s1.getName()`. You're asking a specifi
 
 *   **When the method doesn't use any instance data.** If the method doesn't need to know about `this` object's name, marks, or any specific object's data — it can be static.
 *   **Utility/helper methods.** Methods that just take input, do something, and return a result. Like `Integer.parseInt("42")` — it doesn't need an Integer object, it just converts a string.
-*   **HackerRank FA pattern.** The "getGadgetByCategory" method is static because it doesn't belong to any specific Gadget — it searches through ALL gadgets. It's a utility method.
+*   **Utility pattern.** The "getGadgetByCategory" method is static because it doesn't belong to any specific Gadget — it searches through ALL gadgets. It's a utility method.
 
 ```java
 class MathHelper {
@@ -1844,7 +1844,7 @@ final class Immutable { }
 
 **Security.** The `String` class is final so that no one can create a fake String subclass that behaves differently. Imagine if someone could extend String and override `equals()` to always return true — that would break security checks everywhere. By making String final, Java guarantees that a String always behaves as expected.
 
-<Callout type="info" title="Exam Tip">
+<Callout type="info" title="Tip">
 `String`, `Math`, and all wrapper classes (`Integer`, `Double`, etc.) are **final** — you can't extend them. Convention: final constants are named in `ALL_CAPS_WITH_UNDERSCORES`.
 </Callout>
 
@@ -1965,8 +1965,8 @@ void withdraw(double amount) throws InsufficientBalanceException {
 }
 
 ```
-<Callout type="error" title="Exam Trap — finally Always Runs">
-The `finally` block runs even if there's a `return` statement in try or catch. The only exception: `System.exit(0)` kills the JVM before finally can run. This is a common trick question.
+<Callout type="error" title="Common Mistake — finally Always Runs">
+The `finally` block runs even if there's a `return` statement in try or catch. The only exception: `System.exit(0)` kills the JVM before finally can run. This is a commonly misunderstood behaviour.
 </Callout>
 
 <Callout type="error" title="Never Catch Generic Exception">
@@ -1984,8 +1984,8 @@ Avoid writing `catch (Exception e)` — it's too broad. It catches EVERY excepti
 </Quiz>
 ### 14\. Collections Basics
 
-<Callout type="warn" title="What PRA/Sprints Test">
-You need ArrayList and HashMap for PRA projects (JDBC, Servlets, Spring Boot). Know how to add, get, loop, and remove elements.
+<Callout type="warn" title="Practical Application">
+ArrayList and HashMap are essential for building real projects (e.g. JDBC, Servlets, Spring Boot). Know how to add, get, loop, and remove elements.
 </Callout>
 
 #### Why Do Collections Exist?
@@ -2077,7 +2077,7 @@ cities.remove("Delhi");      // Removes it
 
 </Callout>
 
-<Callout type="error" title="Exam Trap — Collections Only Store Objects">
+<Callout type="error" title="Common Mistake — Collections Only Store Objects">
 You can't write `ArrayList<int>` — collections only hold objects. Use the wrapper class: `ArrayList<Integer>`. Java autoboxes primitives automatically, but you must use the wrapper type in the angle brackets.
 </Callout>
 
@@ -2087,10 +2087,10 @@ You can't write `ArrayList<int>` — collections only hold objects. Use the wrap
 <Quiz question={"**Q: What happens when you call `put()` with an existing key in a HashMap?**"} options={["It throws a DuplicateKeyException", "It replaces the old value with the new value", "It ignores the new value and keeps the old one", "It stores both values under the same key"]} answerIndex={1}>
 
 </Quiz>
-### 15\. Common Coding Patterns (HSE & Interview)
+### 15\. Common Coding Patterns
 
-<Callout type="warn" title="What HackerRank Tests">
-HSE problems test you on string manipulation, array operations, and basic math logic. The patterns below cover the most common question types.
+<Callout type="warn" title="Practical Application">
+These patterns cover string manipulation, array operations, and basic math logic — the building blocks of most real-world Java code.
 </Callout>
 
 #### Reverse a String
@@ -2120,7 +2120,7 @@ String reversed = new String(chars);  // "olleH"
 
 #### Check Palindrome
 
-**What:** Check if a string reads the same forwards and backwards (e.g., "madam", "racecar"). Common in HackerRank string problems.
+**What:** Check if a string reads the same forwards and backwards (e.g., "madam", "racecar").
 
 **Why it works:** A palindrome is symmetric — the first character equals the last, second equals second-to-last, etc. The `StringBuilder.reverse()` approach reverses the whole string and compares. A more efficient **two-pointer approach** compares characters from both ends walking inward — it can exit early the moment it finds a mismatch, and it doesn't create a new string object.
 
@@ -2149,7 +2149,7 @@ isPalindrome("hello");   // false
 
 #### Find Duplicates in Array
 
-**What:** Identify which elements appear more than once. Classic interview and HSE question.
+**What:** Identify which elements appear more than once. A classic interview question.
 
 **Why HashSet:** A `HashSet` stores unique values and gives you **O(1) average-time lookup** — checking if an element exists takes constant time regardless of size. The trick here is that `add()` returns `false` if the element already exists, so one method call does both the check and the insert. Without a HashSet, you'd need nested loops (O(n²)) to compare every pair.
 
@@ -2182,7 +2182,7 @@ System.out.println(freq);  // {p=1, r=2, o=1, g=2, a=1, m=2, i=1, n=1}
 
 #### Fibonacci Sequence
 
-**What:** Generate the sequence where each number is the sum of the previous two (0, 1, 1, 2, 3, 5, 8...). Appears in recursion questions and math-based HackerRank problems.
+**What:** Generate the sequence where each number is the sum of the previous two (0, 1, 1, 2, 3, 5, 8...). A classic recursion and math problem.
 
 **Why it works:** We keep two variables `a` and `b` representing the current pair. Each iteration, we compute `next = a + b`, then slide the window forward: `a` takes `b`'s value, `b` takes `next`. This iterative approach is O(n) time and O(1) space — far better than the naive recursive version which recalculates the same values exponentially.
 
@@ -2217,7 +2217,7 @@ factorial(5);  // 120 (5 × 4 × 3 × 2 × 1)
 
 #### Check if Number is Prime
 
-**What:** Determine if a number is only divisible by 1 and itself. Appears in math-based HackerRank problems and is a building block for "find all primes" questions.
+**What:** Determine if a number is only divisible by 1 and itself. A building block for "find all primes" questions and a common math challenge.
 
 **Why we only check up to sqrt(n):** If `n` has a factor larger than its square root, the other factor must be _smaller_ than the square root (because two numbers both larger than sqrt(n) would multiply to something bigger than n). So if no factor exists up to sqrt(n), none exists at all. This turns a brute-force O(n) check into O(sqrt(n)) — for n=1,000,000 that's checking 1,000 numbers instead of 1,000,000.
 
@@ -2263,8 +2263,8 @@ Using an `ArrayList` instead of a `HashSet` would work correctly but be **slower
 </Quiz>
 ### 16\. Practice Questions
 
-<Callout type="warn" title="Exam Strategy">
-FA Round 2 gives you subjective Java questions (write code or explain concepts). PRA tests practical coding. HSE gives HackerRank problems. Practice all three styles below.
+<Callout type="warn" title="Practice Strategy">
+Practice writing code from scratch and explaining concepts. Below are practice problems in different styles.
 </Callout>
 
 <Quiz question={"What is the output of this code?\n\n```java\nint a = 5;\nint b = a++;\nint c = ++a;\nSystem.out.println(a + \" \" + b + \" \" + c);\n\n```"} options={["5 5 6", "7 5 7", "6 5 7", "7 6 7"]} answerIndex={1}>
@@ -2423,23 +2423,22 @@ B) 3
   
 A HashSet does not allow duplicates. Adding 1, 2, 1, 3, 2 — the duplicates (1 and 2 added twice) are ignored. The set contains {1, 2, 3}, so size is 3.
 </Quiz>
-<Callout type="error" title="HackerRank Gotchas — Details That Cost Marks">
-These are the small things most students miss on HackerRank exams. Memorize them:
+<Callout type="error" title="Common Gotchas — Details That Matter">
+These are the small things that trip up many developers in Java programs:
 
-*   **`.equalsIgnoreCase()`** — almost every question says "case-insensitive comparison". Using `==` or `.equals()` will fail hidden test cases
-*   **Null handling** — if your method returns null, you MUST print "No \_\_\_ Found" (exact string from the problem). Not handling null = NullPointerException = 0
-*   **`55000.0` not `55000`** — when a field is `double`, printing it shows the decimal. The output must match exactly as stored
+*   **`.equalsIgnoreCase()`** — when case-insensitive comparison is required, using `==` or `.equals()` will produce incorrect results
+*   **Null handling** — if your method returns null, always check before accessing it. Unhandled null = NullPointerException
+*   **`55000.0` not `55000`** — when a field is `double`, printing it shows the decimal. Output format must match exactly as stored
 *   **Scanner trap** — `nextInt()` leaves `\n` in buffer. Use `Integer.parseInt(sc.nextLine().trim())` instead
-*   **No prompts** — never print "Enter name:" or any message. Just read input and print output
-*   **No debug prints** — any extra `System.out.println()` fails every test case
-*   **Static methods** — HackerRank problems often ask for a `static` method in the Solution class. Don't make it non-static
+*   **No extra output** — only print what is required. Extra prints will produce incorrect results
+*   **Static methods** — utility methods that don't depend on instance state should be `static`
 
 
 </Callout>
 
-### Real FA Subjective Question — Full Walkthrough
+### Practice Question — Full Walkthrough
 
-This is an actual FA Round 2 practice question from HackerRank. Read the full problem, then study the solution line by line.
+Below is a practice problem — read carefully and study the solution line by line.
 
 <Callout type="warn" title="Full Problem Statement">
 
@@ -2625,7 +2624,7 @@ If you used `sc.nextInt()` instead, it leaves `"\n"` in the buffer. Next `sc.nex
 
 **`getCost()` prints `55000.0`** — `double` automatically shows decimal. Problem says "print exactly as stored."
 
-**`"No Gadget Found"`** — Exact string from problem. HackerRank compares character by character.
+**`"No Gadget Found"`** — Exact string from problem. Output is compared character by character.
 
 <Callout type="info" title="Summary — what this question tested">
 
@@ -2646,7 +2645,7 @@ If you used `sc.nextInt()` instead, it leaves `"\n"` in the buffer. Next `sc.nex
 
 </Callout>
 
-### FA Subjective Question 2 — Filter + Count Pattern
+### Practice Question 2 — Filter + Count Pattern
 
 This variation tests **filtering with a numeric condition** and **counting matches**. Instead of returning one object, you return a count.
 
@@ -2806,7 +2805,7 @@ This question has **two methods** instead of one, and tests two different patter
 
 #### The main Method
 
-**Same input pattern as Gadget** — `Integer.parseInt(sc.nextLine().trim())` for every line. This is the safe pattern that avoids the Scanner buffer bug. You'll use this exact pattern in every FA question.
+**Same input pattern as the Gadget question** — `Integer.parseInt(sc.nextLine().trim())` for every line. This is the safe pattern that avoids the Scanner buffer bug.
 
 **Two method calls, two outputs** — The question asks you to call both methods and print both results. Read the problem carefully — if it says "print count" and "print name and salary", that's exactly what you print. Nothing more, nothing less.
 
@@ -2824,7 +2823,7 @@ This question has **two methods** instead of one, and tests two different patter
 
 </Callout>
 
-### FA Subjective Question 3 — Filter + Aggregate Pattern
+### Practice Question 3 — Filter + Aggregate Pattern
 
 This variation tests **filtering objects that meet a condition** and **collecting them into a new array**. Instead of count or single object, you return multiple matching objects.
 
@@ -3001,10 +3000,10 @@ This is the trickiest FA pattern. You can't just `return p;` inside the loop —
 
 </Callout>
 
-<Callout type="info" title="FA Subjective — The Universal Template">
+<Callout type="info" title="The Universal Template">
 
 
-After solving three questions, notice the pattern. **Every FA Java question follows this exact skeleton:**
+After solving three questions, notice the pattern. **Every Java object-search question follows this exact skeleton:**
 
 ```java
 // 1. Create the class with private fields + constructor + getters
@@ -3026,13 +3025,8 @@ public static void main(String[] args) {
 
 ```
 
-**The only things that change are:** the class name, the field types, the method logic (search/count/max/filter), and the output format. The skeleton is always the same. If you can write this skeleton from memory in under 2 minutes, you're already halfway done.
+**The only things that change are:** the class name, the field types, the method logic (search/count/max/filter), and the output format. The skeleton is always the same. If you can write this skeleton from memory in under 2 minutes, you're well on your way.
 
 
-</Callout>
-
-<Callout type="warn" title="FA Subjective Practice">
-Practice more questions like this on HackerRank:  
-[→ HackerRank FA Subjective Mock Practice](https://www.hackerrank.com/contests/mock-pa-1/challenges)
 </Callout>
 

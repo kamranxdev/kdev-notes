@@ -42,7 +42,7 @@ Think of it as **an apartment building**:
 | `/var` | Variable data — logs, mail | The mailroom — always changing, logs of who came/went |
 | `/root` | Home directory of root (admin) user | The building owner's penthouse — separate from tenants |
 
-<Callout type="info" title="💡 Exam tip">
+<Callout type="info" title="💡 Key directories">
 /etc = config, /tmp = temporary (wiped on reboot), /var = logs. These three come up most. Remember: **E**tc = **E**very **T**hing **C**onfigured. **T**mp = **T**e**M**porary. **V**ar = **V**aries (changes constantly).
 </Callout>
 
@@ -160,7 +160,7 @@ chmod 777 file      # rwxrwxrwx → everyone full access (DANGEROUS!)
 chmod 400 secret    # r-------- → owner read-only, nobody else can touch it
 ```
 <Callout type="error" title="Never use 777 in real life">
-`chmod 777` = everyone can read, write, and execute. It's like leaving all doors unlocked with a "please come in and take whatever you want" sign. You'll see it in exams, but in real servers, this is a security disaster.
+`chmod 777` = everyone can read, write, and execute. It's like leaving all doors unlocked with a "please come in and take whatever you want" sign. In real servers, this is a serious security risk — avoid it outside of isolated local testing.
 </Callout>
 
 #### Symbolic Permissions — The English Way
@@ -173,8 +173,8 @@ chmod g-w file     # g(group) -(remove) w(write) → "take write away from group
 chmod o+r file     # o(others) +(add) r(read) → "let others read"
 chmod a+x file     # a(all) +(add) x(execute) → "everyone can execute"
 ```
-<Callout type="info" title="💡 Exam tip">
-Memorize these three cold: `755` = rwxr-xr-x (typical script), `644` = rw-r--r-- (typical file), `777` = rwxrwxrwx (everything open). The math is always: r=4, w=2, x=1. Add per group.
+<Callout type="info" title="💡 Common permission values">
+Memorise these three: `755` = rwxr-xr-x (typical script), `644` = rw-r--r-- (typical file), `777` = rwxrwxrwx (everything open). The math is always: r=4, w=2, x=1. Add per group.
 </Callout>
 
 <Quiz question={"A file has permissions `-rw-r-----`. What is the octal value?"} options={["644", "640", "740", "620"]} answerIndex={1}>
@@ -259,8 +259,8 @@ Read it like: "Show the log file, **then** keep only lines with '404', **then** 
 | `<` | Read input from file | Read from a script instead of typing live | `sort < names.txt` |
 | `2>` | Redirect error messages | Send complaints to a separate box | `cmd 2> errors.txt` |
 
-<Callout type="error" title="The #1 exam trap: > vs >>">
-`>` **DESTROYS** whatever was in the file and writes fresh. `>>` **ADDS** to the end without touching existing content. If you use `>` on an important file by mistake, the old data is gone forever. This distinction is asked in almost every Unix exam.
+<Callout type="error" title="The #1 common trap: > vs >>">
+`>` **DESTROYS** whatever was in the file and writes fresh. `>>` **ADDS** to the end without touching existing content. If you use `>` on an important file by mistake, the old data is gone forever. Always double-check which operator you need.
 </Callout>
 
 <Quiz question={"What does `cat file1.txt file2.txt | sort | uniq > result.txt` do?"} options={["Sorts file1 and saves to result.txt, ignoring file2", "Combines both files, sorts all lines, removes duplicates, saves to result.txt", "Counts unique lines in both files", "Compares file1 and file2 for differences"]} answerIndex={1}>
@@ -312,7 +312,7 @@ Ctrl+Z           # suspend (pause) the foreground process — it's still alive b
 bg               # resume a suspended process in the background
 fg               # bring a background process to the foreground
 ```
-<Callout type="info" title="💡 Exam tip">
+<Callout type="info" title="💡 Key signals">
 `kill -9` = SIGKILL = force kill. This is the answer to "how do you force kill a process?" Also remember: `&` at the end = run in background.
 </Callout>
 
@@ -358,7 +358,7 @@ sed 's/old/new/' file.txt      # replace FIRST "old" on each line
 sed 's/old/new/g' file.txt     # replace ALL "old" on each line (g = global)
 sed -i 's/foo/bar/g' file.txt  # actually MODIFY the file (-i = in-place)
 ```
-<Callout type="error" title="The /g trap — EXAM FAVORITE">
+<Callout type="error" title="The /g flag — important distinction">
 
 
 Without `/g`: only the FIRST match on each line is replaced. If a line says "error error error", only the first "error" changes.
@@ -380,7 +380,7 @@ sed -n '3p' file.txt           # print ONLY line 3 (-n suppresses all other outp
 sed -n '2,4p' file.txt         # print only lines 2 to 4
 sed 's/[0-9]//g' file.txt     # remove all digits (replace each digit with nothing)
 ```
-<Callout type="info" title="💡 Exam tip">
+<Callout type="info" title="💡 Key sed operations">
 Three things to remember: `s/old/new/` = substitute. `d` = delete. `-n` with `p` = print only specific lines. Add `/g` for global (all matches). Add `-i` to edit the actual file.
 </Callout>
 
@@ -390,10 +390,10 @@ Without `/g`, sed only replaces the FIRST match on each line. The result would b
 <Quiz question={"Which command deletes all lines containing \"DEBUG\" from a file and saves the change?"} options={["sed '/DEBUG/d' file.txt", "sed -i '/DEBUG/d' file.txt", "sed 's/DEBUG//g' file.txt", "grep -v \"DEBUG\" file.txt"]} answerIndex={1}>
 Option A prints the result but doesn't save it. Option B uses `-i` (in-place) to actually modify the file. Option C removes the word "DEBUG" but keeps the rest of the line. Option D also works for filtering but doesn't modify the original file.
 </Quiz>
-### awk — THE Most Important FA Round 2 Topic (15 marks)
+### awk — Powerful Column-Based Text Processing
 
-<Callout type="error" title="FA Round 2 — 15-20 marks">
-**awk is the #1 subjective topic in FA Round 2 Unix section.** Typical questions: "Given a table/file, find the max salary", "Print employees in a department", "Calculate total/average". You MUST know awk cold.
+<Callout type="error" title="Real-world problems often require awk">
+**awk** is essential for working with tabular data. Typical tasks: "Given a table/file, find the max salary", "Print employees in a department", "Calculate total/average".
 </Callout>
 
 **Why does awk exist?** Imagine you have a CSV file with 10,000 employee records. You need to find everyone in the "Sales" department earning over 50,000 and calculate their average salary. In Java, that's 20+ lines of code (open file, read line by line, split by comma, check conditions...). In awk, it's ONE line. awk was built specifically for this kind of "look at data in columns, filter and calculate" work.
@@ -473,11 +473,11 @@ awk 'END {print NR, "lines"}' file.txt
 # Calculate average salary
 awk 'BEGIN {sum=0; count=0} {sum += $3; count++} END {print "Avg:", sum/count}' emp.txt
 ```
-<Callout type="warn" title="FA Round 2 — This WILL be asked">
-"Given a file with employee data, calculate the total/average salary" — use `BEGIN` to initialize variables, main block to accumulate, `END` to print result. This is the most common awk question pattern.
+<Callout type="warn" title="Common Pattern — This Will Come Up">
+"Given a file with employee data, calculate the total/average salary" — use `BEGIN` to initialise variables, main block to accumulate, `END` to print result. This is the most common awk question pattern.
 </Callout>
 
-#### FA Exam Pattern: Employee Table Questions
+#### Common Pattern: Employee Table Questions
 
 Assume this file `emp.txt` (space-separated):
 
@@ -621,8 +621,8 @@ grep "IT" emp.txt | awk '{print $1, $3}'
 ls -l | awk '{print $9, $5}'  # filename and size from ls -l
 df -h | awk 'NR > 1 {print $1, $5}'  # disk usage %
 ```
-<Callout type="warn" title="FA Exam — How Questions Look">
-The exam gives you a file content (like emp.txt above) and asks:  
+<Callout type="warn" title="In Practice — How Questions Look">
+You are given a file content (like emp.txt above) and asked:  
 **"Write an awk command to find the employee with the highest salary"**  
 **"Write an awk command to calculate total salary of IT department"**  
 **"Write an awk command to print names of employees earning more than 40000"**  
@@ -756,7 +756,7 @@ For numbers: `[ 5 -gt 3 ]` means "is 5 greater than 3?" (yes)
 
 For strings: `[ "$NAME" = "Darshan" ]` means "is NAME exactly Darshan?" (yes)
 
-You can't use `=` for number comparison or `-eq` for string comparison. The exam will try to trick you with this.
+You can't use `=` for number comparison or `-eq` for string comparison. This is a commonly confused distinction — the type of value (number vs string) determines which operators to use.
 
 
 </Callout>
@@ -809,7 +809,7 @@ These are shortcuts for navigating the file system. Think of them as **bookmarks
 | `/` | Root directory | The ground floor — the very top of the file tree |
 | `-` | Previous directory (where you just were) | "Go back" — like the back button in a browser |
 
-<Callout type="info" title="💡 Exam tip">
+<Callout type="info" title="💡 Path shortcuts">
 `~` = home directory is the most commonly asked. Also remember: `cd ..` goes up one level, `cd ../..` goes up two levels.
 </Callout>
 
@@ -887,7 +887,7 @@ Minute=0, Hour=0 (midnight), Day=* (any), Month=* (any), Weekday=0 (Sunday). So 
 <Quiz question={"Permissions `-rwxr-x---` in octal?"} options={["777", "754", "750", "755"]} answerIndex={2}>
 ✅ C) 750. Owner: rwx=7, Group: r-x=5, Others: ---=0.
 </Quiz>
-<Callout type="error" title="HackerRank Gotchas — Unix Questions">
+<Callout type="error" title="Common Gotchas">
 
 
 *   **Case-insensitive matching** — use `tolower()` in AWK or `IGNORECASE=1`. Almost every question needs this
@@ -899,9 +899,9 @@ Minute=0, Hour=0 (midnight), Day=* (any), Month=* (any), Weekday=0 (Sunday). So 
 
 </Callout>
 
-### Real FA Subjective Question — Walkthrough
+### Practice Walkthrough — Employee Salary Problem
 
-This is an actual FA Round 2 practice question from HackerRank.
+Below is a practice problem — read carefully and study the solution line by line.
 
 <Callout type="warn" title="Problem: Total Salary by Division">
 
@@ -945,7 +945,6 @@ END {
 
 </Callout>
 
-<Callout type="warn" title="FA Subjective Practice">
-Practice more questions like this on HackerRank:  
-[→ HackerRank FA Subjective Mock Practice](https://www.hackerrank.com/contests/mock-pa-1/challenges)
+<Callout type="warn" title="Practice">
+Practice writing code from scratch and explaining concepts. Work through similar problems using the emp.txt examples shown in the awk section above.
 </Callout>

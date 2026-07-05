@@ -23,7 +23,7 @@ A **library** is a tool you call from *your* code when and where you see fit. Yo
 | **Routing & Forms** | Built-in (official modules) | Third-party (React Router, Formik, etc.) |
 | **CLI** | Powerful (`ng generate`, `ng build`, `ng serve`) | Third-party templates or builders (Vite, Next.js) |
 
-<Callout type="info" title="Exam favorite">
+<Callout type="info" title="Key Concept">
 "Angular is a JavaScript library" — **FALSE**. Angular is a TypeScript-based **framework**. React is the library.
 </Callout>
 
@@ -658,7 +658,7 @@ To read a signal, you invoke it like a function: `mySignal()`. This sets up a de
 
 ---
 
-### 12. Angular Exam Traps & Common Gotchas
+### 12. Angular Common Gotchas
 
 <Callout type="error" title="1. Can't bind to 'ngModel' since it isn't a known property">
 **The Trap:** Attempting to use `[(ngModel)]` in a standalone component without importing `FormsModule`.  
@@ -680,7 +680,7 @@ bootstrapApplication(AppComponent, {
 **The Solution:** Standalone components must explicitly import `CommonModule` or `AsyncPipe` from `@angular/common` to utilize them in HTML templates.
 </Callout>
 
-<Callout type="warn" title="💡 TCS FA/ILP Key Facts to Memorize">
+<Callout type="warn" title="💡 Key Facts to Remember">
 - **Ivy** is the name of Angular's rendering and compiler engine.
 - **Zone.js** is the library Angular uses to intercept asynchronous APIs (like clicks, timeouts, requests) and trigger automatic change detection.
 - **OnPush** change detection strategy tells Angular to check a component *only* if its `@Input()` references change or an event fires from within the component.

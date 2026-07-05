@@ -1,0 +1,953 @@
+---
+title: Flutter
+---
+
+Imagine you want to paint a mural in two cities simultaneously — and you want every brushstroke to look exactly the same in both places. You could hire two local artists (React Native style) and hope they interpret your sketch the same way, or you could bring your own paint, your own brushes, and your own canvas to both cities and do it yourself (Flutter style). Flutter brings its own rendering engine, skips the platform's UI widgets entirely, and paints every single pixel itself. The result: buttery-smooth 60/120 fps animations and pixel-perfect UI that looks identical on iOS, Android, web, and desktop — all from a **single Dart codebase**.
+
+### 1\. Architecture & How Flutter Works
+
+Think of Flutter like a well-organized kitchen. Your code is the chef writing recipes. The Flutter Framework is the sous-chef who knows all the standard techniques. The Flutter Engine is the stove and oven — the raw heat source that actually cooks things. And the Platform Embedder is the restaurant building that hosts the whole operation on each platform. Each layer has one job, and they hand work down the chain.
+
+#### The Three Layers
+
+```java
+┌─────────────────────────────────────┐
+│         YOUR DART CODE              │  // Your widgets, business logic
+├─────────────────────────────────────┤
+│         FLUTTER FRAMEWORK           │  // Widgets, animations, gestures (Dart)
+├─────────────────────────────────────┤
+│         FLUTTER ENGINE              │  // Skia/Impeller rendering, Dart VM (C++)
+├─────────────────────────────────────┤
+│         PLATFORM EMBEDDER           │  // iOS, Android, Web, Desktop (native)
+└─────────────────────────────────────┘
+```
+
+- **Your Code (Dart):** Widgets, state, business logic — everything you write.
+- **Flutter Framework (Dart):** The rich library of pre-built widgets, animations, routing, and the rendering pipeline. Written in Dart, so it's open-source and inspectable.
+- **Flutter Engine (C++):** The Skia (or Impeller on iOS/macOS) rendering engine, Dart runtime, text layout, and platform channels. It's what talks to the GPU.
+- **Platform Embedder:** A thin native shell per platform (Swift/ObjC on iOS, Java/Kotlin on Android) that creates a window and hands it to the engine.
+
+<Callout type="info" title="Why this matters">
+Because Flutter renders its own UI, a `Text` widget looks and behaves identically on iOS and Android. There's no "it looks different on iPhone" moment. The tradeoff: Flutter apps are slightly larger (the engine is bundled), but you get perfect visual consistency.
+</Callout>
+
+#### The Rendering Pipeline
+
+When you change state, Flutter goes through a four-step render pipeline:
+
+```java
+Build → Layout → Paint → Composite
+  ↑         ↑        ↑        ↑
+Widget   RenderObject  Layer  GPU
+ Tree      Tree      Tree   Frame
+```
+
+1. **Build:** `build()` methods run to produce the Widget Tree.
+2. **Layout:** Each widget receives constraints and calculates its own size.
+3. **Paint:** Widgets paint themselves onto canvases.
+4. **Composite:** Layers are merged by the GPU into the final frame.
+
+---
+
+### 2\. Dart — The Language Behind Flutter
+
+You can't do Flutter without Dart. Think of Dart as a typed, modern language designed specifically to be compiled ahead-of-time for fast startup and just-in-time for fast development. Its two killer features are **sound null safety** and first-class `async/await` — both of which directly shape how you write Flutter apps.
+
+#### Type System
+
+Dart is **strongly and statically typed** with **sound null safety** (since Dart 2.12). Sound null safety means the compiler guarantees that a non-nullable variable will never be null at runtime — eliminating an entire category of crashes before your app ships.
+
+```java
+// Non-nullable (default) — cannot be null, compiler enforces this
+String name = "Flutter";
+int age = 5;
+
+// Nullable — CAN be null (add ? to opt in)
+String? nickname;       // null by default
+int? optionalAge;
+
+// late — tells Dart "I'll initialize this before use"
+late String lazyValue;  // crashes at runtime if you read it before setting it
+```
+
+#### Null Safety Operators
+
+| Operator | Name | Meaning | Memory Hook |
+| --- | --- | --- | --- |
+| `?` | Nullable type | This variable can hold null | The question mark asks "maybe null?" |
+| `!` | Null assertion | "I know this isn't null" — crashes if wrong | The exclamation is you being forceful |
+| `??` | Null coalescing | Left value, or right value if left is null | "Give me this, or else that" |
+| `?.` | Null-aware access | Only call method/property if not null | "Do this, but only if something's there" |
+| `??=` | Null-aware assignment | Assign only if the variable is currently null | "Fill the gap if it's empty" |
+
+```java
+String? user;
+
+// ?? — provide a default value when null
+String display = user ?? "Guest";         // "Guest" because user is null
+
+// ?. — safe navigation (no crash on null)
+int? length = user?.length;              // null (no crash)
+
+// ! — force unwrap (use sparingly — you'd better be right)
+String forced = user!;                   // throws if null
+
+// ??= — lazy default assignment
+user ??= "Anonymous";                    // sets user only if it was null
+```
+
+<Callout type="warn" title="Watch Out">
+Think of `String?` as a box that might be empty. `String` (no `?`) is a box guaranteed to have something in it. The `!` operator is you forcing the box open saying "there's definitely something in here" — you'd better be right, or it crashes.
+</Callout>
+
+#### Key Dart Features
+
+```java
+// Arrow functions — single-expression shorthand
+int double(int x) => x * 2;
+
+// Named parameters — callers must use the parameter name
+void greet({required String name, String greeting = "Hello"}) {
+  print("$greeting, $name!");
+}
+greet(name: "Kamran");               // Hello, Kamran!
+greet(name: "Dev", greeting: "Hi"); // Hi, Dev!
+
+// Positional optional parameters — caller can skip them
+int add(int a, [int b = 0]) => a + b;
+
+// Cascade notation — chain multiple calls on the SAME object
+var paint = Paint()
+  ..color = Colors.blue       // same as paint.color = Colors.blue
+  ..strokeWidth = 5.0
+  ..style = PaintingStyle.stroke;
+
+// Spread operator — unpack a list into another list
+var list1 = [1, 2, 3];
+var list2 = [...list1, 4, 5];  // [1, 2, 3, 4, 5]
+
+// Collection if and for — build lists with logic inline
+var items = [
+  'Home',
+  if (isLoggedIn) 'Profile',      // conditionally add an item
+  for (var tag in tags) tag,       // spread items from a loop
+];
+```
+
+#### `async` / `await` & Futures
+
+Flutter apps constantly do async work: fetching APIs, reading files, waiting for animations. Dart uses `Future` for one-time async values and `Stream` for sequences of values over time.
+
+```java
+// Future — a single value that arrives eventually (like ordering a package)
+Future<String> fetchUser() async {
+  await Future.delayed(Duration(seconds: 2)); // simulate network delay
+  return "Kamran";
+}
+
+// await pauses THIS function, not the whole UI — the app stays responsive
+void loadData() async {
+  String user = await fetchUser();
+  print(user); // "Kamran" after 2 seconds
+}
+
+// then() — callback style (less readable, less preferred)
+fetchUser().then((user) => print(user)).catchError((e) => print(e));
+
+// Stream — a sequence of async events (like a live radio broadcast)
+Stream<int> counter() async* {
+  for (int i = 0; i < 5; i++) {
+    await Future.delayed(Duration(seconds: 1));
+    yield i; // emit one value at a time, then pause
+  }
+}
+```
+
+<Callout type="info" title="Future vs Stream">
+A `Future` is a one-time promise: "I'll give you ONE value later." A `Stream` is an ongoing broadcast: "I'll keep sending you values over time." Future = a letter in the mail. Stream = a live radio station.
+</Callout>
+
+<Quiz question={"In Dart, what does the `??` operator do?"} options={["Throws a null exception if the value is null", "Returns the left value if it is not null, otherwise returns the right value", "Assigns null to the variable", "Converts a nullable type to a non-nullable type"]} answerIndex={1}>
+B) `??` is the null coalescing operator. `user ?? 'Guest'` returns `user` if it's not null, or `'Guest'` if it is. It's the clean alternative to writing `user != null ? user : 'Guest'` every time you need a fallback.
+</Quiz>
+
+---
+
+### 3\. Widgets — Everything Is a Widget
+
+In Flutter, **everything is a widget** — buttons, text labels, padding, column layouts, even the app itself. Think of widgets like **LEGO bricks**: each brick does one small, specific thing, and you compose complex UIs by stacking and nesting them. A `Row` arranges children horizontally. A `Container` adds decoration. A `Text` displays text. Even invisible things like `Padding` and `GestureDetector` are widgets. The whole UI is just a tree of nested bricks.
+
+#### Stateless vs Stateful Widgets
+
+| | `StatelessWidget` | `StatefulWidget` | Memory Hook |
+| --- | --- | --- | --- |
+| **Data** | Immutable — no changing data | Mutable — has a `State` object | Static display vs. interactive control |
+| **Rebuilds when** | Parent rebuilds it with new props | `setState()` is called | Pushed by parent vs. triggered internally |
+| **Use for** | Static UI (labels, icons, layouts) | Interactive UI (counters, forms, toggles) | "Show" vs. "do" |
+| **Performance** | Cheaper | Slightly heavier | Less memory overhead |
+
+```java
+// StatelessWidget — build() is called when parent rebuilds with new data
+class WelcomeCard extends StatelessWidget {
+  final String name;
+  const WelcomeCard({required this.name, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16), // 16px padding on all sides
+        child: Text('Hello, $name!'),
+      ),
+    );
+  }
+}
+
+// StatefulWidget — split into a widget class + a separate State class
+class Counter extends StatefulWidget {
+  const Counter({super.key});
+  @override
+  State<Counter> createState() => _CounterState(); // creates the State object once
+}
+
+class _CounterState extends State<Counter> {
+  int _count = 0;  // mutable state lives HERE in State, not in the widget
+
+  void _increment() {
+    setState(() {      // tell Flutter "something changed, please rebuild"
+      _count++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text('Count: $_count'),        // reads from state
+        ElevatedButton(
+          onPressed: _increment,       // triggers setState on tap
+          child: const Text('Add'),
+        ),
+      ],
+    );
+  }
+}
+```
+
+<Callout type="warn" title="Key Concept">
+The widget class is **immutable** (rebuilt and discarded frequently). The `State` class is **mutable** and **persistent** — Flutter keeps it alive across widget rebuilds. This is why your counter doesn't reset to 0 every time the parent rebuilds.
+</Callout>
+
+#### Widget Lifecycle
+
+```java
+// StatefulWidget lifecycle — what happens and when:
+createState()           // State object created once when widget enters the tree
+initState()             // Called once after creation — perfect for async setup
+didChangeDependencies() // Called when an InheritedWidget ancestor changes
+build()                 // Called every time setState() fires or parent rebuilds
+didUpdateWidget()       // Called when parent gives the widget new configuration
+dispose()               // Called before state is removed — CLEAN UP HERE
+```
+
+```java
+class _MyState extends State<MyWidget> {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    // Good place to: initialize controllers, fetch data, set up listeners
+    _controller = AnimationController(vsync: this, duration: Duration(seconds: 1));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose(); // ALWAYS dispose to prevent memory leaks
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text('Hello');
+  }
+}
+```
+
+<Quiz question={"Which widget lifecycle method is the correct place to dispose of an AnimationController?"} options={["initState()", "build()", "dispose()", "didUpdateWidget()"]} answerIndex={2}>
+C) `dispose()` is called by Flutter right before the State object is permanently removed from the tree. It's the mandatory cleanup hook — dispose of controllers, cancel subscriptions, and close streams here to prevent memory leaks.
+</Quiz>
+
+---
+
+### 4\. Core Layout Widgets
+
+Imagine a Russian nesting doll: each doll tells the smaller doll inside it "here's the space you have to work with." That's Flutter's **constraint-based layout system**. Parents send constraints (min/max width and height) down to children. Children decide their own size within those constraints, then report their chosen size back up. The parent then decides where to position the child. Constraints go down, sizes go up, parent positions child.
+
+#### The Layout Widgets You'll Use Daily
+
+```java
+// Column — stacks children vertically (like a menu list)
+Column(
+  mainAxisAlignment: MainAxisAlignment.center,    // alignment along vertical axis
+  crossAxisAlignment: CrossAxisAlignment.start,   // alignment along horizontal axis
+  children: [Text('A'), Text('B'), Text('C')],
+)
+
+// Row — places children side by side horizontally
+Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween, // spread items apart
+  children: [Icon(Icons.star), Text('4.5')],
+)
+
+// Stack — layers children on top of each other (like CSS z-index)
+Stack(
+  children: [
+    Image.asset('background.png'),           // bottom layer
+    Positioned(
+      bottom: 16,
+      right: 16,
+      child: FloatingActionButton(onPressed: () {}, child: Icon(Icons.add)),
+    ),
+  ],
+)
+
+// Container — the "div" of Flutter (combines decoration, padding, margin, sizing)
+Container(
+  width: 200,
+  height: 100,
+  margin: EdgeInsets.all(8),                      // space outside the container
+  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), // space inside
+  decoration: BoxDecoration(
+    color: Colors.blue,
+    borderRadius: BorderRadius.circular(12),      // rounded corners
+    boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)],
+  ),
+  child: Text('Card'),
+)
+
+// Expanded — greedily takes all remaining space in a Row/Column
+Row(
+  children: [
+    Icon(Icons.star),
+    Expanded(child: Text('This fills remaining width')), // takes ALL leftover space
+    Text('end'),
+  ],
+)
+
+// Flexible — like Expanded but the child can be SMALLER than its allocation
+Flexible(flex: 2, child: Container(color: Colors.red))   // gets 2/3 of space
+Flexible(flex: 1, child: Container(color: Colors.blue))  // gets 1/3 of space
+
+// SizedBox — fixed-size box, also used as a spacing gap
+SizedBox(height: 16)   // a simple 16px vertical spacer
+SizedBox(width: double.infinity, height: 50, child: ElevatedButton(...))
+
+// Padding — just adds padding, nothing else
+Padding(
+  padding: EdgeInsets.only(left: 16, right: 16),
+  child: Text('Padded Text'),
+)
+```
+
+<Callout type="info" title="Tip">
+Use `Padding` when you only need padding. Use `SizedBox` for fixed size or spacing gaps. Reach for `Container` only when you need multiple things at once: size + padding + decoration. Overusing `Container` everywhere is a common beginner habit — prefer the smallest widget that does the job.
+</Callout>
+
+| Widget | Purpose | Analogy |
+| --- | --- | --- |
+| `Column` / `Row` | Linear vertical/horizontal layouts | Stack of pancakes / row of books |
+| `Stack` | Overlapping layers | Deck of cards |
+| `Container` | Box with decoration, padding, sizing | A gift box with wrapping |
+| `Expanded` | Fills remaining space in Row/Column | Rubber band that stretches to fill |
+| `Flexible` | Takes proportional space (flex factor) | Adjustable shelf divider |
+| `SizedBox` | Fixed dimensions or spacer | A rigid cardboard spacer |
+| `Padding` | Adds padding only | Bubble wrap inside a box |
+| `Center` | Centers a child within its parent | A picture centered on a wall |
+| `Align` | Aligns child to a specific position | Sticky note in a specific corner |
+| `Wrap` | Like Row/Column but wraps to next line | Word wrap in a text editor |
+| `ListView` | Scrollable list | A scroll of paper |
+| `GridView` | 2D scrollable grid | Photo album grid |
+
+<Quiz question={"What is the difference between `Expanded` and `Flexible` inside a Row or Column?"} options={["They are identical — different names for the same widget", "`Expanded` forces the child to fill all remaining space; `Flexible` allows the child to be smaller than its allocated space", "`Expanded` is for Row; `Flexible` is for Column", "`Flexible` forces minimum size; `Expanded` forces maximum size"]} answerIndex={1}>
+B) `Expanded` is shorthand for `Flexible(fit: FlexFit.tight)` — the child MUST fill its allocated space. `Flexible` defaults to `FlexFit.loose` — the child can be smaller than the allocated space. Use `Expanded` to stretch-to-fill; use `Flexible` when the child's natural size might be smaller than what's available.
+</Quiz>
+
+---
+
+### 5\. State Management
+
+Imagine your app's data is water. `setState` is like a cup — great for one person, but useless when 50 people across the building need the same water. State management solves the problem of sharing and updating data across your entire widget tree. Flutter gives you multiple tools ranging from a simple cup to a full plumbing system — pick the one that matches how much "water" your app needs to distribute.
+
+#### setState — Local State (Built-in)
+
+Good for state that only affects one widget or a small, close subtree. This is your starting point — a counter, a toggle, a loading spinner.
+
+```java
+// Suitable for: toggle buttons, form fields, counters, tab selection
+setState(() {
+  _isLoading = true; // Flutter will call build() again with the new value
+});
+```
+
+**Limitation:** Can't easily share state between distant widgets. Leads to "prop drilling" — passing state down through many intermediate widgets just to reach the one that actually needs it.
+
+#### InheritedWidget — Flutter's Built-in DI
+
+The foundation of Flutter's context system. Any widget can access an `InheritedWidget` from any ancestor in the tree without passing it through every widget in between — like a broadcasting tower every widget in range can tune into.
+
+```java
+// Low-level — usually wrapped by Provider or Riverpod in real apps
+class AppTheme extends InheritedWidget {
+  final ThemeData theme;
+  const AppTheme({required this.theme, required super.child, super.key});
+
+  // Any descendant can call AppTheme.of(context) to access the theme
+  static AppTheme of(BuildContext context) =>
+    context.dependOnInheritedWidgetOfExactType<AppTheme>()!;
+
+  @override
+  bool updateShouldNotify(AppTheme old) => theme != old.theme; // rebuild only on change
+}
+```
+
+#### Provider — The Community Standard
+
+`Provider` wraps `InheritedWidget` with a clean, ergonomic API. Think of it as a water tower for your whole app — you fill it once and every widget that subscribes gets notified when the water level changes.
+
+```java
+// Step 1: Define your state class — extend ChangeNotifier
+class CartModel extends ChangeNotifier {
+  final List<String> _items = [];
+  List<String> get items => List.unmodifiable(_items); // read-only view
+
+  void add(String item) {
+    _items.add(item);
+    notifyListeners(); // broadcast "state changed" to all listeners
+  }
+
+  void remove(String item) {
+    _items.remove(item);
+    notifyListeners();
+  }
+}
+
+// Step 2: Wrap your app (or a subtree) with ChangeNotifierProvider
+void main() {
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => CartModel(), // creates ONE instance shared by the whole tree
+      child: const MyApp(),
+    ),
+  );
+}
+
+// Step 3: Read the state in any descendant widget
+class CartBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final cart = context.watch<CartModel>(); // subscribes — rebuilds on change
+    return Text('${cart.items.length} items');
+  }
+}
+
+class AddToCartButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () => context.read<CartModel>().add('Apple'), // read once, no subscription
+      child: const Text('Add to Cart'),
+    );
+  }
+}
+```
+
+<Callout type="info" title="Key Detail">
+- `context.watch<T>()` — subscribe and rebuild when T changes (**use in build()**)
+- `context.read<T>()` — read once without subscribing (**use in callbacks/onPressed**)
+- `context.select<T, R>((t) => t.field)` — rebuild only when a specific field changes
+</Callout>
+
+#### Riverpod — The Next Generation
+
+Riverpod is the modern successor to Provider. Here's the catch with Provider: if you try to read a provider before it's been placed in the tree, you get a runtime exception. Riverpod fixes that — it's compile-safe, testable, and supports code generation. It's increasingly the preferred choice for new projects.
+
+```java
+// Define a provider at the top level (not inside any widget)
+final counterProvider = StateNotifierProvider<CounterNotifier, int>(
+  (ref) => CounterNotifier(), // Riverpod manages the lifecycle
+);
+
+class CounterNotifier extends StateNotifier<int> {
+  CounterNotifier() : super(0); // initial state = 0
+
+  void increment() => state++; // changing state triggers rebuilds in watchers
+  void decrement() => state--;
+}
+
+// Extend ConsumerWidget instead of StatelessWidget to get access to ref
+class CounterDisplay extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(counterProvider); // subscribe to state changes
+
+    return Column(children: [
+      Text('$count'),
+      ElevatedButton(
+        onPressed: () => ref.read(counterProvider.notifier).increment(),
+        child: Text('Increment'),
+      ),
+    ]);
+  }
+}
+```
+
+| Solution | Best For | Complexity | Analogy |
+| --- | --- | --- | --- |
+| `setState` | Local, single-widget state | ⭐ Simple | A personal notebook |
+| `Provider` | App-wide shared state, medium apps | ⭐⭐ Moderate | A shared whiteboard |
+| `Riverpod` | Large apps, testing, code-gen | ⭐⭐⭐ Advanced | A company-wide database |
+| `BLoC/Cubit` | Enterprise apps, strict separation | ⭐⭐⭐⭐ Complex | A formal data warehouse |
+| `GetX` | Rapid prototyping (less boilerplate) | ⭐⭐ Moderate | A quick sticky note system |
+
+<Quiz question={"You are inside an `onPressed` callback and need to read CartModel once to call a method, without subscribing to changes. Which Provider method should you use?"} options={["context.watch<CartModel>()", "context.select<CartModel>()", "context.read<CartModel>()", "Provider.of<CartModel>(context)"]} answerIndex={2}>
+C) `context.read<T>()` is designed for use inside callbacks. It reads the current value without subscribing, so it doesn't cause unnecessary rebuilds. Using `context.watch()` inside a callback is incorrect — it should only ever be used inside `build()`.
+</Quiz>
+
+---
+
+### 6\. Navigation & Routing
+
+Think of your app's screens as a stack of cards on a table. When you navigate forward, you put a new card on top. When you go back, you remove the top card. Flutter's Navigator is the dealer managing that deck. The question is just: are you telling the dealer which card to place (imperative), or are you declaring what the deck should look like at any moment (declarative)?
+
+#### Navigator 1.0 — Imperative (Stack-based)
+
+```java
+// Push a new screen onto the stack — user can go back
+Navigator.push(
+  context,
+  MaterialPageRoute(builder: (context) => const DetailScreen()),
+);
+
+// Push with a named route (routes registered in MaterialApp)
+Navigator.pushNamed(context, '/details');
+
+// Pop (go back) — optionally pass a return value to the previous screen
+Navigator.pop(context, 'result');
+
+// Replace current screen — user cannot go back to previous screen
+Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
+
+// Clear the entire stack and push a new screen (e.g., after login)
+Navigator.pushAndRemoveUntil(
+  context,
+  MaterialPageRoute(builder: (_) => HomeScreen()),
+  (route) => false,  // returning false removes ALL previous routes
+);
+
+// Passing data to a new screen via constructor
+Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => UserScreen(userId: '123', name: 'Kamran'),
+  ),
+);
+
+// Receiving a result from a screen that was pushed
+final result = await Navigator.push<String>(
+  context,
+  MaterialPageRoute(builder: (_) => PickerScreen()),
+);
+print(result); // whatever the picker screen passed to Navigator.pop()
+```
+
+#### Navigator 2.0 — Declarative (URL-based)
+
+With Navigator 2.0, the URL is state. Instead of issuing "push this screen" commands, you describe what screen the current URL should map to. **GoRouter** is the Flutter team's official recommended package for this.
+
+```java
+// GoRouter setup — declare all routes in one place
+final router = GoRouter(
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const HomeScreen(), // / maps to HomeScreen
+    ),
+    GoRoute(
+      path: '/user/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!; // extract :id from the URL
+        return UserScreen(userId: id);
+      },
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
+    ),
+  ],
+);
+
+// Navigate with GoRouter
+context.go('/user/123');           // replaces history — no back button
+context.push('/settings');         // adds to history — back button works
+context.pop();                     // go back
+context.goNamed('profile', pathParameters: {'id': '42'}); // navigate by route name
+```
+
+<Callout type="warn" title="When to use which">
+Use **Navigator 1.0** (push/pop) for simple apps with linear flows. Use **GoRouter** when you need deep linking, web URL support, nested navigation, or tab-based navigation. GoRouter is the Flutter team's current recommendation for any serious app.
+</Callout>
+
+---
+
+### 7\. Handling Asynchronous Data in UI
+
+Imagine you ordered food at a restaurant. You don't stand at the kitchen window staring until it's ready — you sit down, the waiter tells you when it's done, and your table gets "rebuilt" with the meal. That's exactly how `FutureBuilder` works: you give it an async operation, and it rebuilds your UI automatically as the data state changes from loading → done (or error).
+
+```java
+// FutureBuilder — builds different UI based on a Future's current state
+FutureBuilder<User>(
+  future: fetchUser(),  // the async operation to watch
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const CircularProgressIndicator();  // still loading
+    }
+    if (snapshot.hasError) {
+      return Text('Error: ${snapshot.error}');   // something went wrong
+    }
+    if (!snapshot.hasData) {
+      return const Text('No data found');        // done but empty
+    }
+    // success — render the actual data
+    final user = snapshot.data!;
+    return Text('Welcome, ${user.name}');
+  },
+)
+
+// StreamBuilder — rebuilds UI every time a Stream emits a new value
+StreamBuilder<int>(
+  stream: timerStream(),
+  builder: (context, snapshot) {
+    if (!snapshot.hasData) return const CircularProgressIndicator();
+    return Text('Tick: ${snapshot.data}'); // updates in real time
+  },
+)
+```
+
+<Callout type="error" title="Common Mistake">
+Do NOT create the Future inside `build()` — that creates a brand-new Future on every rebuild, restarting the network call each time. Create it in `initState()` and store it:
+
+```java
+late Future<User> _userFuture;
+
+@override
+void initState() {
+  super.initState();
+  _userFuture = fetchUser(); // created ONCE, reused forever
+}
+
+// In build:
+FutureBuilder(future: _userFuture, builder: ...)
+```
+</Callout>
+
+---
+
+### 8\. HTTP & API Integration
+
+Your app is like a diplomat visiting a foreign country (the server). It needs a language to communicate (HTTP), a way to understand the local documents (JSON parsing), and a structured way to represent the information it receives (model classes). Flutter uses the `http` package for the conversation, `dart:convert` for translation, and plain Dart classes as the structured representation.
+
+```java
+// pubspec.yaml:
+// dependencies:
+//   http: ^1.1.0
+
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+// Model class — typed representation of the API response
+class Post {
+  final int id;
+  final String title;
+  final String body;
+
+  Post({required this.id, required this.title, required this.body});
+
+  // fromJson factory — converts raw Map into a typed Post object
+  factory Post.fromJson(Map<String, dynamic> json) {
+    return Post(
+      id: json['id'] as int,
+      title: json['title'] as String,
+      body: json['body'] as String,
+    );
+  }
+
+  // toJson — converts Post back to Map for POST/PUT request bodies
+  Map<String, dynamic> toJson() => {'id': id, 'title': title, 'body': body};
+}
+
+// GET request — fetch a list of posts
+Future<List<Post>> fetchPosts() async {
+  final response = await http.get(
+    Uri.parse('https://jsonplaceholder.typicode.com/posts'),
+  );
+
+  if (response.statusCode == 200) {
+    final List<dynamic> data = jsonDecode(response.body); // parse JSON string → List
+    return data.map((json) => Post.fromJson(json)).toList(); // convert each item
+  } else {
+    throw Exception('Failed to load posts: ${response.statusCode}');
+  }
+}
+
+// POST request — send new data to the server
+Future<Post> createPost(String title, String body) async {
+  final response = await http.post(
+    Uri.parse('https://jsonplaceholder.typicode.com/posts'),
+    headers: {'Content-Type': 'application/json'}, // tell server we're sending JSON
+    body: jsonEncode({'title': title, 'body': body, 'userId': 1}),
+  );
+
+  if (response.statusCode == 201) {
+    return Post.fromJson(jsonDecode(response.body)); // server returns the created post
+  } else {
+    throw Exception('Failed to create post');
+  }
+}
+```
+
+---
+
+### 9\. Animations
+
+Flutter's animation system is like a volume knob. With **implicit animations**, you just set the target value and Flutter smoothly turns the knob for you. With **explicit animations**, you have your hand on the knob directly — you control the speed, the curve, whether it loops, and when it starts and stops. Pick implicit when you just want "animate this change." Pick explicit when you need choreography.
+
+#### Implicit Animations — Animate Automatically
+
+When a property changes, the widget smoothly animates to the new value. No controller needed — Flutter handles the timeline.
+
+```java
+// AnimatedContainer — animate ANY Container property change automatically
+AnimatedContainer(
+  duration: Duration(milliseconds: 300), // how long the animation takes
+  curve: Curves.easeInOut,               // the speed curve
+  width: _isExpanded ? 200 : 100,        // Flutter animates between these values
+  height: _isExpanded ? 200 : 100,
+  color: _isExpanded ? Colors.blue : Colors.red,
+  child: Text('Tap Me'),
+)
+
+// AnimatedOpacity — fade in and out
+AnimatedOpacity(
+  opacity: _isVisible ? 1.0 : 0.0, // 1.0 = fully visible, 0.0 = invisible
+  duration: Duration(milliseconds: 500),
+  child: Text('I fade in and out'),
+)
+
+// AnimatedSwitcher — smoothly transition between two different widgets
+AnimatedSwitcher(
+  duration: Duration(milliseconds: 300),
+  child: Text('$_count', key: ValueKey(_count)), // key change is what triggers the animation
+)
+```
+
+#### Explicit Animations — Full Control
+
+When you need to loop, reverse, sync multiple animations, or use custom curves — reach for `AnimationController`.
+
+```java
+class SpinningLogo extends StatefulWidget {
+  @override
+  State<SpinningLogo> createState() => _SpinningLogoState();
+}
+
+class _SpinningLogoState extends State<SpinningLogo>
+    with SingleTickerProviderStateMixin { // mixin provides vsync for the controller
+  late AnimationController _controller;
+  late Animation<double> _rotation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,                              // syncs animation with screen refresh
+      duration: const Duration(seconds: 2),
+    )..repeat(); // start immediately and loop forever
+
+    _rotation = Tween<double>(begin: 0, end: 2 * 3.14159).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear), // defines the value range
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose(); // always dispose animation controllers
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _rotation,
+      builder: (context, child) {
+        return Transform.rotate(angle: _rotation.value, child: child); // apply rotation each frame
+      },
+      child: FlutterLogo(size: 100), // child is cached — not rebuilt each frame, only rotated
+    );
+  }
+}
+```
+
+| Animation Type | Widget | When to Use | Analogy |
+| --- | --- | --- | --- |
+| Property changes | `AnimatedContainer`, `AnimatedOpacity` | Value changes drive animation | Thermostat auto-adjusting |
+| Widget swap | `AnimatedSwitcher` | Smooth transition between widgets | Crossfade on a TV |
+| Full control | `AnimationController` + `Tween` | Loops, sequences, custom curves | Manual DJ mixer |
+| Hero transitions | `Hero` | Shared element between two screens | Object flying between rooms |
+| Page transitions | `PageRouteBuilder` | Custom screen transition | Custom scene change in a film |
+
+---
+
+### 10\. Local Storage & Persistence
+
+Think of your app's storage options like different kinds of notebooks. A sticky note is great for jotting a phone number (`shared_preferences`). A filing cabinet stores structured documents (`sqflite`). A locked safe keeps your passwords secure (`flutter_secure_storage`). And a fast indexed binder is for when you need to look things up quickly (`hive`/`isar`). Each tool matches a different kind of data need.
+
+| Need | Package | Notes | Analogy |
+| --- | --- | --- | --- |
+| Simple key-value | `shared_preferences` | Stores primitives (string, int, bool) | Sticky note on the fridge |
+| Structured data | `sqflite` (SQLite) | Full SQL database on device | Filing cabinet with folders |
+| File storage | `path_provider` + `dart:io` | Reading/writing arbitrary files | A blank notebook |
+| Encrypted storage | `flutter_secure_storage` | Secure credential storage | A locked safe |
+| NoSQL local DB | `hive` / `isar` | Fast, typed NoSQL databases | A fast indexed binder |
+
+```java
+import 'package:shared_preferences/shared_preferences.dart';
+
+// Save values — async because it writes to disk
+final prefs = await SharedPreferences.getInstance();
+await prefs.setString('username', 'Kamran');
+await prefs.setInt('age', 25);
+await prefs.setBool('isDarkMode', true);
+
+// Read values — returns null if not set, so always provide a default
+final username = prefs.getString('username') ?? 'Guest';
+final isDark = prefs.getBool('isDarkMode') ?? false;
+
+// Remove a value — useful for logout flows
+await prefs.remove('username');
+```
+
+---
+
+### 11\. Platform Channels — Calling Native Code
+
+Here's a scenario: you want to read the device's battery level. Flutter doesn't expose that directly. You need to ask iOS or Android in their own language (Swift/Kotlin). Platform Channels are the interpreter sitting between Dart and native code — you send a message from Dart, the native side receives it, does the native work, and sends a response back. It's a two-way walkie-talkie between Dart and the OS.
+
+```java
+// Dart side — define the channel and call the native method
+static const platform = MethodChannel('com.myapp/battery'); // must match native side
+
+Future<int> getBatteryLevel() async {
+  try {
+    final level = await platform.invokeMethod<int>('getBatteryLevel'); // send the call
+    return level ?? -1;
+  } on PlatformException catch (e) {
+    throw Exception('Failed: ${e.message}'); // native side threw an error
+  }
+}
+```
+
+```java
+// Android side (Kotlin) — receive and respond to the Dart call
+class MainActivity : FlutterActivity() {
+  override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+    super.configureFlutterEngine(flutterEngine)
+    MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.myapp/battery")
+      .setMethodCallHandler { call, result ->
+        if (call.method == "getBatteryLevel") {
+          val level = getBatteryLevel()    // call the actual Android API
+          result.success(level)            // send result back to Dart
+        } else {
+          result.notImplemented()          // tell Dart this method doesn't exist
+        }
+      }
+  }
+}
+```
+
+---
+
+### 12\. Testing in Flutter
+
+Testing in Flutter is like quality control in a factory. Unit tests check individual components on the workbench in isolation. Widget tests put a finished widget on a test rig and simulate taps, scrolls, and inputs. Integration tests run the whole factory line end-to-end to make sure everything works together. You start narrow and go wide.
+
+```java
+// Unit test — test pure Dart logic, no UI involved
+test('CartModel adds items correctly', () {
+  final cart = CartModel();
+  cart.add('Apple');
+  expect(cart.items.length, 1);         // verify the item was added
+  expect(cart.items.first, 'Apple');    // verify the correct item
+});
+
+// Widget test — test UI in isolation using a simulated environment
+testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  await tester.pumpWidget(const MyApp()); // render the widget
+
+  expect(find.text('0'), findsOneWidget);       // initial state shows 0
+  await tester.tap(find.byIcon(Icons.add));     // simulate a tap
+  await tester.pump();                          // trigger a rebuild
+
+  expect(find.text('1'), findsOneWidget);       // state changed to 1
+});
+
+// Integration test — test the full app flow end-to-end
+// Uses flutter_test and integration_test packages
+// Runs on a real device or emulator
+```
+
+---
+
+### 13\. Flutter vs React Native — Key Differences
+
+Choosing between Flutter and React Native is like choosing between a custom-built sports car and a well-tuned production car. Flutter (the sports car) is purpose-built and optimized from the ground up — but you have to learn to drive it differently. React Native (the production car) is familiar if you already know JavaScript, uses parts you've seen before, but relies on a translation layer between JS and native. Neither is universally better — the right choice depends on your team and your app.
+
+| Aspect | Flutter | React Native | Notes |
+| --- | --- | --- | --- |
+| **Language** | Dart | JavaScript / TypeScript | Dart = purpose-built; JS = widely known |
+| **Rendering** | Own engine (Skia/Impeller) | Bridge to native components (JSI) | Flutter paints itself; RN delegates |
+| **UI Consistency** | Pixel-perfect across platforms | Platform-native look | Flutter is identical everywhere |
+| **Performance** | Near-native (no JS bridge) | Near-native (JSI is fast) | Both are excellent in practice |
+| **Ecosystem** | Smaller but curated | Massive (NPM ecosystem) | More RN packages, more Flutter quality |
+| **Learning Curve** | Need to learn Dart | Familiar if you know React/JS | Dart is approachable in ~a week |
+| **Company** | Google | Meta (Facebook) | Both are well-funded |
+| **Hot Reload** | ✅ Yes | ✅ Yes | Both have excellent DX |
+| **Web & Desktop** | ✅ Built-in (beta quality) | ⚠️ Limited (React Native Web) | Flutter is more multi-platform |
+
+<Callout type="info" title="When to choose Flutter">
+Choose Flutter when visual consistency matters, you need smooth animations, you're targeting multiple platforms (mobile + web + desktop), or your team is open to Dart. Choose React Native when your team already knows React/JavaScript, you want truly native-looking OS widgets, or you have large JS libraries to reuse.
+</Callout>
+
+<Quiz question={"What is the key architectural difference between how Flutter and React Native render UI?"} options={["Flutter uses native platform widgets; React Native draws everything with its own engine", "Flutter draws all UI itself using its own rendering engine; React Native bridges to native platform widgets", "Both use the same rendering approach — only the language differs", "Flutter uses WebView; React Native uses native widgets"]} answerIndex={1}>
+B) Flutter has its own rendering engine (Skia/Impeller) and draws every pixel itself — it doesn't rely on platform widgets at all. React Native bridges JavaScript to native platform UI components (iOS's UIKit, Android's View system). Flutter = self-rendering painter. React Native = a translator speaking to native widgets.
+</Quiz>
+
+---
+
+### Practice Questions — Flutter
+
+<Quiz question={"What does `setState()` do in a StatefulWidget?"} options={["It destroys and recreates the State object", "It marks the widget as dirty and schedules a rebuild of the `build()` method", "It saves state to local storage", "It calls `dispose()` on the current state"]} answerIndex={1}>
+B) `setState()` tells Flutter that the internal state has changed and `build()` needs to be called again to reflect those changes in the UI. It doesn't recreate the State object — the same State instance persists, just the UI output is refreshed with the new data.
+</Quiz>
+
+<Quiz question={"Which Dart feature guarantees that a non-nullable variable will never be null at runtime?"} options={["The `late` keyword", "Sound null safety", "The `required` keyword", "The `final` keyword"]} answerIndex={1}>
+B) Sound null safety is a compiler-level guarantee. The type system ensures that non-nullable types (`String`, not `String?`) cannot be assigned null — any attempt is a compile-time error, not a runtime crash. This eliminates null-dereference bugs before the app even runs.
+</Quiz>
+
+<Quiz question={"In Flutter's layout system, what does a parent widget send to its children?"} options={["Absolute pixel positions", "Constraints (min/max width and height)", "A reference to the canvas", "The screen's total available space"]} answerIndex={1}>
+B) Flutter's layout protocol: parents send **constraints** (min/max width and height) to children. Children decide their own size within those constraints and report their chosen size back up. The parent then positions the child. This is the "constraints go down, sizes go up, parent positions child" model.
+</Quiz>
+
+<Quiz question={"What is the purpose of the `dispose()` lifecycle method?"} options={["To save the widget's state before navigating away", "To clean up resources like AnimationControllers and StreamSubscriptions to prevent memory leaks", "To initialize state variables", "To rebuild the widget tree"]} answerIndex={1}>
+B) `dispose()` is Flutter's cleanup hook called when the State is permanently removed from the tree. You MUST call `.dispose()` on `AnimationController`, `TextEditingController`, `StreamSubscription`, and similar resources — failing to do so causes memory leaks where resources persist even after the screen is gone.
+</Quiz>

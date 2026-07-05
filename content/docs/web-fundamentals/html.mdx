@@ -20,8 +20,8 @@ If you hand someone a plain text document, they won't know which line is the tit
 | Rendered by | Web browsers (Chrome, Firefox, Edge, Safari) |
 | W3C | World Wide Web Consortium — the standards body (historical). WHATWG maintains the living spec now. |
 
-<Callout type="info" title="Exam favorite">
-"HTML is a programming language" — **FALSE**. It's a markup language. This trick appears almost every batch.
+<Callout type="info" title="Key Concept">
+"HTML is a programming language" — **FALSE**. It's a markup language. This is a commonly misunderstood point.
 </Callout>
 
 #### Tags, Elements & Attributes
@@ -46,7 +46,7 @@ HTML has three building blocks. Understanding the difference between them is lik
 <br>  <hr>  <img>  <input>  <meta>  <link>
 ```
 <Callout type="error" title="Void elements to memorize">
-Some elements have NO content inside them — they're like a light switch (either on or off, no content in between). These are called **void elements** and they do NOT have a closing tag: `<br>`, `<hr>`, `<img>`, `<input>`, `<meta>`, `<link>`, `<area>`, `<col>`, `<embed>`, `<source>`, `<track>`, `<wbr>`. Exam asks "which tag is self-closing?"
+Some elements have NO content inside them — they're like a light switch (either on or off, no content in between). These are called **void elements** and they do NOT have a closing tag: `<br>`, `<hr>`, `<img>`, `<input>`, `<meta>`, `<link>`, `<area>`, `<col>`, `<embed>`, `<source>`, `<track>`, `<wbr>`.
 </Callout>
 
 <Quiz question={"Which of the following is TRUE about HTML?"} options={["HTML is a programming language used to create dynamic content", "HTML tags are case-sensitive \u2014 \\<P\\> and \\<p\\> are different", "HTML is a markup language that defines the structure of web content", "HTML can perform calculations and logical operations"]} answerIndex={1}>
@@ -89,8 +89,8 @@ Every HTML page follows the same blueprint — think of it like a letter. Every 
 | `<title>` | Text shown in the browser tab. Goes inside `<head>`. |
 | `<body>` | All visible page content. Only ONE `<body>` per document. |
 
-<Callout type="info" title="Exam trap">
-`<!DOCTYPE html>` is NOT an HTML tag. It's a document type declaration. This is a frequent MCQ distractor.
+<Callout type="info" title="Common Mistake">
+`<!DOCTYPE html>` is NOT an HTML tag. It's a document type declaration. This is a commonly confused point.
 </Callout>
 
 <Quiz question={"Which of the following is TRUE about `<!DOCTYPE html>`?"} options={["It is the root element of an HTML page", "It is a declaration that tells the browser to use HTML5 standards mode", "It must be placed inside the `<head>` element", "It is optional and has no effect on rendering"]} answerIndex={1}>
@@ -136,7 +136,7 @@ Why does this matter? Imagine a blind person using a screen reader. The screen r
 | `<cite>` | Citation / title of a work | _Italic_ |
 
 <Callout type="info" title="Semantic vs Non-semantic">
-`<strong>` vs `<b>` — Both look bold, but `<strong>` tells screen readers and search engines the text is **important**. Same for `<em>` vs `<i>`. Exam loves asking the difference.
+`<strong>` vs `<b>` — Both look bold, but `<strong>` tells screen readers and search engines the text is **important**. Same for `<em>` vs `<i>`. Understanding this distinction matters for accessibility and SEO.
 </Callout>
 
 <Quiz question={"What is the key difference between `<strong>` and `<b>`?"} options={["`<strong>` makes text bigger, `<b>` makes it bold", "They are completely identical in every way", "`<strong>` carries semantic importance, `<b>` is only visual", "`<b>` is HTML5, `<strong>` is deprecated"]} answerIndex={0}>
@@ -153,7 +153,7 @@ HTML gives you three types of lists:
 
 *   **Unordered list (`<ul>`)** — when order doesn't matter. Like a shopping list: milk, eggs, bread — any order is fine. Shows as bullets.
 *   **Ordered list (`<ol>`)** — when sequence matters. Like cooking steps: first heat the pan, THEN add oil. Shows as numbers.
-*   **Description list (`<dl>`)** — for term-definition pairs. Like a glossary or dictionary. Less common but tested on exams.
+*   **Description list (`<dl>`)** — for term-definition pairs. Like a glossary or dictionary.
 
 ```java
 <!-- Unordered List (bullets) -->
@@ -188,7 +188,7 @@ HTML gives you three types of lists:
 | `value` | `<li>` inside `<ol>` | Set a specific number for that item |
 | `type` | `<ul>` | Bullet style: `disc` (default), `circle`, `square` (deprecated — use CSS) |
 
-<Callout type="info" title="Exam favorite">
+<Callout type="info" title="Key Concept">
 "Which tag is used for a description list?" — Answer: `<dl>` with `<dt>` (term) and `<dd>` (description). NOT `<ul>` or `<ol>`.
 </Callout>
 
@@ -234,7 +234,7 @@ Think of `<a>` as a doorway. The `href` attribute is the address of where the do
 | `rel="noopener"` | Security — prevents the new page from accessing `window.opener` |
 
 <Callout type="error" title="Don't confuse <a> and <link>">
-`<a>` creates a clickable hyperlink on the page. `<link>` goes in the `<head>` and connects external resources like CSS files. They sound similar but do completely different things. Exam LOVES this trap.
+`<a>` creates a clickable hyperlink on the page. `<link>` goes in the `<head>` and connects external resources like CSS files. They sound similar but do completely different things.
 </Callout>
 
 #### Image Tag (`<img>`)
@@ -256,7 +256,7 @@ Images use the `<img>` tag — a void element (no closing tag, because there's n
 </figure>
 ```
 <Callout type="error" title="Must-know">
-The `alt` attribute is **required** for accessibility. It describes the image for screen readers and shows if the image fails to load. Exam asks: "Which attribute provides alternative text for an image?" — Answer: `alt`.
+The `alt` attribute is **required** for accessibility. It describes the image for screen readers and shows if the image fails to load. Always include `alt` on every image.
 </Callout>
 
 <Quiz question={"Which tag is used to define a hyperlink in HTML?"} options={["`<link>`", "`<a>`", "`<href>`", "`<url>`"]} answerIndex={3}>
@@ -340,7 +340,7 @@ Sometimes one cell needs to stretch across multiple columns or rows. Think of it
 <Callout type="info" title="colspan vs rowspan">
 `colspan` = merge cells horizontally (across columns).  
 `rowspan` = merge cells vertically (across rows).  
-Exam loves asking: "How to merge 3 columns?" — Answer: `colspan="3"`.
+To merge 3 columns: use `colspan="3"`.
 </Callout>
 
 <Quiz question={"What does `colspan=\"3\"` do in a table cell?"} options={["Creates 3 new columns in the table", "Merges 3 cells vertically", "Merges 3 cells horizontally across columns", "Adds a 3-pixel border to the cell"]} answerIndex={2}>
@@ -353,7 +353,7 @@ Exam loves asking: "How to merge 3 columns?" — Answer: `colspan="3"`.
 
 Forms are how users **talk back** to a website. Every login page, search bar, registration form, and payment checkout is an HTML form. Without forms, the web would be read-only — like a newspaper you can never write a letter to.
 
-Forms are the **most heavily tested** HTML topic in TCS exams. Know every input type and attribute.
+Forms are the most important HTML topic in practice — you will encounter them in every real project. Know every input type and attribute.
 
 <Callout type="warn" title="How forms work">
 Think of a form like a paper application:  
@@ -493,7 +493,7 @@ This confuses many beginners:
 | `multiple` | file/email/select | Allow multiple values |
 | `accept` | file | Allowed file types |
 
-<Callout type="error" title="disabled vs readonly — Classic exam trap">
+<Callout type="error" title="disabled vs readonly — Critical Distinction">
 Both prevent the user from changing a field. But there's a critical difference:  
   
 `disabled`: field is greyed out AND its value is **NOT sent** to the server when you submit. It's like a locked room with no mailbox — nothing comes out.  
@@ -506,7 +506,7 @@ Both prevent the user from changing a field. But there's a critical difference:
 </Callout>
 
 <Quiz question={"Which is NOT a valid HTML5 input type?"} options={["`email`", "`date`", "`phone`", "`color`"]} answerIndex={3}>
-There is no `type="phone"`. The correct type for phone numbers is `tel`. This is a very common exam trick — `email`, `date`, and `color` are all valid HTML5 input types.
+There is no `type="phone"`. The correct type for phone numbers is `tel`. This is a commonly misunderstood detail — `email`, `date`, and `color` are all valid HTML5 input types.
 </Quiz>
 <Quiz question={"What happens when a `disabled` input field is inside a submitted form?"} options={["Its value is sent to the server as empty", "Its value is sent to the server normally", "Its value is NOT sent to the server at all", "The form submission is blocked"]} answerIndex={0}>
 A `disabled` field's value is completely excluded from the form submission — the server never receives it. If you want a field the user can't edit but whose value IS sent, use `readonly` instead.
@@ -552,7 +552,7 @@ Imagine you're organizing a library. You could put ALL books in boxes labeled "B
 | `<div id="sidebar">` | `<aside>` |
 | `<div class="article">` | `<article>` |
 
-<Callout type="info" title="Exam must-know">
+<Callout type="info" title="Must Know">
 "Which HTML5 element is used for navigation?" — `<nav>`  
 "Which element represents self-contained content?" — `<article>`  
 "Which element is for tangentially related content?" — `<aside>`  
@@ -605,7 +605,7 @@ Why the `<source>` tag inside? Different browsers support different file formats
 | `preload` | `auto` / `metadata` / `none` |
 
 <Callout type="info" title="Autoplay gotcha">
-Most browsers block autoplay unless the video is `muted`. This is to prevent annoying auto-playing videos with sound. So if your exam question says "how to autoplay a video in Chrome?" — the answer needs BOTH `autoplay` AND `muted`.
+Most browsers block autoplay unless the video is `muted`. This is to prevent annoying auto-playing videos with sound. To autoplay a video in Chrome you need BOTH `autoplay` AND `muted`.
 </Callout>
 
 <Quiz question={"Which attribute must be added along with `autoplay` for a video to auto-play in most modern browsers?"} options={["`controls`", "`loop`", "`muted`", "`preload=\"auto\"`"]} answerIndex={2}>
@@ -621,8 +621,8 @@ The `<head>` section is like the backstage of a theatre — the audience (user) 
 <head>
   <meta charset="UTF-8">                          <!-- Character encoding -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">  <!-- Responsive -->
-  <meta name="description" content="TCS ILP Study Guide">     <!-- SEO -->
-  <meta name="keywords" content="TCS, ILP, HTML, exam">       <!-- SEO (less important now) -->
+  <meta name="description" content="Web Development Study Guide">     <!-- SEO -->
+  <meta name="keywords" content="HTML, web development, reference">       <!-- SEO (less important now) -->
   <meta name="author" content="Darshan">
   <meta http-equiv="refresh" content="30">         <!-- Auto-refresh after 30 seconds -->
   <meta http-equiv="X-UA-Compatible" content="IE=edge">       <!-- IE compatibility -->
@@ -639,7 +639,7 @@ The `<head>` section is like the backstage of a theatre — the audience (user) 
 **2\. `<meta name="viewport"...>`** — Without this, your page won't be responsive on mobile. The browser will render it at desktop width and force users to pinch-zoom.
 </Callout>
 
-<Callout type="info" title="Exam tip">
+<Callout type="info" title="Tip">
 "Which meta tag makes a page responsive?" — `<meta name="viewport" content="width=device-width, initial-scale=1.0">`  
 "Which meta tag sets character encoding?" — `<meta charset="UTF-8">`
 </Callout>
@@ -704,7 +704,7 @@ You can give one element multiple classes (`class="box red big"`) but only one i
 </Callout>
 
 <Quiz question={"Which statement about `id` and `class` is TRUE?"} options={["Multiple elements can share the same `id`", "`id` must be unique per page; `class` can be reused", "`class` must be unique per page; `id` can be reused", "Both `id` and `class` must be unique per page"]} answerIndex={3}>
-`id` MUST be unique — only one element per page can have a given id. `class` is reusable — hundreds of elements can share the same class. This is fundamental to CSS and JavaScript, and a guaranteed exam question.
+`id` MUST be unique — only one element per page can have a given id. `class` is reusable — hundreds of elements can share the same class. This is fundamental to CSS and JavaScript.
 </Quiz>
 ### Block vs Inline Elements
 
@@ -764,7 +764,7 @@ The `sandbox` attribute applies security restrictions to the embedded content �
 </Quiz>
 ### HTML5 APIs (Conceptual)
 
-HTML5 didn't just add new tags — it introduced powerful JavaScript APIs that let web pages do things that previously required plugins or native apps. You won't code these in the FA exam, but you need to know what each one does (1-2 MCQs possible).
+HTML5 didn't just add new tags — it introduced powerful JavaScript APIs that let web pages do things that previously required plugins or native apps. Knowing what each API does and when to use it is valuable for any web project.
 
 | API | Purpose | Real-world example |
 | --- | --- | --- |
@@ -782,15 +782,15 @@ HTML5 didn't just add new tags — it introduced powerful JavaScript APIs that l
 **sessionStorage:** ~5MB, cleared on tab close, JS only, NOT sent to server.  
 **Cookies:** ~4KB, sent with EVERY HTTP request (adds overhead), can set expiry, accessible by server.  
   
-Key exam question: "Which storage is sent to the server with every request?" — **Only cookies.**
+Key distinction: "Which storage is sent to the server with every request?" — **Only cookies.**
 </Callout>
 
 <Quiz question={"What is the key difference between `localStorage` and `sessionStorage`?"} options={["`localStorage` has a smaller size limit", "`sessionStorage` persists after the browser is closed", "`localStorage` data persists after closing the browser; `sessionStorage` is cleared when the tab closes", "`localStorage` is sent to the server; `sessionStorage` is not"]} answerIndex={3}>
 Both have ~5MB storage and are JS-only (not sent to server). The difference is persistence: `localStorage` stays until you manually clear it, even after closing and reopening the browser. `sessionStorage` is wiped the moment the tab closes. Neither is sent to the server — only cookies do that.
 </Quiz>
-### FA Exam Traps & Tips
+### Common Mistakes & Tips
 
-<Callout type="error" title="Common traps in TCS FA">
+<Callout type="error" title="Common Mistakes">
 
 
 1.  **"HTML is a programming language"** — FALSE. It's a markup language.

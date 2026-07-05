@@ -1,0 +1,1160 @@
+---
+title: React Native
+---
+
+Imagine you want to open a restaurant in two cities — New York and Tokyo. You could hire two completely separate teams: one team that speaks English and follows American kitchen rules, and another that speaks Japanese and follows Japanese ones. Or you could hire one brilliant bilingual chef who tells both kitchens what dish to make, and each kitchen prepares it their own way using their own local ingredients.
+
+That's React Native. Your JavaScript code is the bilingual chef. It says "I want a button," and React Native translates that into a `UIButton` on iOS or an `android.widget.Button` on Android — each platform's own native widget. The result looks, feels, and scrolls like an app written in Swift or Kotlin, but you wrote it in JavaScript.
+
+This is fundamentally different from Flutter (which draws its own pixels using Skia/Impeller) or a WebView app (which just wraps a browser inside your app shell).
+
+### 1\. Architecture — How React Native Works
+
+Think of the original React Native like a telephone interpreter service. You speak English, the native OS speaks Swift/Kotlin. Every single message — a button tap, a scroll event, a layout change — had to go through an interpreter who translated it to JSON, sent it across, and waited for a reply. Slow, asynchronous, and every round-trip cost you time.
+
+#### The Old Architecture (Bridge)
+
+```java
+JavaScript Thread ──[JSON Bridge]──► Native Thread
+      ↑                                    ↓
+  React logic                    Native UI components
+      ↑                                    ↓
+  State changes ←──[Async Calls]─── Native events
+```
+
+Every interaction crossed this bridge as serialized JSON. Complex animations and gesture handling suffered because the bridge was always the bottleneck.
+
+#### The New Architecture (JSI — JavaScript Interface)
+
+React Native 0.71+ replaced the bridge entirely. Think of JSI as hiring a bilingual employee instead of calling an interpreter — they just speak both languages directly, in the same room, in real time.
+
+```java
+JavaScript (Hermes Engine)
+        ↕  [JSI — direct C++ bindings, synchronous calls]
+    Native Modules (C++)
+        ↕
+   iOS / Android Platform
+```
+
+Here's what each piece does:
+
+- **JSI (JavaScript Interface):** A thin C++ layer that lets JavaScript directly reference and call native objects — no JSON serialization, no async round trips. Synchronous calls are now possible.
+- **Fabric:** The new rendering system. More synchronous, supports React 18 concurrent features, better gesture handling.
+- **TurboModules:** Lazy-loaded native modules (only initialized when first used, not at startup).
+- **Hermes:** Meta's JavaScript engine, optimized for mobile. Compiles JS to bytecode ahead of time for fast startup.
+
+<Callout type="info" title="Why this matters">
+The new architecture (JSI + Fabric + TurboModules) makes complex gestures and animations that were previously janky now smooth. It also explains why some older packages need updates — they were built for the old bridge and must be migrated to JSI.
+</Callout>
+
+---
+
+### 2\. Core Components — The Building Blocks
+
+React Native has no HTML. There's no DOM, no browser. Instead, it has its own set of **core components** — primitives that map one-to-one to native platform views. Think of them as React's `div`, `p`, `img`, etc., but translated into the native world.
+
+| Web (React) | React Native | Maps To | Memory Hook |
+| --- | --- | --- | --- |
+| `<div>` | `<View>` | iOS: `UIView`, Android: `View` | A box that holds things |
+| `<p>`, `<span>` | `<Text>` | iOS: `UITextView`, Android: `TextView` | Any visible text |
+| `<img>` | `<Image>` | iOS: `UIImageView`, Android: `ImageView` | Photos, icons |
+| `<input>` | `<TextInput>` | iOS: `UITextField`, Android: `EditText` | Keyboard input |
+| `<button>` | `<Pressable>` | Platform-native touchable | Tappable anything |
+| `<ul>` + items | `<FlatList>` | Virtualized native scroll view | Long lists |
+| `<div>` (scrollable) | `<ScrollView>` | Platform scroll container | Short scrollable areas |
+| — | `<Modal>` | Native modal overlay | Popups |
+| — | `<ActivityIndicator>` | Native loading spinner | "Loading..." |
+
+```java
+import React, { useState } from 'react';
+import {
+  View,        // like <div> — a container box
+  Text,        // any visible text MUST be in here
+  TextInput,   // keyboard input field
+  Image,       // renders a native image view
+  Pressable,   // tappable area (replaces TouchableOpacity)
+  StyleSheet,  // validates + optimizes style objects
+  ScrollView,  // renders ALL children at once (use for short lists)
+} from 'react-native';
+
+function ProfileCard({ name, avatar }) {
+  const [liked, setLiked] = useState(false); // track like state
+
+  return (
+    <View style={styles.card}>               {/* container box */}
+      <Image
+        source={{ uri: avatar }}             {/* load remote image */}
+        style={styles.avatar}
+      />
+      <Text style={styles.name}>{name}</Text>
+      <Pressable
+        style={({ pressed }) => [            {/* style changes when pressed */}
+          styles.button,
+          pressed && styles.buttonPressed,   {/* dims on press */}
+        ]}
+        onPress={() => setLiked(l => !l)}   {/* toggle on tap */}
+      >
+        <Text style={styles.buttonText}>
+          {liked ? '❤️ Liked' : '🤍 Like'}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#1e1e2e',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+  avatar: { width: 80, height: 80, borderRadius: 40 },
+  name: { color: '#cdd6f4', fontSize: 20, fontWeight: '700', marginTop: 12 },
+  button: {
+    backgroundColor: '#89b4fa',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  buttonPressed: { opacity: 0.7 },          // visual feedback on press
+  buttonText: { color: '#1e1e2e', fontWeight: '600' },
+});
+```
+
+<Callout type="warn" title="Common Mistake">
+You cannot render raw strings directly inside a `<View>`. Every string must be wrapped in `<Text>`. This is the #1 beginner error: `<View>Hello</View>` throws an error. Write `<View><Text>Hello</Text></View>`.
+</Callout>
+
+---
+
+### 3\. Styling in React Native
+
+Forget CSS files. React Native has no stylesheets, no class names, no cascade. Instead, styles are plain JavaScript objects — think of it like React's inline styles, but smarter. `StyleSheet.create()` validates your styles at dev time and can optimize them under the hood.
+
+The mental model shift: where CSS has `flex-direction: row` as a string with dashes, React Native has `flexDirection: 'row'` as camelCase JavaScript. Same idea, different syntax.
+
+#### Key Differences from CSS
+
+| CSS | React Native | Notes | Memory Hook |
+| --- | --- | --- | --- |
+| `font-size: 16px` | `fontSize: 16` | No `px` — numbers are density-independent pixels | Drop the unit |
+| `background-color: red` | `backgroundColor: 'red'` | camelCase | Compound words join up |
+| `display: flex` | (default on every `View`) | Flexbox is always on | Always flex |
+| `flex-direction: row` | `flexDirection: 'row'` | Default is `'column'` — **opposite of CSS!** | Trips everyone up |
+| `margin: 8px 16px` | `marginVertical: 8, marginHorizontal: 16` | No shorthand | Name the axis |
+| `box-shadow` | `shadowColor` + `elevation` | Different APIs: iOS vs Android | Two properties, two platforms |
+
+```java
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,                          // fills parent (like "Expanded" in Flutter)
+    backgroundColor: '#13131a',
+    padding: 16,
+  },
+
+  // Flexbox is THE layout model — default direction is column (vertical)
+  row: {
+    flexDirection: 'row',             // must be explicit — default is 'column'!
+    justifyContent: 'space-between',  // main-axis alignment (horizontal here)
+    alignItems: 'center',             // cross-axis alignment (vertical here)
+  },
+
+  text: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    lineHeight: 24,
+    letterSpacing: 0.5,
+  },
+
+  // Platform-specific shadow — two different APIs
+  card: {
+    backgroundColor: '#1e1e2e',
+    borderRadius: 12,
+    shadowColor: '#000',              // iOS shadow
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,                     // Android shadow (single number)
+  },
+});
+```
+
+<Callout type="error" title="Watch Out">
+In CSS, `flex-direction` defaults to `row` (horizontal). In React Native it defaults to `column` (vertical). This trips up every web developer. If you want a horizontal layout, you MUST explicitly write `flexDirection: 'row'`.
+</Callout>
+
+#### Platform-Specific Styling
+
+```java
+import { Platform, StyleSheet } from 'react-native';
+
+const styles = StyleSheet.create({
+  container: {
+    // Inline ternary — quick one-liner for simple cases
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+
+    // Platform.select — cleaner for multiple platforms
+    paddingTop: Platform.select({
+      ios: 50,
+      android: 30,
+    }),
+  },
+});
+```
+
+<Quiz question={"What is the default `flexDirection` in React Native Flexbox?"} options={["'row'", "'column'", "'row-reverse'", "There is no default — you must always specify it"]} answerIndex={1}>
+B) React Native's Flexbox defaults to `flexDirection: 'column'` (vertical stacking), which is the opposite of CSS's default of `row`. This is one of the most important differences to internalize when coming from web development.
+</Quiz>
+
+---
+
+### 4\. Lists — FlatList & SectionList
+
+Imagine rendering 10,000 Instagram posts all at once in memory. Your app would crash in seconds — you'd be trying to hold every photo, every caption, every avatar in RAM simultaneously. That's the problem `FlatList` was built to solve.
+
+`FlatList` is **virtualized** — it only renders items visible on screen plus a small buffer. Items that scroll off-screen get recycled, like a conveyor belt. Memory usage stays flat no matter how long the list is.
+
+#### FlatList — The Standard List
+
+```java
+import { FlatList, View, Text, StyleSheet } from 'react-native';
+
+const DATA = [
+  { id: '1', title: 'Flutter', subtitle: 'Google' },
+  { id: '2', title: 'React Native', subtitle: 'Meta' },
+  { id: '3', title: 'SwiftUI', subtitle: 'Apple' },
+  { id: '4', title: 'Jetpack Compose', subtitle: 'Google' },
+];
+
+function FrameworkItem({ title, subtitle }) {
+  return (
+    <View style={styles.item}>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.subtitle}>{subtitle}</Text>
+    </View>
+  );
+}
+
+function FrameworkList() {
+  return (
+    <FlatList
+      data={DATA}
+      keyExtractor={(item) => item.id}               // unique key per item (like React's key prop)
+      renderItem={({ item }) => (
+        <FrameworkItem title={item.title} subtitle={item.subtitle} />
+      )}
+      ListHeaderComponent={<Text style={styles.header}>Frameworks</Text>}
+      ListEmptyComponent={<Text>No items found</Text>}  // shown when data=[]
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      onEndReached={loadMoreData}                    // fires when user nears bottom (pagination)
+      onEndReachedThreshold={0.5}                   // trigger at 50% from the bottom
+      refreshing={isRefreshing}
+      onRefresh={handleRefresh}                     // pull-to-refresh callback
+      horizontal={false}                            // vertical by default
+      numColumns={1}                                // set to 2 for a 2-column grid
+    />
+  );
+}
+```
+
+#### SectionList — Grouped / Sectioned Data
+
+Use `SectionList` when you need sticky section headers — like a contacts list grouped by first letter, or a settings screen grouped by category.
+
+```java
+import { SectionList, Text, View } from 'react-native';
+
+const SECTIONS = [
+  {
+    title: 'Cross-Platform',
+    data: ['Flutter', 'React Native', 'Xamarin'],
+  },
+  {
+    title: 'Platform-Specific',
+    data: ['SwiftUI', 'Jetpack Compose'],
+  },
+];
+
+<SectionList
+  sections={SECTIONS}
+  keyExtractor={(item, index) => item + index}      // unique key for each row
+  renderItem={({ item }) => <Text style={styles.item}>{item}</Text>}
+  renderSectionHeader={({ section }) => (
+    <Text style={styles.sectionHeader}>{section.title}</Text>  // sticky header
+  )}
+/>
+```
+
+<Callout type="info" title="FlatList vs ScrollView">
+Use `ScrollView` for a small, fixed number of items — a settings screen, a form. It renders ALL children at once. Use `FlatList` for any dynamic or large list — it virtualizes and handles performance automatically. Putting 500 items in a `ScrollView` will crater your app.
+</Callout>
+
+---
+
+### 5\. Navigation — React Navigation
+
+Think of navigation like a stack of playing cards on a table. When you go to a new screen, you put a card on top. When you go back, you pull the top card off. At any point, only the top card is visible — but the ones below are still there, preserved, ready to reappear.
+
+`react-navigation` is the standard library for this in React Native. It gives you Stack, Tab, Drawer, and nested navigation — all using native animations.
+
+#### Installation & Setup
+
+```java
+// Install the core + dependencies
+npm install @react-navigation/native
+npm install @react-navigation/stack       // or native-stack (faster, uses native animations)
+npm install @react-navigation/bottom-tabs
+npm install react-native-screens react-native-safe-area-context
+```
+
+#### Stack Navigation
+
+```java
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+const Stack = createNativeStackNavigator(); // creates the card-stack navigator
+
+function App() {
+  return (
+    <NavigationContainer>               {/* wraps the whole app — provides nav context */}
+      <Stack.Navigator initialRouteName="Home">
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ title: 'Dashboard' }}
+        />
+        <Stack.Screen
+          name="Details"
+          component={DetailsScreen}
+          options={({ route }) => ({ title: route.params.itemName })} // dynamic title
+        />
+        <Stack.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{ presentation: 'modal' }}   // slides up from bottom like a modal
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+// Push a new screen onto the stack, passing data as params
+function HomeScreen({ navigation }) {
+  return (
+    <Pressable
+      onPress={() =>
+        navigation.navigate('Details', {  // second argument is the params object
+          itemId: 42,
+          itemName: 'Flutter Framework',
+        })
+      }
+    >
+      <Text>Go to Details</Text>
+    </Pressable>
+  );
+}
+
+// Receive params via route.params on the destination screen
+function DetailsScreen({ route, navigation }) {
+  const { itemId, itemName } = route.params; // destructure whatever was passed
+
+  return (
+    <View>
+      <Text>ID: {itemId}</Text>
+      <Text>Name: {itemName}</Text>
+      <Pressable onPress={() => navigation.goBack()}>
+        <Text>Go Back</Text>
+      </Pressable>
+    </View>
+  );
+}
+```
+
+#### Bottom Tab Navigation
+
+```java
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+
+const Tab = createBottomTabNavigator();
+
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          // swap icon based on active/inactive state
+          const iconMap = {
+            Home: focused ? 'home' : 'home-outline',
+            Search: focused ? 'search' : 'search-outline',
+            Profile: focused ? 'person' : 'person-outline',
+          };
+          return <Ionicons name={iconMap[route.name]} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#89b4fa',
+        tabBarInactiveTintColor: '#6c7086',
+        tabBarStyle: { backgroundColor: '#1e1e2e', borderTopWidth: 0 },
+      })}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
+    </Tab.Navigator>
+  );
+}
+```
+
+#### Nested Navigation (Tabs + Stack)
+
+```java
+// Each tab can have its own independent stack — very common pattern
+function HomeStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="Details" component={DetailsScreen} />  {/* only in Home tab */}
+    </Stack.Navigator>
+  );
+}
+
+function App() {
+  return (
+    <NavigationContainer>
+      <Tab.Navigator>
+        <Tab.Screen name="Home" component={HomeStack} />  {/* Stack lives inside Tab */}
+        <Tab.Screen name="Profile" component={ProfileScreen} />
+      </Tab.Navigator>
+    </NavigationContainer>
+  );
+}
+```
+
+<Quiz question={"In React Navigation, how do you pass data to the next screen when navigating?"} options={["Using React context only", "As the second argument to `navigation.navigate()` as an object", "By storing it in AsyncStorage before navigating", "By passing it as props to the Stack.Screen component"]} answerIndex={1}>
+B) `navigation.navigate('ScreenName', { key: 'value' })` passes a params object. The receiving screen accesses it via `route.params.key`. This is the standard React Navigation data-passing mechanism — no Context or global state needed for simple screen-to-screen data.
+</Quiz>
+
+---
+
+### 6\. State Management
+
+State management in React Native is identical to React on the web — because it's the same React. The same hooks, the same libraries, the same patterns. The only difference is you're rendering to native views instead of DOM nodes. Think of it like the same recipe, different oven.
+
+#### useState + useReducer (Local State)
+
+```java
+// useState — simple, single-value state
+const [count, setCount] = useState(0);
+const [user, setUser] = useState(null);
+
+// useReducer — when you have multiple related pieces of state
+const initialState = { count: 0, error: null, isLoading: false };
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'INCREMENT': return { ...state, count: state.count + 1 };
+    case 'DECREMENT': return { ...state, count: state.count - 1 };
+    case 'SET_LOADING': return { ...state, isLoading: action.payload };
+    case 'SET_ERROR':   return { ...state, error: action.payload };
+    default: return state; // always return state for unknown actions
+  }
+}
+
+const [state, dispatch] = useReducer(reducer, initialState);
+dispatch({ type: 'INCREMENT' });
+dispatch({ type: 'SET_LOADING', payload: true });
+```
+
+#### Context API (Shared State)
+
+```java
+// AuthContext.jsx — share auth state across the whole app
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+
+  const login = async (email, password) => {
+    const data = await authApi.login(email, password); // call your backend
+    setUser(data.user);                                // store returned user
+  };
+
+  const logout = () => setUser(null);
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout }}>
+      {children}  {/* everything inside can access auth state */}
+    </AuthContext.Provider>
+  );
+}
+
+export const useAuth = () => useContext(AuthContext); // clean custom hook
+
+// Usage anywhere in the tree — no prop drilling
+function ProfileScreen() {
+  const { user, logout } = useAuth();
+  return (
+    <View>
+      <Text>Welcome, {user?.name}</Text>
+      <Pressable onPress={logout}><Text>Logout</Text></Pressable>
+    </View>
+  );
+}
+```
+
+#### Zustand — Lightweight Global State
+
+Zustand is the most ergonomic global state library for React/React Native. No providers, no boilerplate — just a store you create once and a hook you call anywhere.
+
+```java
+import { create } from 'zustand';
+
+const useCartStore = create((set, get) => ({
+  items: [],
+  total: 0,
+
+  addItem: (item) =>
+    set((state) => ({
+      items: [...state.items, item],          // add item to list
+      total: state.total + item.price,        // recalculate total
+    })),
+
+  removeItem: (id) =>
+    set((state) => {
+      const items = state.items.filter((i) => i.id !== id); // remove by id
+      return {
+        items,
+        total: items.reduce((sum, i) => sum + i.price, 0),  // recalculate
+      };
+    }),
+
+  clearCart: () => set({ items: [], total: 0 }),             // reset
+}));
+
+// No Provider needed — just call the hook anywhere
+function CartScreen() {
+  const { items, total, removeItem } = useCartStore(); // grab what you need
+
+  return (
+    <View>
+      <Text>Total: ${total.toFixed(2)}</Text>
+      <FlatList
+        data={items}
+        renderItem={({ item }) => (
+          <View>
+            <Text>{item.name}</Text>
+            <Pressable onPress={() => removeItem(item.id)}>
+              <Text>Remove</Text>
+            </Pressable>
+          </View>
+        )}
+      />
+    </View>
+  );
+}
+```
+
+#### Redux Toolkit (RTK) — Enterprise Scale
+
+```java
+// store.js — define your slices and configure the store
+import { configureStore, createSlice } from '@reduxjs/toolkit';
+
+const userSlice = createSlice({
+  name: 'user',
+  initialState: { profile: null, isLoggedIn: false },
+  reducers: {
+    setUser: (state, action) => {
+      state.profile = action.payload;   // Immer lets you "mutate" safely
+      state.isLoggedIn = true;
+    },
+    clearUser: (state) => {
+      state.profile = null;
+      state.isLoggedIn = false;
+    },
+  },
+});
+
+export const { setUser, clearUser } = userSlice.actions;
+
+export const store = configureStore({
+  reducer: { user: userSlice.reducer },
+});
+
+// Wrap your app in Provider, then use hooks anywhere
+import { Provider, useSelector, useDispatch } from 'react-redux';
+
+function App() {
+  return (
+    <Provider store={store}>           {/* makes store available to all components */}
+      <NavigationContainer>...</NavigationContainer>
+    </Provider>
+  );
+}
+
+function ProfileScreen() {
+  const user = useSelector((state) => state.user.profile); // read from store
+  const dispatch = useDispatch();                          // get dispatch function
+
+  return (
+    <Pressable onPress={() => dispatch(clearUser())}>     {/* fire action */}
+      <Text>Logout {user?.name}</Text>
+    </Pressable>
+  );
+}
+```
+
+| Solution | When To Use | Analogy |
+| --- | --- | --- |
+| `useState` / `useReducer` | Local, single-screen state | Sticky note on your desk |
+| Context API | Small-medium apps, auth/theme | Bulletin board for the office |
+| Zustand | Mid-large apps, minimal boilerplate | A shared whiteboard — grab and write |
+| Redux Toolkit | Enterprise apps, complex async, DevTools | Full filing cabinet with audit trail |
+| TanStack Query | Server state — caching, fetching, syncing | A smart cache layer that handles all the API work |
+
+---
+
+### 7\. Networking & API Calls
+
+Your app needs to talk to the outside world — fetching posts, submitting forms, syncing user data. React Native's JavaScript runtime has `fetch` built in (same as the browser), plus the popular `axios` library works identically to how you'd use it in a web app.
+
+Here's the catch though: in mobile apps, you need to handle loading states, errors, and cleanup (unmounted components) more carefully than on the web — users expect instant feedback on every interaction.
+
+```java
+import { useEffect, useState } from 'react';
+
+// fetch is built into React Native's runtime — no imports needed
+async function fetchPosts() {
+  const response = await fetch('https://jsonplaceholder.typicode.com/posts');
+  if (!response.ok) throw new Error(`HTTP ${response.status}`); // throw on errors
+  return response.json();                                        // parse JSON body
+}
+
+// axios — cleaner API, better interceptor support
+// npm install axios
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'https://myapi.example.com/v1', // prepended to every request URL
+  timeout: 10000,                          // fail after 10 seconds
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Intercept every request to attach the auth token
+api.interceptors.request.use((config) => {
+  const token = getStoredToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`; // inject token
+  return config;
+});
+
+// Intercept every response to handle 401 globally (logged out)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      clearUserSession();          // clear stored creds
+      navigation.navigate('Login'); // redirect to login
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Using in a component — always handle loading, error, and cleanup
+function PostsList() {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false; // guard against setting state after component unmounts
+
+    fetchPosts()
+      .then((data) => { if (!cancelled) setPosts(data); })
+      .catch((e) => { if (!cancelled) setError(e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; }; // cleanup: prevent stale state updates
+  }, []);
+
+  if (loading) return <ActivityIndicator size="large" />;
+  if (error) return <Text style={{ color: 'red' }}>Error: {error}</Text>;
+  return <FlatList data={posts} renderItem={/* ... */} keyExtractor={(p) => String(p.id)} />;
+}
+```
+
+#### TanStack Query (React Query) — The Best Way to Handle Server Data
+
+Writing `useEffect` + `useState` for every API call is repetitive and easy to get wrong. TanStack Query replaces all of that boilerplate with a single hook — and gives you caching, background refetching, loading/error states, pagination, and deduplication for free.
+
+```java
+// npm install @tanstack/react-query
+import { QueryClient, QueryClientProvider, useQuery, useMutation } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>  {/* provides cache to entire app */}
+      <NavigationContainer>...</NavigationContainer>
+    </QueryClientProvider>
+  );
+}
+
+function PostsList() {
+  const {
+    data: posts,
+    isLoading,
+    isError,
+    error,
+    refetch,           // manually re-fetch (e.g., pull-to-refresh)
+  } = useQuery({
+    queryKey: ['posts'],              // cache key — same key = same cached data
+    queryFn: fetchPosts,             // async function that returns the data
+    staleTime: 5 * 60 * 1000,       // treat cached data as fresh for 5 minutes
+  });
+
+  if (isLoading) return <ActivityIndicator />;
+  if (isError) return <Text>Error: {error.message}</Text>;
+
+  return (
+    <FlatList
+      data={posts}
+      renderItem={({ item }) => <Text>{item.title}</Text>}
+      keyExtractor={(item) => String(item.id)}
+      onRefresh={refetch}            // pull-to-refresh triggers a fresh fetch
+      refreshing={isLoading}
+    />
+  );
+}
+```
+
+<Callout type="info" title="Why TanStack Query">
+TanStack Query handles the entire server-state lifecycle: caching, background refetching, loading/error states, pagination, optimistic updates, and deduplication. You write far less code than manual `useEffect` + `useState` and get much better UX for free.
+</Callout>
+
+---
+
+### 8\. Local Storage & Persistence
+
+Your app gets killed and restarted constantly on mobile — the OS can terminate background apps at any time to free memory. Without local storage, your user's data and preferences vanish every time. Think of local storage as the app's memory that survives being shut down.
+
+| Need | Package | Notes | Analogy |
+| --- | --- | --- | --- |
+| Simple key-value | `@react-native-async-storage/async-storage` | Async, string-based | Sticky notes drawer |
+| Secure storage | `react-native-keychain` / `expo-secure-store` | Encrypted, uses OS keychain | Locked safe |
+| SQLite | `expo-sqlite` | Full SQL on device | Filing cabinet with queries |
+| Fast key-value | `MMKV` | 30x faster than AsyncStorage, synchronous | Sticky notes but instant |
+| State persistence | `redux-persist` / `zustand/middleware` | Persists store to AsyncStorage | Auto-save on exit |
+
+```java
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Save — must stringify objects because AsyncStorage only stores strings
+const saveUser = async (user) => {
+  try {
+    await AsyncStorage.setItem('user', JSON.stringify(user)); // serialize to string
+  } catch (e) {
+    console.error('Save failed:', e);
+  }
+};
+
+// Load — must parse strings back to objects
+const loadUser = async () => {
+  try {
+    const json = await AsyncStorage.getItem('user');
+    return json ? JSON.parse(json) : null; // null if key doesn't exist
+  } catch (e) {
+    console.error('Load failed:', e);
+    return null;
+  }
+};
+
+await AsyncStorage.removeItem('user'); // delete a single key
+await AsyncStorage.clear();           // wipe everything (use carefully!)
+```
+
+<Callout type="warn" title="AsyncStorage Limits">
+AsyncStorage only stores strings — you must `JSON.stringify()` before saving and `JSON.parse()` when loading. It's also relatively slow for heavy use. For performance-critical reads (e.g., settings loaded on every launch), use `MMKV` — it's synchronous and 30x faster.
+</Callout>
+
+---
+
+### 9\. Native Device APIs
+
+Your phone has hardware that a browser can barely touch — camera, GPS, accelerometer, haptics, notifications. React Native gives you a bridge to all of it. The core library covers the basics, and the **Expo SDK** gives you 100+ pre-built, well-tested modules for everything else.
+
+#### Core React Native APIs
+
+```java
+import {
+  Platform,      // detect iOS vs Android
+  Dimensions,    // get screen size
+  Linking,       // open URLs, emails, phone calls
+  Vibration,     // trigger haptic motor
+  Alert,         // native alert/confirm dialogs
+  Keyboard,      // show/hide keyboard programmatically
+  AppState,      // detect foreground/background state
+  PixelRatio,    // convert between dp and actual pixels
+} from 'react-native';
+
+// Platform detection — branch your logic per platform
+const isIOS = Platform.OS === 'ios';
+const isAndroid = Platform.OS === 'android';
+const version = Platform.Version; // iOS version number or Android API level
+
+// Screen dimensions — useful for percentage-based layouts
+const { width, height } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get('screen'); // includes status bar area
+
+// Open any URL the OS knows how to handle
+await Linking.openURL('https://flutter.dev');
+await Linking.openURL('mailto:dev@example.com');  // opens mail app
+await Linking.openURL('tel:+1234567890');         // opens phone dialer
+
+// Vibration — single pulse or pattern
+Vibration.vibrate(500);                     // vibrate for 500ms
+Vibration.vibrate([0, 200, 100, 200]);      // pattern: wait, vibrate, wait, vibrate
+
+// Alert — native OS dialog (not a web alert)
+Alert.alert(
+  'Confirm',
+  'Are you sure you want to delete this?',
+  [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Delete', style: 'destructive', onPress: handleDelete },
+  ]
+);
+
+Keyboard.dismiss(); // hide the software keyboard
+```
+
+#### Expo SDK Modules
+
+```java
+// Camera — request permission then open camera
+import { Camera } from 'expo-camera';
+
+// Location — ask permission, then get GPS coordinates
+import * as Location from 'expo-location';
+const { status } = await Location.requestForegroundPermissionsAsync(); // ask first
+const location = await Location.getCurrentPositionAsync({});          // then fetch
+
+// Push Notifications
+import * as Notifications from 'expo-notifications';
+
+// Image Picker — open photo library or camera
+import * as ImagePicker from 'expo-image-picker';
+const result = await ImagePicker.launchImageLibraryAsync({
+  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  allowsEditing: true,  // show crop interface
+  quality: 0.8,         // compress to 80% quality
+});
+
+// Haptics — fine-grained haptic feedback (better than Vibration)
+import * as Haptics from 'expo-haptics';
+await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); // medium bump
+```
+
+---
+
+### 10\. Animations
+
+Imagine a sliding drawer in your kitchen. If someone is standing in the doorway having a conversation (your JS thread is busy), you still want the drawer to slide smoothly. That's the core problem with mobile animations — they must not depend on JavaScript being free.
+
+React Native has two animation systems: the built-in `Animated` API and `react-native-reanimated` (the modern standard). The key difference is *where* the animation runs.
+
+#### Animated API (Built-in)
+
+```java
+import { Animated, Easing, Pressable, Text } from 'react-native';
+import { useRef } from 'react';
+
+function PulseButton() {
+  const scale = useRef(new Animated.Value(1)).current; // start at normal size
+
+  const onPressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.95,              // shrink to 95% on press
+      useNativeDriver: true,      // ALWAYS use this — runs on UI thread, not JS
+    }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,                 // spring back to full size
+      tension: 300,
+      friction: 10,
+      useNativeDriver: true,      // animation lives on the native side
+    }).start();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>  {/* apply animated value */}
+      <Pressable onPressIn={onPressIn} onPressOut={onPressOut}>
+        <Text>Press Me</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+// Fade-in animation on mount
+function FadeIn({ children }) {
+  const opacity = useRef(new Animated.Value(0)).current; // start invisible
+
+  useEffect(() => {
+    Animated.timing(opacity, {
+      toValue: 1,          // animate to fully visible
+      duration: 500,
+      easing: Easing.ease,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  return <Animated.View style={{ opacity }}>{children}</Animated.View>;
+}
+```
+
+#### Reanimated 3 — The Modern Standard
+
+`react-native-reanimated` runs animation logic as **worklets** — tiny functions that execute on the native UI thread, completely bypassing JavaScript. This means your drag animation stays silky smooth even if the JS thread is busy parsing a huge JSON response.
+
+```java
+import Animated, {
+  useAnimatedStyle,    // creates a style that reacts to shared values
+  useSharedValue,      // value that lives on both JS and native side
+  withSpring,          // spring physics animation
+  withTiming,          // linear/easing animation
+  useAnimatedGestureHandler,
+  interpolate,
+  Extrapolation,
+} from 'react-native-reanimated';
+import { PanGestureHandler } from 'react-native-gesture-handler';
+
+function DraggableCard() {
+  const translateX = useSharedValue(0); // x position, lives on UI thread
+  const translateY = useSharedValue(0); // y position, lives on UI thread
+
+  const gestureHandler = useAnimatedGestureHandler({
+    onStart: (_, ctx) => {
+      ctx.startX = translateX.value; // save starting position
+      ctx.startY = translateY.value;
+    },
+    onActive: (event, ctx) => {
+      // runs on UI thread — no JS bridge involved
+      translateX.value = ctx.startX + event.translationX;
+      translateY.value = ctx.startY + event.translationY;
+    },
+    onEnd: () => {
+      translateX.value = withSpring(0); // spring back to center on release
+      translateY.value = withSpring(0);
+    },
+  });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value }, // updated on UI thread each frame
+      { translateY: translateY.value },
+    ],
+  }));
+
+  return (
+    <PanGestureHandler onGestureEvent={gestureHandler}>
+      <Animated.View style={[styles.card, animatedStyle]}>
+        <Text>Drag me!</Text>
+      </Animated.View>
+    </PanGestureHandler>
+  );
+}
+```
+
+<Callout type="error" title="Always use native driver">
+For the Animated API, always set `useNativeDriver: true` when possible (all transforms and opacity animations support it). Without it, every animation frame requires a JS bridge round-trip — causing stutter whenever JS is busy.
+</Callout>
+
+| Approach | Thread | Supports Gestures | When to Use | Memory Hook |
+| --- | --- | --- | --- | --- |
+| `Animated` (built-in) | UI thread (with `useNativeDriver`) | Basic only | Simple opacity/transform animations | Good for simple stuff |
+| `Reanimated 3` | UI thread (worklets) | ✅ Full | Gesture-driven, complex, 60fps critical | The heavy lifter |
+| `Lottie` | UI thread | ❌ | Playing After Effects animations | AfterEffects player |
+| `Moti` | UI thread (built on Reanimated) | ❌ | Declarative animations with simple API | Reanimated with training wheels |
+
+---
+
+### 11\. Performance Optimization
+
+Mobile performance isn't optional. A website that's slightly slow gets forgiven. An app that lags gets one-star reviews and uninstalls. The good news: most performance issues come from a handful of common mistakes — and fixing them is straightforward.
+
+#### FlatList Optimizations
+
+```java
+<FlatList
+  data={data}
+  keyExtractor={(item) => item.id}
+  renderItem={renderItem}
+  // Performance tuning props
+  removeClippedSubviews={true}      // unmount views outside the viewport (Android)
+  maxToRenderPerBatch={10}          // how many items render in one batch
+  updateCellsBatchingPeriod={50}    // ms to wait between batches
+  windowSize={10}                   // total items kept in memory (5 above + 5 below)
+  initialNumToRender={10}           // items rendered on the very first paint
+  getItemLayout={(data, index) => ( // tell FlatList exact height upfront — HUGE boost
+    { length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index }
+  )}
+/>
+```
+
+#### Memoization
+
+```java
+// React.memo — bail out of re-rendering if props didn't change
+const PostCard = React.memo(({ title, body, onPress }) => {
+  return (
+    <Pressable onPress={onPress}>
+      <Text>{title}</Text>
+      <Text>{body}</Text>
+    </Pressable>
+  );
+}); // React.memo wraps the component — same props = skip render
+
+// useMemo — memoize expensive computation between renders
+const filteredPosts = useMemo(
+  () => posts.filter((p) => p.category === selectedCategory), // only re-runs if deps change
+  [posts, selectedCategory]
+);
+
+// useCallback — stable function reference prevents child re-renders
+const handlePress = useCallback((id) => {
+  navigation.navigate('Details', { id }); // stable reference across renders
+}, [navigation]);
+```
+
+#### Image Optimization
+
+```java
+// FastImage — drops in for Image but with aggressive caching and faster loading
+import FastImage from 'react-native-fast-image';
+
+<FastImage
+  source={{
+    uri: 'https://example.com/image.jpg',
+    priority: FastImage.priority.high,            // load this before others
+    cache: FastImage.cacheControl.immutable,      // cache forever (never re-fetch)
+  }}
+  style={{ width: 200, height: 200 }}
+  resizeMode={FastImage.resizeMode.cover}
+/>
+```
+
+#### Avoid Common Anti-Patterns
+
+```java
+// ❌ WRONG — inline objects are created fresh on every render
+<View style={{ flex: 1, backgroundColor: 'red' }}>
+
+// ✅ CORRECT — StyleSheet.create() is defined once, outside the component
+const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: 'red' } });
+<View style={styles.container}>
+
+// ❌ WRONG — anonymous arrow function in renderItem recreates on every FlatList render
+<FlatList renderItem={({ item }) => <PostCard title={item.title} onPress={() => navigate(item.id)} />} />
+
+// ✅ CORRECT — extract renderItem to a stable reference with useCallback
+const renderItem = useCallback(({ item }) => (
+  <PostCard title={item.title} onPress={() => navigate(item.id)} />
+), [navigate]); // only recreated if navigate changes
+<FlatList renderItem={renderItem} />
+```
+
+<Quiz question={"Why should you use `getItemLayout` in a FlatList?"} options={["To add separators between items automatically", "To skip dynamic height measurement of each item, dramatically improving scroll performance for fixed-height lists", "To enable infinite scrolling", "To set the number of columns in a grid"]} answerIndex={1}>
+B) `getItemLayout` lets you tell FlatList the exact height of each item upfront. FlatList normally has to measure every item to know where it is — with `getItemLayout`, it skips that entirely. For fixed-height lists, this is the single biggest performance win you can make.
+</Quiz>
+
+---
+
+### 12\. Debugging & Developer Tools
+
+Debugging React Native is like debugging a car that's both driving and being assembled at the same time. Your JavaScript runs in Hermes, which talks to native code, which renders to the screen — and errors can happen at any layer. Knowing where to look saves hours.
+
+```java
+Metro Bundler (JavaScript bundler and dev server)
+  ↓
+Hermes engine (executes JS on-device)
+  ↓
+React Native DevTools / Flipper
+
+Key tools:
+- Shake device / Cmd+D (iOS sim) / Cmd+M (Android emu) → opens Dev Menu
+- React DevTools — inspect component tree, props, state live
+- Flipper — view network requests, inspect layouts, browse logs
+- LogBox — in-app overlay that shows warnings and errors
+- console.log() → appears in Metro terminal output and Flipper Logs tab
+```
+
+```java
+// __DEV__ is true in development, false in production builds
+// Use it to gate debug-only logging so it doesn't ship to users
+if (__DEV__) {
+  console.log('Debug info:', data); // stripped from production builds
+}
+
+// Performance monitoring — measure how long operations take
+import { Performance } from 'react-native';
+performance.mark('start');
+// ...expensive operation (e.g., parsing, sorting)
+performance.measure('myOperation', 'start'); // logs elapsed time
+```
+
+---
+
+### 13\. Expo vs React Native CLI
+
+Starting a React Native project is like choosing between a furnished apartment and an empty plot of land. Expo Managed is the furnished apartment — everything's set up, you just move in. React Native CLI is the empty plot — you can build exactly what you want, but you have to handle plumbing, wiring, and permits yourself.
+
+| | Expo (Managed) | Expo (Bare) / React Native CLI | Memory Hook |
+| --- | --- | --- | --- |
+| **Setup** | Zero config — just run | Requires Xcode + Android Studio | Furnished vs empty |
+| **Native code access** | Limited (Expo modules only) | Full — write any native code | Renter vs homeowner |
+| **OTA Updates** | ✅ Expo Updates | ❌ Must re-submit to stores | Push to prod vs app store wait |
+| **Build service** | ✅ EAS Build (cloud) | Manual or EAS | CI/CD included vs DIY |
+| **Best for** | Most apps, rapid development | Deep native customization | 80% of apps vs edge cases |
+
+```java
+// Start with Expo — recommended for most projects
+npx create-expo-app@latest MyApp
+cd MyApp
+npx expo start     // runs Metro, opens in Expo Go on your phone
+
+// Start with React Native CLI — when you need full native control
+npx @react-native-community/cli@latest init MyApp
+cd MyApp
+npx react-native run-ios       // requires Xcode installed
+// or
+npx react-native run-android   // requires Android Studio + emulator
+```
+
+<Callout type="info" title="Start with Expo">
+Unless you know you need raw native code from day one, start with Expo Managed. It handles the entire native toolchain, provides 100+ pre-built modules, and you can always migrate to bare workflow later. For 80% of apps, you'll never need to leave.
+</Callout>
+
+---
+
+### Practice Questions — React Native
+
+<Quiz question={"In React Native, why can't you use `<div>` and `<p>` HTML elements?"} options={["React Native doesn't support JSX", "React Native doesn't target a browser DOM — it maps components to native iOS/Android views, which have no concept of HTML elements", "HTML elements work but are deprecated", "You need to import them from a separate package"]} answerIndex={1}>
+B) React Native renders to native platform UI — iOS UIViews and Android Views — not to a browser DOM. HTML elements are DOM-specific. React Native has its own parallel set of primitives: `<View>` (div), `<Text>` (p/span), `<Image>` (img), etc. Each one maps directly to a native component, not an HTML element.
+</Quiz>
+
+<Quiz question={"What is the key advantage of `react-native-reanimated` over the built-in `Animated` API?"} options={["It has more built-in animations", "Animations run entirely on the UI thread via worklets, so they stay smooth even when the JS thread is busy", "It works with HTML Canvas", "It requires less code to write"]} answerIndex={1}>
+B) Reanimated runs animation logic as worklets on the native UI thread — completely bypassing JavaScript. This means gesture-driven animations (like drag-to-dismiss) stay at 60fps even if the JS thread is busy with expensive work. The built-in Animated API can use the native driver for simple transforms, but can't match Reanimated for complex gesture interactions.
+</Quiz>
+
+<Quiz question={"You have a FlatList of 1000 items, all the same height (80dp). What is the single best optimization you can make?"} options={["Increase `maxToRenderPerBatch` to 1000", "Add `getItemLayout` to skip dynamic height measurement", "Use `ScrollView` instead", "Set `numColumns` to 2"]} answerIndex={1}>
+B) `getItemLayout` eliminates the need for FlatList to dynamically measure each item's height. Since every item is exactly 80dp, you can tell FlatList upfront: `(data, index) => ({ length: 80, offset: 80 * index, index })`. This allows FlatList to instantly calculate any item's position — dramatically improving scroll performance and jump-to-index speed.
+</Quiz>
+
+<Quiz question={"What does `useNativeDriver: true` do in the Animated API?"} options={["It uses the device's GPU directly for rendering", "It moves animation execution from the JavaScript thread to the native UI thread, preventing jank when JS is busy", "It imports native animations from iOS/Android", "It enables hardware-accelerated CSS transitions"]} answerIndex={1}>
+B) `useNativeDriver: true` serializes the animation configuration once to the native side, then the UI thread drives the animation independently — no JavaScript needed per frame. Without it, every animation frame requires a round-trip across the bridge, causing stutter during heavy JS work.
+</Quiz>

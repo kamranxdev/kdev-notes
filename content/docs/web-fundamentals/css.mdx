@@ -51,14 +51,14 @@ p { color: blue; }
 /* ID selector — targets the ONE element with id="header" */
 #header { font-size: 24px; }
 
-/* Descendant vs Child — EXAM FAVORITE */
+/* Descendant vs Child — key distinction */
 div p   { color: red; }   /* ALL p inside div (any depth) */
 div > p { color: blue; }  /* only DIRECT p children of div */
 
 /* Attribute selector */
 a[target="_blank"] { color: red; }
 ```
-<Callout type="info" title="Exam favorite">
+<Callout type="info" title="Key Concept">
 "What does `div > p` select?" — It selects only **direct child** `<p>` elements, not nested ones. Compare with `div p` which selects ALL descendants. Also watch for `p.intro` vs `.intro p` — totally different things! `p.intro` = a paragraph WITH class intro. `.intro p` = a paragraph INSIDE something with class intro.
 </Callout>
 
@@ -100,7 +100,7 @@ The box model describes the four layers that make up every one of these boxes. T
 | **Border** | Edge around padding | Has own color |
 | **Margin** | Space outside the border | No — always transparent |
 
-<Callout type="error" title="Critical — total width calculation (GUARANTEED on exam)">
+<Callout type="error" title="Critical — total width calculation">
 This trips up everyone. When you say `width: 200px`, you might think the element takes 200px on screen. WRONG. By default, `width` only sets the **content** area. Padding and border are ADDED on top.  
   
 **Default (content-box):** Total width = width + padding-left + padding-right + border-left + border-right  
@@ -174,7 +174,7 @@ p.intro        { }  /* 0,0,1,1 */
 /* #main p.intro WINS over .intro because 0,1,1,1 > 0,0,1,0 */
 ```
 <Callout type="info" title="Cascade order (when specificity is equal)">
-If two rules have the same specificity, the one that appears **later** in the CSS wins — like the last person to speak in an argument gets the final word. Also: `!important` overrides everything (but avoid using it — it is the nuclear option and the exam loves to test edge cases with it).
+If two rules have the same specificity, the one that appears **later** in the CSS wins — like the last person to speak in an argument gets the final word. Also: `!important` overrides everything (but avoid using it — it is the nuclear option that makes code difficult to maintain and debug).
 </Callout>
 
 <Quiz question={"Which selector has the highest specificity?"} options={["`#nav .menu li`", "`div#nav ul.menu li`", "`body div ul li`", "`.nav .menu .item`"]} answerIndex={1}>
@@ -206,7 +206,7 @@ B) Red. When two selectors have the same specificity (both are `.header` = 0,0,1
 | `flex` | Flex container — children become flex items | Layouts |
 | `grid` | Grid container — 2D layouts | Complex layouts |
 
-<Callout type="error" title="Exam trap — display:none vs visibility:hidden">
+<Callout type="error" title="Common Mistake — display:none vs visibility:hidden">
 This is like the difference between someone **leaving the room** vs someone putting on an **invisibility cloak**.  
   
 `display: none` — the element LEAVES the room. It is completely gone from the layout. Other elements move up to fill its space.  
@@ -299,7 +299,7 @@ Flexbox has two axes. **Main axis** = the direction items flow (horizontal in `r
 `justify-content` controls the **main axis** (think: "justify" like justifying text — left, center, right).  
 `align-items` controls the **cross axis** (think: "align" items vertically).  
   
-If you flip `flex-direction` to `column`, these axes SWAP — `justify-content` now controls vertical, `align-items` controls horizontal. This confuses many people on the exam.
+If you flip `flex-direction` to `column`, these axes SWAP — `justify-content` now controls vertical, `align-items` controls horizontal. This is a commonly confused distinction.
 </Callout>
 
 <Callout type="warn" title="justify-content values visualized (in row direction)">
@@ -346,13 +346,13 @@ If you flip `flex-direction` to `column`, these axes SWAP — `justify-content` 
 B) `justify-content` — it aligns items along the main axis. `align-items` aligns along the cross axis. Remember: "justify" = main axis, "align" = cross axis.
 </Quiz>
 <Quiz question={"You have a flex container with `flex-direction: column`. Which property controls horizontal alignment of the items?"} options={["`justify-content`", "`align-items`", "`flex-wrap`", "`flex-basis`"]} answerIndex={1}>
-B) `align-items`. When `flex-direction` is `column`, the main axis becomes vertical and the cross axis becomes horizontal. Since `align-items` controls the cross axis, it now controls horizontal alignment. This axis-swap is a common exam trap.
+B) `align-items`. When `flex-direction` is `column`, the main axis becomes vertical and the cross axis becomes horizontal. Since `align-items` controls the cross axis, it now controls horizontal alignment. This axis-swap is a commonly confused point.
 </Quiz>
 ### CSS Grid
 
 **Why does Grid exist if we have Flexbox?** Flexbox is one-dimensional — it handles a row OR a column. Grid is two-dimensional — it handles rows AND columns at the same time. Think of Flexbox as arranging items on a clothesline (one direction). Grid is like arranging items on a chessboard (rows and columns simultaneously).
 
-Grid is less likely on the FA exam but good to know the basics. Use Grid when you need a page-level layout with defined rows and columns.
+Grid is great for page-level layouts with defined rows and columns — use it when Flexbox's single-axis approach isn't enough.
 
 ```java
 .container {
@@ -415,7 +415,7 @@ C) 40px — `rem` is always relative to root font-size. 2.5 x 16px = 40px. It do
 </Quiz>
 ### Colors & Backgrounds
 
-**Why so many color formats?** Different formats exist for different use cases: named colors are readable, hex is compact, RGB gives precise control, and RGBA adds transparency. For the exam, know all formats and especially understand `opacity` vs `rgba`.
+**Why so many color formats?** Different formats exist for different use cases: named colors are readable, hex is compact, RGB gives precise control, and RGBA adds transparency. Understanding all formats — and especially the distinction between `opacity` and `rgba` — is essential for writing correct, maintainable CSS.
 
 | Format | Example | Notes |
 | --- | --- | --- |
@@ -442,7 +442,7 @@ C) 40px — `rem` is always relative to root font-size. 2.5 x 16px = 40px. It do
 /* Use rgba for transparent backgrounds WITHOUT affecting children */
 .overlay { background: rgba(0, 0, 0, 0.5); }
 ```
-<Callout type="info" title="opacity vs rgba — exam loves this">
+<Callout type="info" title="opacity vs rgba — a key distinction">
 `opacity: 0.5` makes the ENTIRE element (and all its children — text, images, everything) 50% transparent. There is no way to undo this on children.  
 `background: rgba(0,0,0,0.5)` only makes the **background** transparent — children remain fully visible. Use rgba when you want a semi-transparent background with readable text on top.
 </Callout>
@@ -532,7 +532,7 @@ tr:nth-child(even) { background: #f4f4f4; }
   color: red;
 }
 ```
-<Callout type="error" title="Exam trap — link pseudo-class order">
+<Callout type="error" title="Common Mistake — link pseudo-class order">
 The order must be **:link → :visited → :hover → :active** (remember: **L**o**V**e **HA**te). If the order is wrong, some states get overridden by later rules due to equal specificity. For example, if `:hover` comes before `:visited`, visited links will not show the hover color.
 </Callout>
 

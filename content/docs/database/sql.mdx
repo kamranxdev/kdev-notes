@@ -26,7 +26,7 @@ A database is a warehouse full of organized filing cabinets. SQL is the language
 
 #### SQL Command Categories
 
-SQL commands are grouped by what they do. This is one of the most commonly tested concepts — expect at least one MCQ on this.
+SQL commands are grouped by what they do. Understanding this grouping is fundamental to working with SQL effectively.
 
 | Category | Commands | Purpose | Memory Trick |
 | --- | --- | --- | --- |
@@ -35,8 +35,8 @@ SQL commands are grouped by what they do. This is one of the most commonly teste
 | **DCL** (Data Control) | GRANT, REVOKE | Control access/permissions | "Giving/taking away keys to the cabinet" |
 | **TCL** (Transaction Control) | COMMIT, ROLLBACK, SAVEPOINT | Manage transactions | "Save game / load last checkpoint" |
 
-<Callout type="info" title="FA Favorite">
-"Which category does X command belong to?" — This is a guaranteed MCQ. Memorize the table above. Remember: TRUNCATE is DDL (not DML!), and SELECT is DML.
+<Callout type="info" title="Key Concept">
+"Which category does X command belong to?" — This is a commonly misunderstood area. Memorize the table above. Remember: TRUNCATE is DDL (not DML!), and SELECT is DML.
 </Callout>
 
 <Quiz question={"Which SQL command category does TRUNCATE belong to?"} options={["DML", "DDL", "DCL", "TCL"]} answerIndex={1}>
@@ -178,7 +178,7 @@ Without a WHERE clause, UPDATE affects ALL rows in the table. Every employee's s
 </Quiz>
 ### SELECT & Filtering
 
-SELECT is the most important SQL command — it is how you **ask questions** to your database. Think of it like Google Search for your data. Want to know which employees earn more than 50,000? SELECT. Want a list of all departments? SELECT. You will use this in literally every exam and every real project.
+SELECT is the most important SQL command — it is how you **ask questions** to your database. Think of it like Google Search for your data. Want to know which employees earn more than 50,000? SELECT. Want a list of all departments? SELECT. You will use this in literally every project.
 
 <Callout type="info" title="The mental model">
 Reading a SELECT statement in English: `SELECT emp_name, salary FROM employees WHERE dept_id = 10` reads as: "Get me the name and salary FROM the employees table WHERE the department is 10." SQL reads almost like English — that was the whole point when it was designed.
@@ -264,7 +264,7 @@ Operators are the building blocks of your WHERE clause. They let you express con
 | `IS NOT NULL` | Check not NULL | `WHERE email IS NOT NULL` |
 
 <Callout type="warn" title="BETWEEN is inclusive">
-`WHERE salary BETWEEN 30000 AND 60000` is the same as `WHERE salary >= 30000 AND salary <= 60000`. Both endpoints are included. This is a common exam trap — they will ask if BETWEEN includes the boundary values. Answer: YES.
+`WHERE salary BETWEEN 30000 AND 60000` is the same as `WHERE salary >= 30000 AND salary <= 60000`. Both endpoints are included. This is a commonly misunderstood behaviour — BETWEEN always includes the boundary values. Answer: YES.
 </Callout>
 
 #### LIKE Wildcards
@@ -279,7 +279,7 @@ LIKE is SQL's version of "search with wildcards." Two special characters: `%` me
 | `'_a%'` | Second letter is "a" | Darshan, Karan |
 | `'___'` | Exactly 3 characters | Raj, Ram |
 
-<Callout type="info" title="Exam Trap — NULL comparisons">
+<Callout type="info" title="Common Mistake — NULL comparisons">
 NULL is not a value — it means "unknown." You **cannot** compare it with `=` or `!=`. Think of it this way: is an unknown value equal to 10? We don't know! So the comparison returns neither true nor false — it returns UNKNOWN, and the row is excluded.  
   
 `WHERE salary = NULL` → always returns nothing (WRONG).  
@@ -380,7 +380,7 @@ Aggregate functions crunch multiple rows into a single result. Think of them lik
 | `MIN(col)` | Minimum value | `SELECT MIN(salary) FROM employees` |
 | `MAX(col)` | Maximum value | `SELECT MAX(salary) FROM employees` |
 
-<Callout type="error" title="Exam Trap — COUNT(*) vs COUNT(col)">
+<Callout type="error" title="Common Mistake — COUNT(*) vs COUNT(col)">
 `COUNT(*)` counts ALL rows including those with NULLs.  
 `COUNT(column_name)` counts only NON-NULL values in that column.  
   
@@ -435,7 +435,7 @@ WHERE salary > 10000
 GROUP BY dept_id
 HAVING AVG(salary) > 50000;
 ```
-<Callout type="info" title="WHERE vs HAVING — The exam WILL test this">
+<Callout type="info" title="WHERE vs HAVING — Critical Distinction">
 **WHERE** filters _individual rows_ BEFORE grouping. Like removing bad apples before putting them into baskets.  
 **HAVING** filters _groups_ AFTER grouping. Like removing baskets that have fewer than 5 apples.  
 You **cannot** use aggregate functions in WHERE. `WHERE COUNT(*) > 5` is an error. Use HAVING instead.
@@ -568,7 +568,7 @@ Think of it as Venn diagrams:
 **FULL OUTER** = both entire circles
 </Callout>
 
-<Callout type="warn" title="FA MCQ Pattern">
+<Callout type="warn" title="Key Pattern">
 "Which JOIN returns all rows from the left table?" → LEFT JOIN  
 "What is a Cartesian product?" → CROSS JOIN (no ON condition)
 </Callout>
@@ -781,7 +781,7 @@ Unnormalized data is like writing your home address on every form at school — 
 **3NF:** If the Students table has dept\_id AND dept\_name, the dept\_name depends on dept\_id (not on student\_id). This is a transitive dependency. Fix: move dept\_name to a separate Departments table.
 </Callout>
 
-<Callout type="warn" title="FA MCQ Pattern">
+<Callout type="warn" title="Key Pattern">
 "A table with no repeating groups is in which normal form?" → 1NF  
 "Removing transitive dependency achieves?" → 3NF  
 "Removing partial dependency achieves?" → 2NF
@@ -855,7 +855,7 @@ CREATE INDEX idx_dept_sal ON employees(dept_id, salary);
 -- Drop an index
 DROP INDEX idx_emp_name;
 ```
-<Callout type="error" title="Index Trade-off — This is an exam favorite">
+<Callout type="error" title="Index Trade-offs">
 Indexes **speed up SELECT** (reads) but **slow down INSERT/UPDATE/DELETE** (writes). Why? Every time you add, change, or remove a row, the database must also update all relevant indexes. It is like maintaining a book index — every time you add a new chapter, you have to update the index at the back.  
   
 **Rule of thumb:** Index columns that appear frequently in WHERE, JOIN, and ORDER BY. Do NOT index every column — the maintenance overhead is not worth it for rarely-searched columns.
@@ -881,7 +881,7 @@ A transaction is like a checkpoint in a video game. You make a bunch of moves, a
 
 #### ACID Properties
 
-Every transaction follows four rules, remembered as ACID. This is a guaranteed exam question.
+Every transaction follows four rules, remembered as ACID.
 
 | Property | Meaning | Real-World Example |
 | --- | --- | --- |
