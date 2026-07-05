@@ -2,6 +2,33 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
+@theme {
+  --color-kamranx-accent: #c9fd74;
+}
+
+@utility neo-shadow {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+@utility neo-shadow-dark {
+  .dark & {
+    box-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 1);
+  }
+}
+
+@utility neo-shadow-hover {
+  &:hover {
+    box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+    transform: translate(2px, 2px);
+  }
+}
+
+@utility neo-shadow-hover-dark {
+  .dark &:hover {
+    box-shadow: 2px 2px 0px 0px rgba(255, 255, 255, 1);
+  }
+}
+
 html {
   scrollbar-gutter: stable;
 }

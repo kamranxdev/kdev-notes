@@ -1,0 +1,3786 @@
+---
+title: Java
+description: Java Notes 
+---
+
+### 1\. What is Java?
+
+Java is a **programming language** — a way to give instructions to a computer. Think of it like writing a recipe: you list steps, and the computer follows them exactly.
+
+Java has three superpowers that made it one of the most popular languages in the world:
+
+*   **Object-Oriented (OOP)** — you organize code into "objects" (like real-world things). More on this later.
+*   **Platform Independent (WORA)** — "Write Once, Run Anywhere." Code written on Windows runs on Mac, Linux, or any device with Java installed.
+*   **Compiled + Interpreted** — Java uses a two-step process (explained below).
+
+#### How Java Code Runs (Two-Step Process)
+
+```java
+// Step 1: You write code in a .java file
+Hello.java  →  javac (compiler)  →  Hello.class (bytecode)
+
+// Step 2: JVM reads the bytecode and runs it
+Hello.class  →  JVM (Java Virtual Machine)  →  Output on screen
+
+```
+
+**Why two steps?** The bytecode (.class file) is universal — any JVM on any operating system can understand it. That's how "Write Once, Run Anywhere" works. C/C++ compile directly to machine code which is OS-specific.
+
+<Callout type="info" title="Key Fact">
+`javac` = Java Compiler (converts .java to .class bytecode)  
+`java` = Runs the bytecode on the JVM
+</Callout>
+
+### JDK vs JRE vs JVM
+
+These three terms confuse everyone. Think of them as nested boxes:
+
+| Term | Full Form | What It Is | Analogy |
+| --- | --- | --- | --- |
+| **JVM** | Java Virtual Machine | The engine that runs bytecode. Lives inside your computer. | The car engine |
+| **JRE** | Java Runtime Environment | JVM + libraries (pre-built code). Enough to _run_ Java programs. | Engine + fuel + wheels |
+| **JDK** | Java Development Kit | JRE + development tools (compiler, debugger). Needed to _write_ Java programs. | The entire car factory |
+
+<Callout type="info" title="Exam Tip">
+**JDK contains JRE, which contains JVM.** JDK ⊃ JRE ⊃ JVM. If they ask "What do you need to develop Java programs?" — answer is JDK.
+</Callout>
+
+### The main() Method — Entry Point
+
+Every Java program starts running from the `main` method. Here's the exact signature you must memorize:
+
+```java
+public static void main(String[] args) {
+    // Your code starts running here
+    System.out.println("Hello, Kamran");
+}
+
+```
+
+Why each keyword matters:
+
+| Keyword | Why It's There |
+| --- | --- |
+| `public` | JVM needs to access this method from outside the class. If it were private, JVM couldn't call it. |
+| `static` | JVM calls main() without creating an object of the class. static means "belongs to the class, not an object." |
+| `void` | main() doesn't return any value to JVM. It just runs and exits. |
+| `String[] args` | Accepts command-line arguments. `args` is an array of Strings passed when you run the program. |
+
+<Callout type="error" title="Common Exam Trap">
+If you change the signature — like removing `static` or changing `String[]` to `int[]` — the program compiles but the JVM won't find the entry point and throws **NoSuchMethodError**.
+</Callout>
+
+### 2\. Data Types
+
+Data types tell Java what kind of value a variable holds. Java has two categories:
+
+#### Primitive Types (8 types — stored directly in memory)
+
+| Type | Size | Range | Example |
+| --- | --- | --- | --- |
+| `byte` | 1 byte | \-128 to 127 | `byte age = 25;` |
+| `short` | 2 bytes | \-32,768 to 32,767 | `short year = 2026;` |
+| `int` | 4 bytes | \-2.1 billion to 2.1 billion | `int salary = 400000;` |
+| `long` | 8 bytes | Very large numbers | `long population = 8000000000L;` |
+| `float` | 4 bytes | ~7 decimal digits | `float pi = 3.14f;` |
+| `double` | 8 bytes | ~15 decimal digits | `double gpa = 9.45;` |
+| `char` | 2 bytes | 0 to 65,535 (Unicode) | `char grade = 'A';` |
+| `boolean` | ~1 bit | true or false | `boolean passed = true;` |
+
+<Callout type="error" title="Exam Traps — Data Types">
+
+
+*   `long` values need an **L** suffix: `long x = 100L;`
+*   `float` values need an **f** suffix: `float x = 3.14f;` — without `f`, Java treats it as double and gives a compile error.
+*   `char` uses **single quotes**: `'A'`. Double quotes `"A"` is a String, not a char.
+*   `char` is 2 bytes in Java (Unicode), NOT 1 byte like in C.
+
+
+</Callout>
+
+#### Reference Types (stored as memory addresses)
+
+Everything that isn't a primitive is a reference type: `String`, arrays, objects, etc. Reference variables store the **address** (location) of the actual data in memory, not the data itself.
+
+```java
+String name = "Darshan";    // name stores the ADDRESS of "Darshan" in memory
+int age = 22;               // age stores the VALUE 22 directly
+
+```
+
+### Default Values
+
+When you declare a variable as a class field (not inside a method), Java gives it a default value if you don't assign one:
+
+| Type | Default Value |
+| --- | --- |
+| `byte, short, int, long` | `0` |
+| `float, double` | `0.0` |
+| `char` | `'\u0000'` (null character) |
+| `boolean` | `false` |
+| `String` (and all objects) | `null` |
+
+<Callout type="info" title="WHY class fields get defaults">
+When the JVM creates an object with `new`, it allocates a block of memory and **zeroes out every byte**. This is a safety measure — without it, your fields could contain random garbage data left over from whatever previously used that memory. So `int` becomes `0`, `boolean` becomes `false`, and object references become `null`. The JVM guarantees this for every object, every time.
+</Callout>
+
+<Callout type="error" title="WHY local variables DON'T get defaults">
+**Local variables (inside methods) have NO default values.** If you try to use a local variable without assigning a value, Java gives a **compile error**. This is intentional — using an uninitialized local variable is almost always a bug. Instead of silently giving you `0` or `null` and letting a logic error slip through, the compiler forces you to explicitly assign a value. It catches the mistake at compile time so you don't debug it at runtime. This is a very common exam question.
+</Callout>
+
+<Callout type="info" title="Analogy">
+**Class fields** are like a new apartment — the walls come painted white by default. You didn't choose white, but at least it's not random graffiti from the last tenant. **Local variables** are like a blank sticky note — you MUST write something on it before you try to read it. Java won't let you read a blank note and pretend it says something.
+</Callout>
+
+```java
+class Demo {
+    int classField;          // default = 0 (JVM zeroes memory)
+    String name;             // default = null
+    boolean active;          // default = false
+
+    void test() {
+        int localVar;
+        // System.out.println(localVar);  // COMPILE ERROR!
+        // Java says: "variable localVar might not have been initialized"
+
+        int localVar2 = 10;
+        System.out.println(localVar2);   // Fine — you initialized it
+        System.out.println(classField);   // Fine — prints 0 (default)
+    }
+}
+
+```
+
+What is the output of this code?
+
+```java
+class Test {
+    int x;
+    String s;
+
+    void run() {
+        int y;
+        System.out.println(x);
+        System.out.println(s);
+        System.out.println(y);
+    }
+}
+
+```
+
+1.  0, null, 0
+2.  0, null, then compile error on the third print
+3.  Compile error on all three prints
+4.  Runtime NullPointerException
+
+Show Answer
+
+B) 0, null, then compile error on the third print  
+  
+`x` is a class field (int) — defaults to `0`. `s` is a class field (String) — defaults to `null`. But `y` is a **local variable** — it has no default. The compiler catches that `y` was never assigned and refuses to compile. The code won't even run.
+
+### Wrapper Classes & Autoboxing
+
+Java has two kinds of data: **primitives** (`int`, `double`, `char`, etc.) and **objects**. The problem is — Java collections like `ArrayList` can ONLY store objects, not primitives. So you can't write `ArrayList<int>`.
+
+That's where **wrapper classes** come in. Each primitive type has a corresponding wrapper class — an object version of the same thing.
+
+| Primitive | Wrapper Class | Note |
+| --- | --- | --- |
+| `int` | `Integer` | Name changes completely |
+| `char` | `Character` | Name changes completely |
+| `double` | `Double` | Just capitalized |
+| `boolean` | `Boolean` | Just capitalized |
+| `byte` | `Byte` | Just capitalized |
+| `short` | `Short` | Just capitalized |
+| `long` | `Long` | Just capitalized |
+| `float` | `Float` | Just capitalized |
+
+#### What is Autoboxing?
+
+**Autoboxing** is when Java automatically converts a primitive to its wrapper object. You don't have to do it manually — Java handles it behind the scenes.
+
+**Unboxing** is the reverse — Java automatically extracts the primitive value from a wrapper object.
+
+<Callout type="info" title="Why this matters">
+Before Java 5, you had to manually convert: `Integer x = new Integer(42);`. Now Java does it automatically. But you still need to understand it because:
+
+*   **Collections require wrappers:** `ArrayList<Integer>` not `ArrayList<int>`
+*   **`==` behaves differently:** `==` on wrapper objects compares memory addresses, NOT values. Use `.equals()` for wrapper comparison
+*   **Null danger:** A wrapper can be `null`, but a primitive can't. Unboxing `null` throws `NullPointerException`
+
+
+</Callout>
+
+```java
+// AUTOBOXING: primitive → wrapper (automatic)
+Integer x = 42;        // Java auto-wraps int 42 into Integer object
+// What Java actually does behind the scenes: Integer x = Integer.valueOf(42);
+
+// UNBOXING: wrapper → primitive (automatic)
+int y = x;              // Java auto-extracts the int value from Integer
+// What Java actually does: int y = x.intValue();
+
+// Works in collections too:
+ArrayList<Integer> list = new ArrayList<>();
+list.add(10);             // autoboxing: int 10 → Integer.valueOf(10)
+int val = list.get(0);   // unboxing: Integer → int
+
+```
+<Callout type="error" title="== Trap with Wrappers">
+
+```java
+Integer a = 128;
+Integer b = 128;
+System.out.println(a == b);       // false! (compares object references)
+System.out.println(a.equals(b));  // true  (compares actual values)
+
+// BUT for small values (-128 to 127), Java caches Integer objects:
+Integer c = 100;
+Integer d = 100;
+System.out.println(c == d);       // true! (same cached object)
+// This inconsistency is an exam favorite. Always use .equals() for wrappers.
+
+```
+
+</Callout>
+
+#### Useful Conversion Methods
+
+```java
+// String → primitive (parsing)
+int num = Integer.parseInt("123");        // String → int
+double d = Double.parseDouble("3.14");   // String → double
+boolean b = Boolean.parseBoolean("true"); // String → boolean
+
+// Primitive → String
+String s1 = Integer.toString(42);       // int → String
+String s2 = String.valueOf(42);        // works for any type → String
+String s3 = "" + 42;                  // quick trick: concatenate with empty string
+
+```
+<Callout type="info" title="Exam tip">
+`int` → `Integer` and `char` → `Character` — these two are the only ones where the wrapper name is very different from the primitive. All others just capitalize the first letter. This is a common MCQ trap.
+</Callout>
+
+### 3\. Type Conversions (CRITICAL for HackerRank)
+
+<Callout type="warn" title="What HackerRank Tests">
+HackerRank problems frequently require converting between String, int, and double. Know `Integer.parseInt()`, `Double.parseDouble()`, and `String.valueOf()` by heart.
+</Callout>
+
+#### Widening (Implicit) — Automatic, Safe
+
+Smaller type → larger type. No data loss. Java does it automatically.
+
+```java
+byte → short → int → long → float → double
+
+int x = 100;
+double d = x;      // Automatic: d = 100.0
+
+char c = 'A';
+int ascii = c;     // Automatic: ascii = 65
+
+```
+
+#### Narrowing (Explicit Cast) — Manual, May Lose Data
+
+Larger type → smaller type. You must tell Java explicitly with a cast.
+
+```java
+double pi = 3.14159;
+int x = (int) pi;    // x becomes 3 (TRUNCATES — does NOT round!)
+
+int big = 130;
+byte b = (byte) big;  // b = -126 (overflow! 130 exceeds byte range -128 to 127)
+
+```
+<Callout type="error" title="Exam Trap — Truncation, Not Rounding">
+`(int) 3.99` gives **3**, not 4. Casting to int always **truncates** (cuts off decimals). Use `Math.round()` if you want rounding.
+</Callout>
+
+#### Common Conversions You Must Know
+
+| From | To | Code | Notes |
+| --- | --- | --- | --- |
+| String | int | `Integer.parseInt("123")` | Throws NumberFormatException if not a valid integer |
+| String | double | `Double.parseDouble("3.14")` |  |
+| int | String | `String.valueOf(42)` or `"" + 42` |  |
+| char | int | `(int) 'A'` | Gives ASCII value: 65 |
+| int | char | `(char) 65` | Gives character: 'A' |
+
+<Callout type="error" title="Trap — Integer.parseInt with decimal string">
+`Integer.parseInt("12.5")` throws **NumberFormatException** — even though 12.5 is a number, it's not an integer. Use `Double.parseDouble("12.5")` then cast.
+</Callout>
+
+#### Formatting Decimals
+
+```java
+double val = 3.14159;
+System.out.println(String.format("%.2f", val));  // "3.14" — 2 decimal places
+
+System.out.println(Math.round(3.7));   // 4  (rounds to nearest integer)
+System.out.println(Math.ceil(3.2));    // 4.0 (rounds UP)
+System.out.println(Math.floor(3.9));   // 3.0 (rounds DOWN)
+
+```
+
+### 4\. Operators
+
+#### Arithmetic Operators
+
+```java
+int a = 7, b = 2;
+System.out.println(a + b);   // 9  (addition)
+System.out.println(a - b);   // 5  (subtraction)
+System.out.println(a * b);   // 14 (multiplication)
+System.out.println(a / b);   // 3  (integer division — NOT 3.5!)
+System.out.println(a % b);   // 1  (remainder/modulus)
+
+```
+<Callout type="error" title="Critical Exam Trap — Integer Division">
+`7 / 2` gives `3` (NOT 3.5). When both operands are integers, Java does **integer division** and drops the decimal. To get 3.5, make one operand a double: `7.0 / 2` or `(double) 7 / 2`.
+</Callout>
+
+#### Comparison Operators
+
+```java
+==    // equal to (compares VALUES)
+!=    // not equal to
+<     // less than
+>     // greater than
+<=    // less than or equal to
+>=    // greater than or equal to
+
+```
+<Callout type="error" title="= vs == — Don't Confuse These">
+
+
+| Symbol | Name | What it does | Example |
+| --- | --- | --- | --- |
+| `=` | Assignment | Puts a value INTO a variable | `int x = 5;` → x now holds 5 |
+| `==` | Comparison | Checks if two values are EQUAL | `if (x == 5)` → is x equal to 5? |
+
+Using `=` when you mean `==` is a common bug. `if (x = 5)` assigns 5 to x — it does NOT check equality. Java will give a compilation error in most cases, but it's still a frequent source of confusion.
+
+**Rule:** `=` means "store this value". `==` means "are these equal?". Always double-check in if-statements.
+</Callout>
+
+#### Logical Operators
+
+```java
+&&    // AND — both conditions must be true
+||    // OR  — at least one condition must be true
+!     // NOT — reverses true/false
+
+// Example:
+int age = 20;
+if (age >= 18 && age <= 60) {   // true if age is between 18 and 60
+    System.out.println("Working age");
+}
+
+```
+
+#### Assignment Operators
+
+```java
+x = 10;     // assign
+x += 5;    // same as x = x + 5  → x is now 15
+x -= 3;    // same as x = x - 3  → x is now 12
+x *= 2;    // same as x = x * 2  → x is now 24
+x /= 4;    // same as x = x / 4  → x is now 6
+x %= 4;    // same as x = x % 4  → x is now 2
+
+```
+
+#### Ternary Operator (Shortcut if-else)
+
+```java
+int age = 20;
+String result = (age >= 18) ? "Adult" : "Minor";
+// If condition is true → "Adult", otherwise → "Minor"
+
+```
+
+#### Increment / Decrement: i++ vs ++i
+
+```java
+int a = 5;
+int b = a++;   // POST-increment: b gets 5 (old value), THEN a becomes 6
+
+int c = 5;
+int d = ++c;   // PRE-increment: c becomes 6 FIRST, then d gets 6
+
+```
+<Callout type="error" title="Exam Trap — Post vs Pre Increment">
+`int a = 5; int b = a++;` → **b = 5, a = 6** (a++ returns the OLD value, then increments).  
+`int a = 5; int b = ++a;` → **b = 6, a = 6** (++a increments FIRST, then returns the new value).
+</Callout>
+
+### 5\. Strings (HEAVILY TESTED)
+
+<Callout type="warn" title="Exam Frequency">
+String questions appear in **every single exam** — FA MCQs, FA subjective, PRA, HSE. You'll get asked about equals() vs ==, substring(), immutability, and the String Pool in multiple ways.
+</Callout>
+
+#### What IS a String?
+
+A String is a **sequence of characters** — letters, numbers, and symbols lined up in a row. But here's the twist: in Java, a String is NOT a primitive type like `int` or `char`. It's an **object** — an instance of the `java.lang.String` class. That means it has methods you can call on it (like `.length()`, `.toUpperCase()`), unlike a plain `int` which is just a raw number.
+
+```java
+// A String looks simple, but it's actually an object under the hood
+String name = "Amit";          // Behind the scenes: an object with char[] {'A','m','i','t'}
+System.out.println(name.length());  // 4 — you can call methods because it's an object
+
+```
+
+#### What Does "Immutable" Really Mean?
+
+Immutable = once created, it **can never be changed**. Not modified. Not edited. Not even a little.
+
+**Analogy:** Imagine writing on a piece of paper with a **permanent marker**. You can't erase what you wrote. If you want different text, you have to grab a **new piece of paper** and write on that instead. The old paper still exists — you just stopped looking at it.
+
+That's exactly how Strings work in Java. When you call `.toUpperCase()`, Java doesn't change the original — it creates a brand new String and gives it back to you.
+
+```java
+String s = "Hello";
+s.toUpperCase();              // Creates "HELLO" but s is STILL "Hello" — you ignored the new paper!
+s = s.toUpperCase();           // NOW s points to the new String "HELLO" (you picked up the new paper)
+
+```
+<Callout type="info" title="Why is this important?">
+Every String operation (`toUpperCase()`, `trim()`, `replace()`, `substring()`) returns a **NEW** String. If you don't assign it back, the result is lost. This is the #1 beginner mistake with Strings.
+</Callout>
+
+#### The String Pool (Why == Sometimes Works)
+
+Java has a clever memory optimization called the **String Pool** (also called the String Intern Pool). When you create a String using double quotes, Java first checks: "Does this exact text already exist in my pool?" If yes, it reuses the same object instead of creating a new one. This saves memory.
+
+```java
+String a = "Hello";     // Java creates "Hello" in the String Pool
+String b = "Hello";     // Java finds "Hello" already in the pool — reuses the SAME object
+
+System.out.println(a == b);   // true — they literally point to the SAME object in memory
+
+String c = new String("Hello");  // Forces Java to create a NEW object outside the pool
+System.out.println(a == c);   // false — different objects, even though same text
+
+```
+<Callout type="info" title="Think of it this way">
+The String Pool is like a library. If the library already has a copy of "Harry Potter", it won't buy another one — it just gives you the same copy. But if you insist on getting your OWN personal copy using `new`, you get a separate one that happens to have the same content.
+</Callout>
+
+#### Essential String Methods
+
+```java
+String s = "Hello World";
+
+s.length()                  // 11 (counts characters including space)
+s.charAt(0)                 // 'H' (character at index 0)
+s.charAt(4)                 // 'o'
+s.substring(0, 5)           // "Hello" (from index 0 to 4, end is EXCLUSIVE)
+s.substring(6)              // "World" (from index 6 to end)
+s.indexOf("World")          // 6 (first occurrence position)
+s.indexOf("xyz")            // -1 (not found)
+s.lastIndexOf("l")          // 9 (last occurrence)
+s.toUpperCase()              // "HELLO WORLD"
+s.toLowerCase()              // "hello world"
+s.trim()                     // Removes leading/trailing whitespace
+s.replace("Hello", "Hi")    // "Hi World"
+s.contains("World")         // true
+s.startsWith("He")          // true
+s.endsWith("ld")             // true
+s.isEmpty()                  // false (true only if length is 0)
+s.toCharArray()              // char[] {'H','e','l','l','o',' ','W','o','r','l','d'}
+
+// Split a string into array
+String csv = "a,b,c,d";
+String[] parts = csv.split(",");  // ["a", "b", "c", "d"]
+
+// Compare strings
+s.equals("Hello World")       // true (checks CONTENT)
+s.equalsIgnoreCase("hello world")  // true (ignores case)
+s.compareTo("Apple")          // positive number (lexicographic comparison)
+
+// Convert other types to String
+String.valueOf(42)             // "42"
+String.valueOf(3.14)           // "3.14"
+String.valueOf(true)           // "true"
+
+```
+
+#### equals() vs == (MOST IMPORTANT STRING CONCEPT)
+
+**Analogy:** Imagine two people standing in a room. `==` asks: "Are these two people literally the SAME person?" (same body, same memory address). `.equals()` asks: "Do these two people have the same name on their ID card?" (same content). Two different people can have the same name — but they're still different people.
+
+```java
+String a = "Hello";
+String b = "Hello";
+String c = new String("Hello");
+
+System.out.println(a == b);        // true  (same object in String Pool)
+System.out.println(a == c);        // FALSE (c is a new object in heap)
+System.out.println(a.equals(c));   // true  (same CONTENT — both contain "Hello")
+
+```
+
+Here's another tricky scenario that appears in exams:
+
+```java
+String x = "Priya";
+String y = "Pri" + "ya";        // Compiler optimizes this to "Priya" at compile time
+System.out.println(x == y);      // true — compiler merged the literals, same pool object
+
+String part = "ya";
+String z = "Pri" + part;         // Concatenation with a VARIABLE — happens at runtime
+System.out.println(x == z);      // false — runtime concatenation creates a new object
+System.out.println(x.equals(z)); // true — same content
+
+```
+<Callout type="error" title="Most Common Exam Question">
+**`==` compares REFERENCES** (are they the same object in memory?).  
+**`.equals()` compares CONTENT** (do they contain the same characters?).  
+**Always use `.equals()` to compare Strings.** Using `==` on Strings created with `new` keyword returns false even if the content is the same.  
+  
+**Exam trick:** String literal concatenation at compile time (`"A" + "B"`) goes to the pool. Variable concatenation at runtime (`"A" + variable`) creates a new heap object.
+</Callout>
+
+**Q: What is the output?**
+```java
+String s1 = "Rahul";
+String s2 = new String("Rahul");
+System.out.println(s1 == s2);
+System.out.println(s1.equals(s2));
+```
+
+**A)** true, true  
+**B)** false, true  
+**C)** true, false  
+**D)** false, false
+
+**Answer: B.** `s1` is in the String Pool, `s2` is a new object on the heap. `==` checks reference (different objects = false). `.equals()` checks content (both "Rahul" = true).
+
+**Q: What does this code print?**
+```java
+String name = "Amit";
+name.toUpperCase();
+System.out.println(name);
+```
+
+**A)** AMIT  
+**B)** Amit  
+**C)** amit  
+**D)** Compilation error
+
+**Answer: B.** Strings are immutable. `toUpperCase()` returns a NEW String "AMIT", but since it's not assigned back (`name = name.toUpperCase()`), the original `name` stays "Amit".
+
+### StringBuilder & StringBuffer
+
+#### Why Does Immutability Cause Problems?
+
+Remember: every time you modify a String, Java creates a brand new object. For one or two changes, no big deal. But what happens in a loop?
+
+```java
+// BAD — this creates 1000 temporary String objects!
+String result = "";
+for (int i = 0; i < 1000; i++) {
+    result = result + i;  // Each + creates a NEW String, copies all old content + new, throws away the old one
+}
+// After 1000 iterations: 1000 temporary objects created and abandoned = SLOW + wastes memory
+
+```
+
+**Analogy:** Imagine you're writing a guest list. With String, every time you add a new name, you get a completely new piece of paper, copy ALL previous names onto it, then add the new one. After 1000 guests, you've used 1000 pieces of paper! With StringBuilder, you have a **whiteboard** — you just keep writing more names on the same board. Erase and rewrite whenever you want. One board, no waste.
+
+#### StringBuilder — The Mutable String
+
+StringBuilder lets you modify text **in place** without creating new objects. Use it whenever you're building a string piece by piece.
+
+```java
+StringBuilder sb = new StringBuilder("Hello");
+sb.append(" World");         // sb is now "Hello World" (same object, no new object created)
+sb.insert(5, ",");           // "Hello, World" (inserts at index 5)
+sb.delete(5, 6);             // "Hello World" (removes characters from index 5 to 5)
+sb.replace(0, 5, "Hi");     // "Hi World" (replaces index 0-4 with "Hi")
+sb.reverse();                // "dlroW iH"
+sb.length();                 // 8
+String result = sb.toString();  // Convert back to regular String when done
+
+```
+```java
+// GOOD — efficient loop with StringBuilder
+StringBuilder sb = new StringBuilder();
+for (int i = 0; i < 1000; i++) {
+    sb.append(i);  // Modifies the SAME object each time — fast!
+}
+String result = sb.toString();
+
+```
+
+#### When to Use What?
+
+| Feature | String | StringBuilder | StringBuffer |
+| --- | --- | --- | --- |
+| Mutable? | No (immutable) | Yes | Yes |
+| Thread-safe? | Yes (immutable) | No | Yes (synchronized) |
+| Speed | Slow for modifications | Fastest | Slower than StringBuilder |
+| When to use | Text that doesn't change | Building strings in loops (single-threaded) | Building strings in loops (multi-threaded) |
+
+<Callout type="info" title="Exam Quick Rule">
+**String** = text that stays the same. **StringBuilder** = text you need to build/modify (99% of real use cases). **StringBuffer** = same as StringBuilder but thread-safe (only use in multi-threaded code — rare).
+</Callout>
+
+**Q: Which is the most efficient way to concatenate 500 strings?**
+
+**A)** Using `+` operator in a loop  
+**B)** Using `String.concat()` in a loop  
+**C)** Using `StringBuilder.append()` in a loop  
+**D)** All have the same performance
+
+**Answer: C.** Both A and B create a new String object on every iteration (500 temporary objects). StringBuilder modifies the same object in place — one object for all 500 operations.
+
+### 6\. Arrays
+
+An array is a container that holds a **fixed number** of values of the **same type**. Think of it as a row of numbered boxes.
+
+```java
+// Declaration + initialization
+int[] nums = new int[5];          // Creates array of 5 ints, all 0 by default
+int[] marks = {90, 85, 78, 92};  // Creates and fills in one line
+
+// Accessing elements (0-indexed)
+System.out.println(marks[0]);   // 90 (first element)
+System.out.println(marks[3]);   // 92 (fourth element)
+marks[1] = 95;                   // Change second element to 95
+
+// Length (NOT a method — no parentheses!)
+System.out.println(marks.length);  // 4
+
+// Looping through array
+for (int i = 0; i < marks.length; i++) {
+    System.out.println(marks[i]);
+}
+
+// Enhanced for-each loop
+for (int m : marks) {
+    System.out.println(m);
+}
+
+```
+<Callout type="error" title="Exam Trap — length vs length()">
+`array.length` — NO parentheses (it's a field).  
+`string.length()` — WITH parentheses (it's a method).  
+Mixing them up is a compile error and a common MCQ trap.
+</Callout>
+
+#### Useful Array Operations
+
+```java
+import java.util.Arrays;
+
+int[] arr = {5, 2, 8, 1, 9};
+Arrays.sort(arr);                   // Sorts: [1, 2, 5, 8, 9]
+System.out.println(Arrays.toString(arr));  // "[1, 2, 5, 8, 9]"
+
+```
+
+#### 2D Arrays
+
+```java
+int[][] matrix = new int[3][4];  // 3 rows, 4 columns
+matrix[0][0] = 1;                // Set first row, first column
+
+int[][] grid = {
+    {1, 2, 3},
+    {4, 5, 6},
+    {7, 8, 9}
+};
+
+// Loop through 2D array
+for (int i = 0; i < grid.length; i++) {
+    for (int j = 0; j < grid[i].length; j++) {
+        System.out.print(grid[i][j] + " ");
+    }
+    System.out.println();
+}
+
+```
+
+### Array of Objects (FA Critical)
+
+In HackerRank FA questions, you'll almost always need to create an **array of custom objects** — not just an array of `int` or `String`. You create a class, then make an array where each element is an object of that class.
+
+<Callout type="info" title="Why this is critical">
+Nearly every FA Round 2 Java question follows this pattern: "Create a class → read input → store objects in an array → filter/search → print result." If you can't work with arrays of objects, you can't solve FA questions.
+</Callout>
+
+#### Step 1: Define the class
+
+```java
+class Student {
+    private String name;
+    private int marks;
+
+    // Parameterized constructor — sets values when creating the object
+    public Student(String name, int marks) {
+        this.name = name;
+        this.marks = marks;
+    }
+
+    // Getters — the ONLY way to access private fields from outside
+    public String getName() { return name; }
+    public int getMarks() { return marks; }
+}
+
+```
+
+#### Step 2: Create the array and fill it
+
+```java
+// Create an array that can hold 3 Student objects
+Student[] students = new Student[3];
+
+// Each slot starts as null — you must fill them
+students[0] = new Student("Amit", 85);
+students[1] = new Student("Priya", 92);
+students[2] = new Student("Rahul", 78);
+
+```
+
+#### Step 3: Loop through with for-each
+
+```java
+// for-each loop — cleanest way to iterate over an array
+// "for each Student s in the students array, do this:"
+for (Student s : students) {
+    System.out.println(s.getName() + " - " + s.getMarks());
+}
+// Output:
+// Amit - 85
+// Priya - 92
+// Rahul - 78
+
+```
+<Callout type="info" title="for-each vs regular for loop">
+
+
+| Regular for | for-each |
+| --- | --- |
+| `for (int i = 0; i < arr.length; i++)` | `for (Student s : students)` |
+| You have the index `i` | No index — just the element |
+| Use when you need the index number | Use when you just need each element |
+| Can modify the array | Read-only — can't change the array |
+
+**For FA questions, for-each is usually enough** — you're iterating to find/filter, not to modify.
+</Callout>
+
+#### Step 4: Search/Filter (the FA pattern)
+
+```java
+// Find a student by name (case-insensitive)
+public static Student findByName(Student[] students, String name) {
+    for (Student s : students) {
+        if (s.getName().equalsIgnoreCase(name)) {  // ← case-insensitive!
+            return s;  // found it — return the object
+        }
+    }
+    return null;  // no match found
+}
+
+// In main method:
+Student result = findByName(students, "priya");
+if (result != null) {
+    System.out.println(result.getName() + " — " + result.getMarks());
+} else {
+    System.out.println("No Student Found");
+}
+
+```
+<Callout type="error" title="Common mistakes with array of objects">
+
+
+*   **Forgetting to create objects:** `new Student[3]` creates 3 `null` slots, NOT 3 Student objects. You must fill each slot with `new Student(...)`
+*   **NullPointerException:** If you loop over the array and a slot is still `null`, calling `.getName()` on it crashes
+*   **Using `==` for strings:** `s.getName() == "Priya"` compares memory addresses. Use `.equals()` or `.equalsIgnoreCase()`
+*   **Not returning null:** If your search method doesn't find anything, it MUST return `null`. And the caller MUST check for `null` before using the result
+
+
+</Callout>
+
+### 7\. Control Flow
+
+#### if / else if / else
+
+```java
+int marks = 75;
+
+if (marks >= 90) {
+    System.out.println("Grade A");
+} else if (marks >= 70) {
+    System.out.println("Grade B");    // This prints
+} else if (marks >= 50) {
+    System.out.println("Grade C");
+} else {
+    System.out.println("Fail");
+}
+
+```
+
+#### switch-case
+
+```java
+int day = 3;
+switch (day) {
+    case 1: System.out.println("Monday");    break;
+    case 2: System.out.println("Tuesday");   break;
+    case 3: System.out.println("Wednesday"); break;   // This prints
+    default: System.out.println("Other");
+}
+
+```
+<Callout type="error" title="Exam Trap — Missing break">
+Without `break`, execution "falls through" to the next case. If case 2 has no break, it runs case 2 AND case 3 AND every case below until it hits a break or the end of switch. This is a very common exam question.
+</Callout>
+
+#### Loops
+
+```java
+// for loop: init; condition; update
+for (int i = 0; i < 5; i++) {
+    System.out.println(i);    // Prints 0, 1, 2, 3, 4
+}
+
+// while loop: checks condition BEFORE each iteration
+int i = 0;
+while (i < 5) {
+    System.out.println(i);
+    i++;
+}
+
+// do-while: runs AT LEAST ONCE, checks condition AFTER
+int j = 10;
+do {
+    System.out.println(j);    // Prints 10 even though 10 < 5 is false
+    j++;
+} while (j < 5);
+
+// Enhanced for-each: iterate over arrays/collections
+int[] arr = {10, 20, 30};
+for (int x : arr) {
+    System.out.println(x);    // Prints 10, 20, 30
+}
+
+```
+
+#### break and continue
+
+```java
+// break: exits the loop entirely
+for (int i = 0; i < 10; i++) {
+    if (i == 5) break;       // Stops at 5
+    System.out.println(i);    // Prints 0,1,2,3,4
+}
+
+// continue: skips current iteration, goes to next
+for (int i = 0; i < 5; i++) {
+    if (i == 2) continue;    // Skips 2
+    System.out.println(i);    // Prints 0,1,3,4
+}
+
+```
+<Callout type="info" title="Key Difference">
+**while** checks condition first — may run 0 times.  
+**do-while** runs body first — always runs at least 1 time.  
+Exam loves asking: "What's the output of this do-while when condition is initially false?"
+</Callout>
+
+### 8\. Methods
+
+#### Why Do Methods Exist?
+
+**Imagine this:** You write 10 lines of code to calculate a student's grade. Then you need that same calculation in 20 different places in your program. Without methods, you'd copy-paste those 10 lines 20 times. Now you find a bug in the calculation — you have to fix it in all 20 places. Miss one? Your program has inconsistent behavior.
+
+**Methods solve this:** Write the code ONCE, give it a name, and call it from anywhere. Fix a bug? Fix it in one place. That's it.
+
+#### Anatomy of a Method
+
+A method has four parts. Think of it like ordering food at a restaurant:
+
+*   **Return type** — What does the method give back? (The food you ordered. `int` means it gives back an integer, `String` gives back text, `void` means it gives you nothing — it just does something.)
+*   **Method name** — What's it called? (Like the name of the dish on the menu.)
+*   **Parameters** — What does the method need to do its job? (Like telling the waiter "medium spice, no onions." The method needs this input to work.)
+*   **Body** — The actual work. (The kitchen cooking your food.)
+
+```java
+// Syntax: accessModifier returnType methodName(parameters) { body }
+
+// This method takes two ints and GIVES BACK their sum
+public static int add(int a, int b) {
+    return a + b;            // "return" sends the result back to whoever called this method
+}
+
+// This method takes a name and GIVES BACK nothing (void) — it just prints
+public static void greet(String name) {
+    System.out.println("Hello, " + name);  // void = performs an action, returns nothing
+}
+
+// Calling methods
+int result = add(3, 5);       // result = 8 (the method returned 8)
+greet("Priya");               // prints "Hello, Priya" (no return value to capture)
+
+```
+<Callout type="info" title="void vs return">
+**void** = the method does something (prints, saves, updates) but gives nothing back. You can't write `int x = greet("Amit");` — there's nothing to store.  
+**return type** = the method computes something and hands it back to you. You CAN store it: `int x = add(3, 5);`
+</Callout>
+
+#### Method Overloading (Compile-time Polymorphism)
+
+**Why?** Sometimes you need the same operation but with different types of input. Instead of creating `addInts()`, `addDoubles()`, `addThreeInts()`, Java lets you use the same name `add()` with different parameters. Java figures out which version to call based on what you pass.
+
+```java
+static int add(int a, int b) { return a + b; }
+static double add(double a, double b) { return a + b; }
+static int add(int a, int b, int c) { return a + b + c; }
+
+add(3, 5);         // Calls first: add(int, int) → 8
+add(3.0, 5.0);     // Calls second: add(double, double) → 8.0
+add(1, 2, 3);       // Calls third: add(int, int, int) → 6
+
+```
+<Callout type="info" title="Overloading Rules">
+Overloaded methods must differ in **parameter type, number, or order**. Changing ONLY the return type is NOT valid overloading — it causes a compile error.  
+  
+**Valid:** `add(int, int)` and `add(double, double)` — different parameter types.  
+**Invalid:** `int add(int a)` and `double add(int a)` — same parameters, only return type differs.
+</Callout>
+
+#### Varargs (Variable Arguments)
+
+```java
+static int sum(int... nums) {  // Accepts 0 or more ints (treated as an array inside)
+    int total = 0;
+    for (int n : nums) total += n;
+    return total;
+}
+
+sum(1, 2);            // 3
+sum(1, 2, 3, 4, 5);  // 15
+sum();                // 0
+
+```
+
+#### Pass by Value — The Photocopy Analogy
+
+**Analogy:** When you pass a variable to a method, you're handing over a **photocopy**, not the original document. The method can scribble all over the photocopy — the original stays untouched.
+
+```java
+static void tryToChange(int x) {
+    x = 100;  // Changes the PHOTOCOPY, not the original
+}
+
+int age = 25;
+tryToChange(age);
+System.out.println(age);  // STILL 25 — the original was never touched
+
+```
+
+**For objects, it's slightly different:** You pass a photocopy of the **address** (reference). The method can follow that address and modify the object's contents. But it can't change what the original variable points to.
+
+```java
+static void changeName(Student s) {
+    s.name = "Rahul";    // Follows the address, modifies the object — THIS WORKS
+}
+
+static void replaceStudent(Student s) {
+    s = new Student();    // Points the photocopy to a new object — original unaffected
+}
+
+Student amit = new Student();
+amit.name = "Amit";
+changeName(amit);
+System.out.println(amit.name);  // "Rahul" — the object was modified through the reference copy
+
+```
+<Callout type="info" title="Critical Concept">
+Java is **ALWAYS pass by value**. For primitives, it passes a copy of the value. For objects, it passes a **copy of the reference** (address) — so you can modify the object's contents but you cannot make the original variable point to a different object.
+</Callout>
+
+**Q: What is the output?**
+```java
+static void modify(int x) { x = x * 2; }
+
+int num = 10;
+modify(num);
+System.out.println(num);
+```
+
+**A)** 10  
+**B)** 20  
+**C)** 0  
+**D)** Compilation error
+
+**Answer: A.** Java passes primitives by value (a copy). The method modifies the copy, not the original. `num` remains 10.
+
+**Q: Which of these is valid method overloading?**
+
+**A)** `int show(int a)` and `double show(int a)` — same params, different return  
+**B)** `void show(int a)` and `void show(double a)` — different param types  
+**C)** `void show(int a)` and `void show(int a)` — identical signatures  
+**D)** None of the above
+
+**Answer: B.** Overloading requires different parameter types, number, or order. A is invalid (only return type differs). C is a duplicate method (compile error).
+
+### 9\. OOP — Object-Oriented Programming
+
+**Why does OOP exist?** Imagine you're building a school management system. Without OOP (in "procedural" style), you'd have 100 loose functions like `getStudentName()`, `calculateFees()`, `assignTeacher()` — and 50 global variables floating around. When the system grows, you can't tell which function works with which data. Change one variable and three random functions break. It's chaos — like a kitchen where every chef shares the same 50 bowls with no labels.
+
+**OOP solves this** by grouping related data and behavior together into **objects**. A `Student` object bundles the student's name, age, and marks WITH the methods that operate on them. Each object is a self-contained unit — like giving each chef their own labeled station with their own ingredients.
+
+#### The 4 Pillars — One Analogy to Connect Them All
+
+Imagine you're a employee using the company's HR portal:
+
+1.  **Encapsulation** — Your salary is hidden. You can't type in a new salary directly. You request a raise through a proper form (getter/setter). The data is _protected_ behind controlled access.
+2.  **Inheritance** — Every employee (Developer, Tester, Manager) shares common properties: name, employee ID, joining date. Instead of writing these for each role, they all _inherit_ from a base "Employee" class.
+3.  **Polymorphism** — When the system calls `calculateBonus()`, a Developer gets 10%, a Manager gets 15%, a Director gets 20%. Same method name, different behavior depending on the object type.
+4.  **Abstraction** — You click "Apply for Leave" and it works. You don't know whether it sends an email, updates a database, or triggers a workflow behind the scenes. The complexity is _hidden_ — you only see a simple button.
+
+<Callout type="info" title="OOP vs Procedural — The Core Difference">
+**Procedural** = Functions and data are separate. Functions act on data passed to them. Works fine for small programs.  
+**OOP** = Data and functions live together inside objects. Each object manages its own state. Essential for large, real-world systems.
+</Callout>
+
+### Classes & Objects
+
+**Class = Blueprint.** It describes what something IS and what it CAN DO.  
+**Object = Instance.** It's an actual thing built from the blueprint.
+
+Analogy: A class is like an architectural plan for a house. An object is the actual house built from that plan. You can build many houses (objects) from one plan (class).
+
+```java
+// Defining a class (the blueprint)
+class Student {
+    // Properties (what a student HAS)
+    String name;
+    int age;
+    double marks;
+
+    // Behavior (what a student CAN DO)
+    void study() {
+        System.out.println(name + " is studying");
+    }
+
+    void showInfo() {
+        System.out.println("Name: " + name + ", Age: " + age);
+    }
+}
+
+// Creating objects (actual students)
+Student s1 = new Student();   // 'new' creates an object in memory
+s1.name = "Darshan";
+s1.age = 22;
+s1.study();                    // "Darshan is studying"
+
+Student s2 = new Student();   // Another object from same blueprint
+s2.name = "Amit";
+s2.age = 23;
+
+```
+
+#### What Does `new` Actually Do?
+
+When you write `Student s1 = new Student();`, three things happen:
+
+1.  **`new Student()`** — Java allocates space in the **heap memory** for a new Student object (with fields name, age, marks all set to defaults: null, 0, 0.0).
+2.  **The constructor runs** — sets up the object's initial state.
+3.  **`s1`** — A **reference variable** is created on the stack. It stores the _address_ of the object in heap memory.
+
+#### Reference Variables — The TV Remote Analogy
+
+`s1` is NOT the object itself. It's a **reference** — a remote control that points to the object. The remote isn't the TV; it just lets you control the TV.
+
+```java
+Student s1 = new Student();
+s1.name = "Priya";
+
+Student s2 = s1;   // s2 now points to the SAME object as s1
+                    // Two remotes, one TV!
+
+s2.name = "Rahul";
+System.out.println(s1.name);  // "Rahul" — because s1 and s2 point to the same object!
+
+```
+<Callout type="error" title="Common Trap">
+`Student s2 = s1;` does NOT create a new Student. Both `s1` and `s2` now point to the same object in memory. Changing the object through `s2` will be visible through `s1` too. If you want a separate copy, you need a copy constructor or `clone()`.
+</Callout>
+
+#### The `this` Keyword
+
+`this` refers to the **current object** — the object that's calling the method. Used when a parameter name is the same as a field name.
+
+```java
+class Student {
+    String name;
+
+    void setName(String name) {
+        this.name = name;   // this.name = field, name = parameter
+    }
+}
+
+```
+
+What is the output?
+
+```java
+Student a = new Student();
+a.name = "Amit";
+Student b = a;
+b.name = "Priya";
+System.out.println(a.name);
+
+```
+
+1.  Amit
+2.  null
+3.  Priya
+4.  Compile error
+
+Show Answer
+
+Priya. `b = a` makes both variables point to the same object. Changing `b.name` changes the object that `a` also references.
+
+How many objects are created in heap memory?
+
+```java
+Student s1 = new Student();
+Student s2 = new Student();
+Student s3 = s1;
+
+```
+
+1.  3
+2.  2
+3.  1
+4.  0
+
+Show Answer
+
+2\. Only `new` creates objects. `s3 = s1` just copies the reference — no new object is created.
+
+### Constructors (VERY IMPORTANT)
+
+**Why do we need constructors?** Imagine you buy a new phone. Out of the box, it has no name set, no Wi-Fi configured, no language selected. Before you can use it, you go through a "setup wizard" that initializes everything. A constructor IS that setup wizard for an object — it runs the moment the object is born and sets up its initial state.
+
+Without constructors, every time you create an object you'd have to manually set every field, one by one — and if you forget one, you'll get unexpected `null` or `0` values causing bugs later.
+
+A constructor is a special method that runs **automatically when you create an object** with `new`. Its job is to initialize the object's fields. It has **no return type** (not even `void`) and its name **must match the class name**.
+
+```java
+class Student {
+    String name;
+    int age;
+
+    // Default constructor (no parameters)
+    Student() {
+        name = "Unknown";
+        age = 0;
+        System.out.println("Default constructor called");
+    }
+
+    // Parameterized constructor
+    Student(String name, int age) {
+        this.name = name;
+        this.age = age;
+        System.out.println("Parameterized constructor called");
+    }
+
+    // Constructor chaining — calling another constructor using this()
+    Student(String name) {
+        this(name, 18);    // Calls the 2-param constructor with default age 18
+    }
+}
+
+Student s1 = new Student();                 // Calls default constructor
+Student s2 = new Student("Darshan", 22);   // Calls parameterized constructor
+Student s3 = new Student("Amit");           // Calls 1-param → chains to 2-param
+
+```
+<Callout type="error" title="Critical Exam Trap — Default Constructor">
+Java provides a free default (no-arg) constructor **only if you don't write ANY constructor**. The moment you write even one parameterized constructor, Java stops providing the default one. So `new Student()` will give a **compile error** if you only have `Student(String name)`.
+</Callout>
+
+#### Copy Constructor
+
+```java
+class Student {
+    String name;
+    int age;
+
+    Student(Student other) {      // Takes another Student object
+        this.name = other.name;    // Copies its values
+        this.age = other.age;
+    }
+}
+
+Student original = new Student("Darshan", 22);
+Student copy = new Student(original);   // Creates a copy
+
+```
+
+#### When to Use Which Constructor?
+
+| Constructor Type | When to Use | Example |
+| --- | --- | --- |
+| **Default (no-arg)** | When you want safe default values | `new Student()` — name="Unknown", age=0 |
+| **Parameterized** | When you know the values at creation time | `new Student("Amit", 22)` |
+| **Copy** | When you need an independent clone of an existing object | `new Student(existingStudent)` |
+
+#### Why `this()` Chaining Matters
+
+Instead of duplicating initialization logic in every constructor, you write it ONCE in the "main" constructor and have others delegate to it. Less code, fewer bugs.
+
+```java
+Student() {
+    this("Unknown", 18);   // Don't duplicate — delegate to the 2-param constructor
+}
+Student(String name) {
+    this(name, 18);         // Same — delegate with default age
+}
+Student(String name, int age) {
+    this.name = name;       // The ONE place where actual initialization happens
+    this.age = age;
+}
+
+```
+
+What happens when you compile and run this code?
+
+```java
+class Book {
+    String title;
+    Book(String title) {
+        this.title = title;
+    }
+}
+Book b = new Book();
+
+```
+
+1.  Creates a Book with title = null
+2.  Creates a Book with title = ""
+3.  Compile error — no default constructor available
+4.  Runtime exception
+
+Show Answer
+
+Compile error. Since a parameterized constructor is defined, Java does NOT provide a free default constructor. `new Book()` fails because there's no no-arg constructor.
+
+### Encapsulation
+
+**Why does hiding data matter?** Imagine your bank account balance is a `public` variable. Any piece of code, anywhere in the program, could do this:
+
+```java
+acc.balance = 0;      // Oops. Someone just wiped your savings.
+acc.balance = -5000;  // Now you owe money? No validation, no logging, no protection.
+
+```
+
+Encapsulation means **hiding the internal data** of a class (using `private`) and only allowing access through **controlled methods** (getters and setters). You can't reach inside an ATM and grab cash — you use the buttons (methods) to interact. The ATM validates your PIN, checks your balance, and only THEN dispenses money.
+
+#### The Encapsulation Pattern: private fields + public getters/setters
+
+```java
+class BankAccount {
+    private String owner;
+    private double balance;   // PRIVATE — can't access directly from outside
+
+    // Getter — read the value
+    public double getBalance() {
+        return balance;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    // Setter WITH validation — this is the real power of encapsulation
+    public void deposit(double amount) {
+        if (amount > 0) {        // Validation — can't deposit negative
+            balance += amount;
+            System.out.println("Deposited: " + amount);
+        } else {
+            System.out.println("Invalid amount!");
+        }
+    }
+
+    public void setOwner(String owner) {
+        if (owner != null && !owner.isEmpty()) {
+            this.owner = owner;
+        } else {
+            System.out.println("Owner name cannot be empty!");
+        }
+    }
+}
+
+BankAccount acc = new BankAccount();
+// acc.balance = 1000000;    // COMPILE ERROR — balance is private
+acc.setOwner("Priya");
+acc.deposit(5000);            // "Deposited: 5000.0"
+acc.deposit(-100);            // "Invalid amount!" — setter rejected it
+System.out.println(acc.getBalance());  // 5000.0
+
+```
+<Callout type="info" title="Getters and Setters Are Not Just Boilerplate">
+Many beginners think getters/setters are pointless ceremony. But they let you:
+
+*   **Add validation** — reject invalid data (negative age, empty names)
+*   **Add logging** — track every time a value changes
+*   **Make fields read-only** — provide a getter but no setter
+*   **Change internal implementation later** — without breaking code that uses the class
+
+
+</Callout>
+
+<Callout type="info" title="Why Encapsulation?">
+
+
+1.  **Data protection** — outsiders can't directly mess with internal state
+2.  **Validation** — you control what values are accepted
+3.  **Flexibility** — you can change how data is stored internally without breaking outside code
+
+
+</Callout>
+
+<Callout type="warn" title="FA Pattern">
+Almost every FA question about encapsulation follows this pattern: **private fields + public getters/setters**. If you see "write an encapsulated class" — make ALL fields `private` and provide `getX()` / `setX()` methods for each field.
+</Callout>
+
+Which of the following is a properly encapsulated class?
+
+1.  A class with all public fields and no methods
+2.  A class with all private fields and public getter/setter methods
+3.  A class with all protected fields
+4.  A class with default access fields and a constructor
+
+Show Answer
+
+B. Encapsulation = private fields + public getters/setters. This hides the data and provides controlled access through methods.
+
+What is the output?
+
+```java
+class Employee {
+    private int age;
+    public void setAge(int age) {
+        if (age > 0 && age < 120) this.age = age;
+    }
+    public int getAge() { return age; }
+}
+Employee e = new Employee();
+e.setAge(-5);
+System.out.println(e.getAge());
+
+```
+
+1.  \-5
+2.  Compile error
+3.  0
+4.  Runtime exception
+
+Show Answer
+
+0\. The setter rejects -5 (fails the `age > 0` check), so `age` keeps its default value of 0. This is encapsulation protecting the data.
+
+### Inheritance
+
+**What problem does inheritance solve?** Imagine you're building a system with `Dog`, `Cat`, and `Bird` classes. All three have `name`, `age`, and an `eat()` method. Without inheritance, you'd copy-paste these into all three classes. Now imagine you need to add a `weight` field — you'd have to update three classes. With 20 animal types? That's 20 places to edit. Inheritance solves this: write the common stuff ONCE in an `Animal` parent class, and every child class gets it for free.
+
+The `extends` keyword creates an IS-A relationship: a Dog IS-A Animal. A Cat IS-A Animal. The child inherits all fields and methods from the parent.
+
+```java
+// Parent class (superclass) — common stuff goes here
+class Animal {
+    String name;
+    int age;
+
+    void eat() {
+        System.out.println(name + " is eating");
+    }
+}
+
+// Child class (subclass) — only adds what's unique to Dog
+class Dog extends Animal {
+    String breed;
+
+    void bark() {
+        System.out.println(name + " says Woof!");
+    }
+}
+
+class Cat extends Animal {
+    void purr() {
+        System.out.println(name + " is purring");
+    }
+}
+
+Dog d = new Dog();
+d.name = "Buddy";   // Inherited from Animal
+d.age = 3;           // Inherited from Animal
+d.eat();              // Inherited from Animal: "Buddy is eating"
+d.bark();             // Dog's own method: "Buddy says Woof!"
+
+```
+
+#### What Gets Inherited and What Doesn't?
+
+| Inherited | NOT Inherited |
+| --- | --- |
+| public and protected fields | **Constructors** — never inherited |
+| public and protected methods | private fields/methods (exist but not directly accessible) |
+| Default (package) members if same package |  |
+
+<Callout type="error" title="Critical: Constructors Are NOT Inherited">
+If the parent has a constructor `Animal(String name)`, the child does NOT automatically get it. The child must define its OWN constructor and use `super()` to call the parent's.
+</Callout>
+
+#### `super` Keyword — Talking to the Parent
+
+`super` is used for two things: calling the parent's constructor and calling the parent's methods.
+
+```java
+class Animal {
+    String type;
+
+    Animal(String type) {
+        this.type = type;
+        System.out.println("Animal constructor: " + type);
+    }
+
+    void sound() {
+        System.out.println("Some generic sound");
+    }
+}
+
+class Dog extends Animal {
+    String breed;
+
+    Dog(String breed) {
+        super("Dog");       // Calls PARENT constructor — MUST be first line
+        this.breed = breed;
+        System.out.println("Dog constructor: " + breed);
+    }
+
+    void sound() {           // Method OVERRIDING — replaces parent's version
+        super.sound();        // Call parent's version first
+        System.out.println("Woof!");  // Then add own behavior
+    }
+}
+
+Dog d = new Dog("Labrador");
+// Output:
+// Animal constructor: Dog      (parent runs FIRST)
+// Dog constructor: Labrador    (then child runs)
+
+```
+
+#### Method Overriding vs Method Overloading
+
+These two get confused constantly. Quick difference:
+
+*   **Overriding** — child class REPLACES a parent method (same name, same params). Happens in inheritance.
+*   **Overloading** — same class has multiple methods with same name but DIFFERENT params. Happens in the same class.
+
+<Callout type="info" title="Constructor Execution Order">
+When you create a child object, the **parent constructor runs FIRST**, then the child constructor. This is true even if you don't explicitly call `super()` — Java adds `super()` automatically (calling the parent's no-arg constructor).
+</Callout>
+
+<Callout type="error" title="Exam Fact">
+Java supports **single inheritance only** — a class can extend only ONE class. No multiple class inheritance. However, a class CAN implement multiple interfaces.
+</Callout>
+
+What is the output?
+
+```java
+class Parent {
+    Parent() { System.out.print("P "); }
+}
+class Child extends Parent {
+    Child() { System.out.print("C "); }
+}
+new Child();
+
+```
+
+1.  C P
+2.  P C
+3.  C
+4.  Compile error
+
+Show Answer
+
+P C. Parent constructor always runs first. Even though we wrote `new Child()`, Java automatically calls `super()` before the child constructor body executes.
+
+Which statement about inheritance is FALSE?
+
+1.  A child class inherits public methods from the parent
+2.  Java supports single class inheritance only
+3.  super() must be the first statement in a child constructor
+4.  A child class inherits the parent's constructors
+
+Show Answer
+
+D is FALSE. Constructors are NEVER inherited. The child must define its own constructors and can call the parent's constructor using `super()`.
+
+### Polymorphism
+
+**Poly = many, morph = forms.** The word literally means "many forms." Same method name behaves differently depending on context.
+
+**Why does polymorphism matter?** Imagine you're building a notification system. You have `EmailNotification`, `SMSNotification`, and `PushNotification`. All of them have a `send()` method, but each sends differently. With polymorphism, you can write one loop that calls `send()` on any notification — and each object knows how to handle it. You don't need `if (type == "email") ... else if (type == "sms") ...`. The object itself decides what to do.
+
+#### 1\. Compile-time Polymorphism = Method Overloading
+
+Same method name, different parameter lists **in the same class**. Java decides which to call at compile time by looking at the arguments.
+
+```java
+class Calculator {
+    int add(int a, int b) { return a + b; }              // Two ints
+    double add(double a, double b) { return a + b; }      // Two doubles
+    int add(int a, int b, int c) { return a + b + c; }  // Three ints
+}
+
+Calculator calc = new Calculator();
+calc.add(5, 3);         // Calls int version → 8
+calc.add(2.5, 3.5);     // Calls double version → 6.0
+calc.add(1, 2, 3);      // Calls three-param version → 6
+
+```
+
+#### 2\. Runtime Polymorphism = Method Overriding
+
+Child class **replaces** a parent's method with its own version. Java decides which to call **at runtime** based on the actual object type, not the reference type. This is the powerful one.
+
+```java
+class Animal {
+    void sound() { System.out.println("..."); }
+}
+class Dog extends Animal {
+    @Override
+    void sound() { System.out.println("Woof!"); }
+}
+class Cat extends Animal {
+    @Override
+    void sound() { System.out.println("Meow!"); }
+}
+
+// Upcasting — parent reference, child object
+Animal a1 = new Dog();   // a1 is declared as Animal but IS a Dog
+Animal a2 = new Cat();
+
+a1.sound();   // "Woof!" — calls Dog's version (runtime decision)
+a2.sound();   // "Meow!" — calls Cat's version (runtime decision)
+
+```
+<Callout type="info" title="Why This Matters — The Real Power">
+You can treat a Dog as an Animal and it **still barks**. This means you can write methods that accept `Animal` and they'll work with ANY animal type — present or future:
+```java
+void makeAllSpeak(Animal[] animals) {
+    for (Animal a : animals) {
+        a.sound();  // Each animal makes its OWN sound
+    }
+}
+
+```
+Add a new `Parrot` class next week? This method still works without any changes.
+</Callout>
+
+#### `@Override` Annotation
+
+`@Override` is optional but strongly recommended. It tells the compiler "I intend to override a parent method." If you misspell the method name, the compiler catches it instead of silently creating a new method.
+
+#### `instanceof` Operator
+
+```java
+Animal a = new Dog();
+System.out.println(a instanceof Dog);     // true
+System.out.println(a instanceof Animal);  // true (Dog IS an Animal)
+System.out.println(a instanceof Cat);     // false
+
+```
+
+#### Overloading vs Overriding — Quick Reference
+
+| Feature | Overloading | Overriding |
+| --- | --- | --- |
+| When decided | Compile time | Runtime |
+| Method name | Same | Same |
+| Parameters | MUST be different | MUST be same |
+| Return type | Can differ | Must be same (or covariant) |
+| Where | Same class | Parent + child class |
+| Keyword | None | @Override |
+
+What is the output?
+
+```java
+class Vehicle {
+    void start() { System.out.print("Vehicle "); }
+}
+class Car extends Vehicle {
+    @Override
+    void start() { System.out.print("Car "); }
+}
+Vehicle v = new Car();
+v.start();
+
+```
+
+1.  Vehicle
+2.  Vehicle Car
+3.  Car
+4.  Compile error
+
+Show Answer
+
+Car. Runtime polymorphism in action. The reference type is `Vehicle` but the actual object is `Car`. At runtime, Java calls `Car`'s overridden `start()` method.
+
+Which is method overloading?
+
+1.  Child class redefines parent's method with same signature
+2.  Same class has multiple methods with same name but different parameters
+3.  Using @Override annotation
+4.  Parent reference pointing to child object
+
+Show Answer
+
+B. Overloading = same name, different parameter lists, in the same class. A is overriding, C is related to overriding, D is upcasting.
+
+### Abstraction
+
+**What is abstraction really?** You drive a car every day. You turn the steering wheel, press the accelerator, hit the brakes. Do you know how the engine combustion works? How the hydraulic braking system functions? No — and you don't need to. The steering wheel, pedals, and gear shift are the **abstract interface**. They hide the terrifying complexity underneath and give you a simple way to interact.
+
+Abstraction in Java works the same way: you **hide the "how" and show only the "what."** You define WHAT a class must do (the method signatures), but let each subclass decide HOW to do it.
+
+Java gives you two tools for abstraction: **abstract classes** and **interfaces**.
+
+#### Abstract Classes — Partial Implementation
+
+An abstract class is like a **half-finished template**. It can have some methods fully implemented (concrete methods) and some left empty for children to fill in (abstract methods). You CANNOT create an object of an abstract class directly — it's incomplete.
+
+```java
+abstract class Shape {
+    String color;
+
+    // Abstract method — NO body, child MUST implement this
+    abstract double area();
+
+    // Concrete method — has a body, inherited as-is
+    void display() {
+        System.out.println("Color: " + color + ", Area: " + area());
+    }
+}
+
+class Circle extends Shape {
+    double radius;
+
+    Circle(double r) { radius = r; }
+
+    @Override
+    double area() {
+        return Math.PI * radius * radius;   // Circle knows HOW to calculate its area
+    }
+}
+
+class Rectangle extends Shape {
+    double length, width;
+
+    Rectangle(double l, double w) { length = l; width = w; }
+
+    @Override
+    double area() {
+        return length * width;               // Rectangle knows its own formula
+    }
+}
+
+// Shape s = new Shape();   // COMPILE ERROR — can't instantiate abstract class
+Shape s = new Circle(5);    // OK — Circle is concrete
+System.out.println(s.area());  // 78.53...
+
+```
+
+#### Interfaces — A Pure Contract
+
+An interface is a **contract** that says "any class that implements me MUST provide these methods." It defines capabilities. Think of it like a job description: "Must be able to fly and land" — HOW you do it is your problem.
+
+```java
+interface Flyable {
+    void fly();         // Abstract by default (no body needed)
+    int MAX_HEIGHT = 10000;  // public static final by default
+
+    // Default method (Java 8+) — has a body, provides a fallback implementation
+    default void land() {
+        System.out.println("Landing...");
+    }
+}
+
+interface Swimmable {
+    void swim();
+}
+
+// A class can implement MULTIPLE interfaces — this is how Java handles multiple inheritance
+class Duck implements Flyable, Swimmable {
+    @Override
+    public void fly() { System.out.println("Duck flying"); }
+
+    @Override
+    public void swim() { System.out.println("Duck swimming"); }
+
+    // land() is inherited from Flyable's default method — no need to override
+}
+
+```
+
+#### Java 8 Default Methods — Why They Exist
+
+Before Java 8, interfaces could only have abstract methods. If you added a new method to an interface, EVERY class implementing it would break. Default methods solve this: they provide a fallback implementation so existing classes don't need to change.
+
+#### When to Use Which?
+
+<Callout type="info" title="Abstract Class vs Interface — Decision Guide">
+**Use an abstract class when:** Classes share common code (fields, methods). Example: `Animal` with shared `name`, `age`, and `eat()` method.  
+  
+**Use an interface when:** You want to define a capability that unrelated classes can share. Example: `Flyable` — a `Bird`, a `Plane`, and a `Drone` can all fly, but they're not related by inheritance.
+</Callout>
+
+#### Abstract Class vs Interface — Quick Reference
+
+| Feature | Abstract Class | Interface |
+| --- | --- | --- |
+| Methods | Abstract + concrete | Abstract + default (Java 8+) |
+| Variables | Any type (instance, static) | Only public static final (constants) |
+| Constructor | Yes | No |
+| Multiple inheritance | No (single extends) | Yes (multiple implements) |
+| Keyword | `extends` | `implements` |
+| When to use | Shared code between related classes | Define a contract (capability) |
+
+What happens when you try to compile this?
+
+```java
+abstract class Vehicle {
+    abstract void start();
+}
+class Bike extends Vehicle {
+    // no start() method
+}
+
+```
+
+1.  Compiles fine, start() is optional
+2.  Runs but throws exception when start() is called
+3.  Compiles fine because Bike inherits start()
+4.  Compile error — Bike must implement start() or be declared abstract
+
+Show Answer
+
+Compile error. If a class extends an abstract class, it MUST implement ALL abstract methods. Otherwise, the class itself must be declared `abstract`.
+
+Which statement is TRUE about interfaces?
+
+1.  A class can implement only one interface
+2.  Interfaces can have constructors
+3.  Interface variables are implicitly public, static, and final
+4.  Interfaces cannot have any method with a body
+
+Show Answer
+
+C. All variables in an interface are implicitly `public static final` (constants). A is false (multiple implements allowed), B is false (no constructors), D is false (Java 8+ default methods have bodies).
+
+### 10\. Access Modifiers
+
+#### Why Do Access Levels Exist?
+
+**Analogy:** Think about your personal information. Your **name** is public — anyone can know it. Your **phone number** is shared with friends and family (protected). Your **home address** is known by people in your neighborhood (default/package). Your **bank PIN** is private — only YOU should know it.
+
+Access modifiers work the same way in code. Not everything should be visible to everyone. If you make your bank account's `balance` field public, any code anywhere can change it to any value — no validation, no security, no control. By making it `private`, only the class itself can touch it.
+
+#### The Access Table
+
+| Modifier | Same Class | Same Package | Subclass (other package) | Everywhere | Real-world analogy |
+| --- | --- | --- | --- | --- | --- |
+| `public` | Yes | Yes | Yes | Yes | Your name — everyone can see it |
+| `protected` | Yes | Yes | Yes | No | Family recipes — shared with children (subclasses) and neighbors (same package) |
+| _default_ (no keyword) | Yes | Yes | No | No | Office memos — only people in the same department |
+| `private` | Yes | No | No | No | Your bank PIN — only you |
+
+```java
+// Example showing all four levels
+class Employee {
+    public String name;          // Anyone can access — visible everywhere
+    protected String department;  // Same package + subclasses in other packages
+    String employeeId;            // DEFAULT (no keyword) — same package only
+    private double salary;       // Only this class can see/change it
+}
+
+```
+<Callout type="info" title="Memory Aid">
+From most open to most restrictive: **public → protected → default → private**  
+Think: "Public Parties Don't Panic" (Public, Protected, Default, Private)
+</Callout>
+
+<Callout type="error" title="Exam Trap — Default is NOT Private">
+**default (package-private) is NOT the same as private!** Default access means any class in the **same package** can access it. Private means ONLY the same class. This is a very common exam confusion.  
+  
+Also: "Default" access modifier means you write **NO keyword at all** — NOT the keyword `default`. Writing `default class Foo {}` is NOT default access — it's a syntax error (except inside interfaces where `default` means something else).
+</Callout>
+
+**Q: Class A and Class B are in the same package. Class A has a variable `int x;` (no access modifier). Can Class B access `x`?**
+
+**A)** Yes — default access allows same-package access  
+**B)** No — no modifier means private  
+**C)** No — it's a compile error to have no modifier  
+**D)** Only if B extends A
+
+**Answer: A.** No modifier = default (package-private) access. Any class in the same package can access it. This is NOT the same as private.
+
+### 11\. static Keyword
+
+Think of a classroom. Every student has their own name, their own marks, their own bag — that's **instance data** (belongs to each object). But the classroom itself has things that are shared — the class teacher's name, the room number, the total number of students. Those shared things belong to the class, not to any one student. That's what `static` is.
+
+**`static` means "this belongs to the CLASS itself, not to any individual object."**
+
+#### Static Variable — Shared Data
+
+A normal (instance) variable gets its own copy for every object you create. A `static` variable exists only once — all objects share the same copy.
+
+```java
+class Student {
+    String name;              // INSTANCE — each student has their own name
+    static String school;     // STATIC — all students share the same school
+}
+
+Student.school = "Academy";   // Set it on the CLASS, not an object
+
+Student s1 = new Student();
+Student s2 = new Student();
+s1.name = "Amit";
+s2.name = "Priya";
+
+System.out.println(s1.name);    // "Amit" — s1's own name
+System.out.println(s2.name);    // "Priya" — s2's own name
+System.out.println(s1.school);  // "Academy" — shared
+System.out.println(s2.school);  // "Academy" — same value, same memory
+
+```
+<Callout type="info" title="Think of it this way">
+**Instance variable** = each person carries their own copy (like a phone number — everyone has their own).  
+**Static variable** = there's one copy pinned on the classroom wall (like the timetable — everyone reads the same one).
+</Callout>
+
+#### Static Method — Why and When?
+
+A regular method needs an object to run: `s1.getName()`. You're asking a specific student for their name. A `static` method doesn't need an object — it runs on the class itself: `Math.sqrt(25)`. You're not asking any specific Math object — there's only one `sqrt` and it works the same for everyone.
+
+**When do you make a method static?**
+
+*   **When the method doesn't use any instance data.** If the method doesn't need to know about `this` object's name, marks, or any specific object's data — it can be static.
+*   **Utility/helper methods.** Methods that just take input, do something, and return a result. Like `Integer.parseInt("42")` — it doesn't need an Integer object, it just converts a string.
+*   **HackerRank FA pattern.** The "getGadgetByCategory" method is static because it doesn't belong to any specific Gadget — it searches through ALL gadgets. It's a utility method.
+
+```java
+class MathHelper {
+    // This method doesn't need any object data
+    // It just takes two numbers and returns the bigger one
+    // So it should be static
+    static int max(int a, int b) {
+        return (a > b) ? a : b;
+    }
+}
+
+// Call it on the CLASS — no object needed
+int result = MathHelper.max(10, 20);  // 20
+
+```
+
+Compare that with a non-static method:
+
+```java
+class Student {
+    String name;
+
+    // This method NEEDS to know which student's name to return
+    // It uses "this.name" — instance data
+    // So it CANNOT be static
+    String getName() {
+        return this.name;  // "this" refers to the specific object
+    }
+}
+
+// Must call it on an OBJECT — which student?
+Student s = new Student();
+s.name = "Amit";
+s.getName();  // "Amit" — asks THIS specific student
+
+```
+<Callout type="info" title="The simple test">
+Ask yourself: **"Does this method need to know which object it's working on?"**  
+  
+**YES → non-static.** It needs `this`. Example: `getName()` — which student's name?  
+**NO → static.** It works the same regardless. Example: `parseInt("42")` — no object needed.
+</Callout>
+
+#### What happens inside a static method?
+
+A static method lives in the class, not in any object. Because of this, it has **no `this`** — there's no "current object" to refer to. This creates restrictions:
+
+```java
+class Demo {
+    String name = "Amit";        // instance variable
+    static int count = 0;       // static variable
+
+    static void staticMethod() {
+        System.out.println(count);   // OK — static can access static
+        // System.out.println(name);  // COMPILE ERROR — static can't access instance
+        // System.out.println(this);  // COMPILE ERROR — no "this" in static context
+    }
+
+    void instanceMethod() {
+        System.out.println(name);    // OK — instance can access instance
+        System.out.println(count);   // OK — instance can ALSO access static
+    }
+}
+
+```
+<Callout type="error" title="Why can't static access instance data?">
+Think about it: if you call `Demo.staticMethod()`, there's no object involved. So whose `name` would it print? Amit's? Priya's? There could be 100 Demo objects with different names — the static method has no way to know which one you mean. That's why Java says no.  
+  
+**Static doesn't know which object you're talking about, because it doesn't belong to any object.**
+</Callout>
+
+#### The main method is static — now you know why
+
+```java
+public static void main(String[] args) { ... }
+
+```
+
+When your program starts, no objects exist yet. Java needs to call `main()` without creating an object first. That's only possible if `main` is static — it belongs to the class, not to an object. It's the entry point that runs before anything else exists.
+
+#### Real example: Object counter
+
+```java
+class Counter {
+    static int count = 0;    // Shared by ALL Counter objects
+    String name;              // Each object has its own name
+
+    Counter(String name) {
+        this.name = name;
+        count++;              // Every time we create an object, count goes up
+    }
+
+    static void showCount() {
+        System.out.println("Total objects: " + count);
+    }
+}
+
+new Counter("A");    // count becomes 1
+new Counter("B");    // count becomes 2
+new Counter("C");    // count becomes 3
+Counter.showCount();  // "Total objects: 3"
+
+```
+
+#### Static Block — one-time setup
+
+A static block runs exactly **once**, when the class is first loaded into memory. Use it for one-time initialization.
+
+```java
+class Config {
+    static String dbUrl;
+
+    static {
+        // Runs ONCE when class is first loaded — before any object is created
+        dbUrl = "jdbc:mysql://localhost:3306/mydb";
+        System.out.println("Config loaded");
+    }
+}
+// Just mentioning Config.dbUrl for the first time triggers the static block
+
+```
+<Callout type="info" title="Static — Complete Summary">
+
+
+| What | static | non-static (instance) |
+| --- | --- | --- |
+| Belongs to | The class itself | Each individual object |
+| How to call | `ClassName.method()` | `object.method()` |
+| Has `this`? | No | Yes |
+| Can access instance data? | No | Yes |
+| Can access static data? | Yes | Yes |
+| When to use | Utility methods, counters, constants | Methods that need object-specific data |
+| Example | `Math.sqrt()`, `Integer.parseInt()` | `student.getName()` |
+
+
+</Callout>
+
+### 12\. final Keyword
+
+#### What Does "final" Mean?
+
+**In real life:** A "final decision" can't be changed. A "final answer" on a game show — locked in, no going back. Java's `final` keyword works the same way: once set, it's done. No modifications allowed.
+
+But `final` means slightly different things depending on WHERE you use it:
+
+| Usage | What it means | Real-world analogy | Example |
+| --- | --- | --- | --- |
+| `final` variable | Constant — value cannot be reassigned | Writing in permanent ink — can't change it | `final int MAX = 100;` |
+| `final` method | Cannot be overridden by child class | A rule that children must follow exactly — no modifications | `final void show() {}` |
+| `final` class | Cannot be extended (no child classes) | A family line that ends — no descendants | `final class String {}` |
+
+#### final Variable — A Constant Value
+
+```java
+final int MAX_MARKS = 100;
+// MAX_MARKS = 200;    // COMPILE ERROR — can't reassign a final variable
+
+final String COMPANY = "Amazon";
+// COMPANY = "Infosys";  // COMPILE ERROR
+
+```
+<Callout type="error" title="Tricky — final Object References">
+`final` on an object variable means the **reference can't change** (can't point to a different object). But you CAN still modify the object's contents!
+```java
+final StringBuilder sb = new StringBuilder("Hello");
+sb.append(" World");    // ALLOWED — modifying the object's content
+// sb = new StringBuilder("Hi");  // COMPILE ERROR — can't reassign the reference
+
+```
+Think of it as: the variable is glued to that object permanently. You can redecorate the object, but you can't glue the variable to a different object.
+</Callout>
+
+#### final Method — Can't Be Overridden
+
+```java
+class Parent {
+    final void importantRule() {
+        System.out.println("This rule cannot be changed by children");
+    }
+}
+
+class Child extends Parent {
+    // void importantRule() { }  // COMPILE ERROR — can't override a final method
+}
+
+```
+
+#### final Class — Can't Be Extended
+
+```java
+final class Immutable { }
+// class Child extends Immutable { }   // COMPILE ERROR — can't extend final class
+
+```
+
+#### Why Would You Make Something final?
+
+**Security.** The `String` class is final so that no one can create a fake String subclass that behaves differently. Imagine if someone could extend String and override `equals()` to always return true — that would break security checks everywhere. By making String final, Java guarantees that a String always behaves as expected.
+
+<Callout type="info" title="Exam Tip">
+`String`, `Math`, and all wrapper classes (`Integer`, `Double`, etc.) are **final** — you can't extend them. Convention: final constants are named in `ALL_CAPS_WITH_UNDERSCORES`.
+</Callout>
+
+**Q: What happens when you compile this code?**
+```java
+final int x = 10;
+x = 20;
+System.out.println(x);
+```
+
+**A)** Prints 20  
+**B)** Prints 10  
+**C)** Compilation error — cannot reassign final variable  
+**D)** Runtime exception
+
+**Answer: C.** A `final` variable can only be assigned once. Trying to reassign it (`x = 20`) causes a compile-time error. The code never runs.
+
+### 13\. Exception Handling
+
+#### What IS an Exception?
+
+Your code is running happily, line by line, and suddenly something unexpected happens — the file you're trying to read doesn't exist, someone tried to divide by zero, or a variable is `null` when you expected an object. The program can't continue normally. It "throws" an exception — think of it as raising a red flag saying **"Something went wrong!"**
+
+**Analogy:** Imagine you're following a recipe. Step 5 says "add 2 eggs." You open the fridge — no eggs. You can't just skip the step (the cake won't work). You need a backup plan: "If no eggs, use banana instead." That's exactly what exception handling is — a backup plan for when things go wrong.
+
+Without exception handling, your program crashes and the user sees an ugly error. With it, you can show a friendly message, try an alternative, or at least save the user's data before shutting down.
+
+#### try-catch-finally — Step by Step
+
+The three-part structure:
+
+*   **`try`** — "Try this code. It might fail."
+*   **`catch`** — "If it fails with THIS specific error, do THIS instead."
+*   **`finally`** — "No matter what happened (success or failure), ALWAYS do this." (Usually cleanup: closing files, database connections, etc.)
+
+```java
+try {
+    // Code that MIGHT throw an exception
+    int result = 10 / 0;    // ArithmeticException!
+    System.out.println(result);  // This line never runs
+} catch (ArithmeticException e) {
+    // Handle the error
+    System.out.println("Cannot divide by zero!");
+    System.out.println(e.getMessage());  // "/ by zero"
+} finally {
+    // ALWAYS runs — whether exception occurred or not
+    System.out.println("Cleanup done");
+}
+// Output: Cannot divide by zero!
+//         / by zero
+//         Cleanup done
+
+```
+
+#### throw vs throws
+
+```java
+// throw — manually throw an exception
+void setAge(int age) {
+    if (age < 0) {
+        throw new IllegalArgumentException("Age can't be negative");
+    }
+}
+
+// throws — DECLARES that a method might throw an exception
+void readFile() throws IOException {
+    // code that reads a file (might fail)
+}
+
+```
+
+| `throw` | `throws` |
+| --- | --- |
+| Used inside method body | Used in method signature |
+| Actually throws an exception | Declares possible exceptions |
+| Followed by an exception object | Followed by exception class name(s) |
+| `throw new Exception("msg")` | `void m() throws IOException` |
+
+#### Checked vs Unchecked Exceptions
+
+| Type | Checked at | Must handle? | Examples |
+| --- | --- | --- | --- |
+| **Checked** | Compile time | Yes (try-catch or throws) | IOException, SQLException, ClassNotFoundException |
+| **Unchecked** (RuntimeException) | Runtime | No (optional) | NullPointerException, ArrayIndexOutOfBoundsException, ArithmeticException, NumberFormatException |
+
+#### Exception Hierarchy
+
+```java
+Throwable
+├── Error              // JVM errors (OutOfMemoryError) — don't catch these
+└── Exception
+    ├── IOException      // Checked
+    ├── SQLException     // Checked
+    └── RuntimeException  // Unchecked
+        ├── NullPointerException
+        ├── ArrayIndexOutOfBoundsException
+        ├── ArithmeticException
+        ├── NumberFormatException
+        └── ClassCastException
+
+```
+
+#### Common Exceptions You Must Know
+
+| Exception | When It Occurs | Example |
+| --- | --- | --- |
+| `NullPointerException` | Calling method on null | `String s = null; s.length();` |
+| `ArrayIndexOutOfBoundsException` | Invalid array index | `int[] a = {1,2}; a[5];` |
+| `NumberFormatException` | Invalid number parsing | `Integer.parseInt("abc");` |
+| `ArithmeticException` | Division by zero (int) | `10 / 0;` |
+| `ClassNotFoundException` | Class not found at runtime | `Class.forName("com.xyz.Foo");` |
+| `StringIndexOutOfBoundsException` | Invalid string index | `"Hi".charAt(5);` |
+
+#### Custom Exception
+
+```java
+class InsufficientBalanceException extends Exception {
+    InsufficientBalanceException(String msg) {
+        super(msg);     // Pass message to parent Exception class
+    }
+}
+
+// Usage:
+void withdraw(double amount) throws InsufficientBalanceException {
+    if (amount > balance) {
+        throw new InsufficientBalanceException("Not enough funds");
+    }
+    balance -= amount;
+}
+
+```
+<Callout type="error" title="Exam Trap — finally Always Runs">
+The `finally` block runs even if there's a `return` statement in try or catch. The only exception: `System.exit(0)` kills the JVM before finally can run. This is a common trick question.
+</Callout>
+
+<Callout type="error" title="Never Catch Generic Exception">
+Avoid writing `catch (Exception e)` — it's too broad. It catches EVERY exception, including ones you didn't expect (like NullPointerException from a bug in your own code). This hides real bugs. Always catch the **specific exception** you're expecting.  
+  
+**Bad:** `catch (Exception e) { }` — hides everything, you'll never find bugs.  
+**Good:** `catch (NumberFormatException e) { }` — handles only what you expect.
+</Callout>
+
+**Q: What is the output?**
+```java
+try {
+    System.out.println("A");
+    int x = 10 / 0;
+    System.out.println("B");
+} catch (ArithmeticException e) {
+    System.out.println("C");
+} finally {
+    System.out.println("D");
+}
+```
+
+**A)** A B C D  
+**B)** A C  
+**C)** A C D  
+**D)** A B D
+
+**Answer: C.** "A" prints. Then division by zero throws ArithmeticException — "B" is skipped. Catch block prints "C". Finally ALWAYS runs, so "D" prints.
+
+**Q: Which of these is a checked exception?**
+
+**A)** NullPointerException  
+**B)** IOException  
+**C)** ArithmeticException  
+**D)** ArrayIndexOutOfBoundsException
+
+**Answer: B.** IOException is a checked exception — the compiler forces you to handle it with try-catch or declare it with throws. The other three are all RuntimeExceptions (unchecked) — the compiler doesn't force you to handle them.
+
+### 14\. Collections Basics
+
+<Callout type="warn" title="What PRA/Sprints Test">
+You need ArrayList and HashMap for PRA projects (JDBC, Servlets, Spring Boot). Know how to add, get, loop, and remove elements.
+</Callout>
+
+#### Why Do Collections Exist?
+
+Arrays have a major limitation: **fixed size**. When you create `int[] marks = new int[5];`, you're stuck with exactly 5 slots. What if a 6th student enrolls? You'd have to create a whole new array, copy everything over, and add the new element. That's painful.
+
+**Collections solve this.** They grow and shrink automatically. No size limits. No manual copying. Java handles it all behind the scenes.
+
+#### Which Collection Should I Use?
+
+Think of it like organizing things in real life:
+
+| Need | Collection | Analogy |
+| --- | --- | --- |
+| Ordered list where duplicates are OK | **ArrayList** | A to-do list — items have positions (1st, 2nd, 3rd), and you can have the same task twice |
+| Look up a value by a key | **HashMap** | A dictionary — look up the meaning (value) by the word (key) |
+| Only unique elements, no duplicates | **HashSet** | A guest list — each person appears only once, no matter how many times they RSVP |
+
+#### ArrayList (Dynamic Array)
+
+```java
+import java.util.ArrayList;
+
+ArrayList<String> names = new ArrayList<>();
+
+names.add("Darshan");       // Add to end
+names.add("Amit");          // ["Darshan", "Amit"]
+names.add(0, "Priya");      // Insert at index 0: ["Priya", "Darshan", "Amit"]
+
+names.get(1);               // "Darshan" (element at index 1)
+names.set(1, "Raj");        // Replace index 1: ["Priya", "Raj", "Amit"]
+names.remove(2);             // Remove index 2: ["Priya", "Raj"]
+names.remove("Priya");      // Remove by value: ["Raj"]
+names.size();                // 1
+names.contains("Raj");      // true
+
+// Loop through ArrayList
+for (String name : names) {
+    System.out.println(name);
+}
+
+```
+
+#### HashMap (Key-Value Pairs)
+
+```java
+import java.util.HashMap;
+
+HashMap<String, Integer> scores = new HashMap<>();
+
+scores.put("Darshan", 95);   // Add key-value pair
+scores.put("Amit", 88);      // {Darshan=95, Amit=88}
+scores.put("Darshan", 97);   // UPDATE existing key: {Darshan=97, Amit=88}
+
+scores.get("Amit");          // 88
+scores.containsKey("Darshan");  // true
+scores.keySet();              // [Darshan, Amit] — all keys
+scores.values();              // [97, 88] — all values
+scores.remove("Amit");       // Removes the entry
+
+// Loop through HashMap
+for (String key : scores.keySet()) {
+    System.out.println(key + ": " + scores.get(key));
+}
+
+```
+
+#### HashSet (No Duplicates)
+
+```java
+import java.util.HashSet;
+
+HashSet<String> cities = new HashSet<>();
+cities.add("Mumbai");
+cities.add("Delhi");
+cities.add("Mumbai");        // Duplicate — ignored silently
+System.out.println(cities.size());  // 2 (not 3!)
+cities.contains("Delhi");    // true
+cities.remove("Delhi");      // Removes it
+
+```
+<Callout type="info" title="Quick Collection Comparison">
+
+
+*   **ArrayList** — ordered, allows duplicates, access by index. Use `.size()` not `.length`
+*   **HashSet** — unordered, NO duplicates. `.add()` returns false if element already exists
+*   **HashMap** — key-value pairs, keys are unique. `.put()` with existing key REPLACES the old value
+
+
+</Callout>
+
+<Callout type="error" title="Exam Trap — Collections Only Store Objects">
+You can't write `ArrayList<int>` — collections only hold objects. Use the wrapper class: `ArrayList<Integer>`. Java autoboxes primitives automatically, but you must use the wrapper type in the angle brackets.
+</Callout>
+
+**Q: What is the output?**
+```java
+HashSet<String> set = new HashSet<>();
+set.add("Amit");
+set.add("Priya");
+set.add("Amit");
+System.out.println(set.size());
+```
+
+**A)** 3  
+**B)** 2  
+**C)** 1  
+**D)** Compilation error
+
+**Answer: B.** HashSet does not allow duplicates. Adding "Amit" the second time is silently ignored. The set contains {"Amit", "Priya"} — size is 2.
+
+**Q: What happens when you call `put()` with an existing key in a HashMap?**
+
+**A)** It throws a DuplicateKeyException  
+**B)** It replaces the old value with the new value  
+**C)** It ignores the new value and keeps the old one  
+**D)** It stores both values under the same key
+
+**Answer: B.** HashMap keys are unique. If you `put("Amit", 95)` and then `put("Amit", 97)`, the value for "Amit" becomes 97. The old value (95) is replaced, not preserved.
+
+### 15\. Common Coding Patterns (HSE & Interview)
+
+<Callout type="warn" title="What HackerRank Tests">
+HSE problems test you on string manipulation, array operations, and basic math logic. The patterns below cover the most common question types.
+</Callout>
+
+#### Reverse a String
+
+**What:** Flip a string backwards. Used in palindrome checks, encoding tasks, and interview warm-ups.
+
+**Why it works:** The manual method uses **two pointers** — one starting from the left, one from the right. They walk toward each other, swapping characters as they go. Once they meet in the middle, every character has been swapped exactly once. `StringBuilder.reverse()` does the same thing internally but saves you the code.
+
+```java
+String s = "Hello";
+String rev = new StringBuilder(s).reverse().toString();
+// rev = "olleH"
+
+// Manual method (interview-friendly) — two-pointer swap
+char[] chars = s.toCharArray();
+int left = 0, right = chars.length - 1;
+while (left < right) {
+    char temp = chars[left];
+    chars[left] = chars[right];
+    chars[right] = temp;
+    left++;
+    right--;
+}
+String reversed = new String(chars);  // "olleH"
+
+```
+
+#### Check Palindrome
+
+**What:** Check if a string reads the same forwards and backwards (e.g., "madam", "racecar"). Common in HackerRank string problems.
+
+**Why it works:** A palindrome is symmetric — the first character equals the last, second equals second-to-last, etc. The `StringBuilder.reverse()` approach reverses the whole string and compares. A more efficient **two-pointer approach** compares characters from both ends walking inward — it can exit early the moment it finds a mismatch, and it doesn't create a new string object.
+
+```java
+// Quick approach — reverse and compare
+static boolean isPalindrome(String s) {
+    String rev = new StringBuilder(s).reverse().toString();
+    return s.equals(rev);
+}
+
+// Two-pointer approach — more efficient, no extra string created
+static boolean isPalindromeFast(String s) {
+    int left = 0, right = s.length() - 1;
+    while (left < right) {
+        if (s.charAt(left) != s.charAt(right)) return false;
+        left++;
+        right--;
+    }
+    return true;  // All pairs matched — it's a palindrome
+}
+
+isPalindrome("madam");   // true
+isPalindrome("hello");   // false
+
+```
+
+#### Find Duplicates in Array
+
+**What:** Identify which elements appear more than once. Classic interview and HSE question.
+
+**Why HashSet:** A `HashSet` stores unique values and gives you **O(1) average-time lookup** — checking if an element exists takes constant time regardless of size. The trick here is that `add()` returns `false` if the element already exists, so one method call does both the check and the insert. Without a HashSet, you'd need nested loops (O(n²)) to compare every pair.
+
+```java
+int[] arr = {1, 3, 5, 3, 7, 1};
+HashSet<Integer> seen = new HashSet<>();
+for (int num : arr) {
+    if (!seen.add(num)) {    // add() returns false if already exists
+        System.out.println("Duplicate: " + num);
+    }
+}
+
+```
+
+#### Count Character Occurrences
+
+**What:** Build a frequency map of every character in a string. Used whenever you need to know "how many times does each character appear?" — anagram checks, finding the most common letter, etc.
+
+**Why it works:** A `HashMap` maps each character to its count. `getOrDefault(c, 0)` returns the current count (or 0 if the character hasn't been seen yet), then we add 1. After one pass through the string, you have the complete frequency table.
+
+```java
+String s = "programming";
+HashMap<Character, Integer> freq = new HashMap<>();
+for (char c : s.toCharArray()) {
+    freq.put(c, freq.getOrDefault(c, 0) + 1);
+}
+System.out.println(freq);  // {p=1, r=2, o=1, g=2, a=1, m=2, i=1, n=1}
+
+```
+
+#### Fibonacci Sequence
+
+**What:** Generate the sequence where each number is the sum of the previous two (0, 1, 1, 2, 3, 5, 8...). Appears in recursion questions and math-based HackerRank problems.
+
+**Why it works:** We keep two variables `a` and `b` representing the current pair. Each iteration, we compute `next = a + b`, then slide the window forward: `a` takes `b`'s value, `b` takes `next`. This iterative approach is O(n) time and O(1) space — far better than the naive recursive version which recalculates the same values exponentially.
+
+```java
+static void fibonacci(int n) {
+    int a = 0, b = 1;
+    for (int i = 0; i < n; i++) {
+        System.out.print(a + " ");
+        int next = a + b;
+        a = b;
+        b = next;
+    }
+}
+fibonacci(8);  // 0 1 1 2 3 5 8 13
+
+```
+
+#### Factorial
+
+**What:** Calculate n! (n factorial) — the product of all integers from 1 to n. Used in permutations, combinations, and recursion questions.
+
+**Why it works:** This is a classic recursion example. The **base case** is `n <= 1` (factorial of 0 or 1 is 1). The **recursive case** says "n! = n times (n-1)!" — the function calls itself with a smaller number until it hits the base case, then the results multiply back up the call stack. `5! = 5 * 4! = 5 * 4 * 3! = ... = 5 * 4 * 3 * 2 * 1 = 120`.
+
+```java
+static int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);   // Recursion
+}
+factorial(5);  // 120 (5 × 4 × 3 × 2 × 1)
+
+```
+
+#### Check if Number is Prime
+
+**What:** Determine if a number is only divisible by 1 and itself. Appears in math-based HackerRank problems and is a building block for "find all primes" questions.
+
+**Why we only check up to sqrt(n):** If `n` has a factor larger than its square root, the other factor must be _smaller_ than the square root (because two numbers both larger than sqrt(n) would multiply to something bigger than n). So if no factor exists up to sqrt(n), none exists at all. This turns a brute-force O(n) check into O(sqrt(n)) — for n=1,000,000 that's checking 1,000 numbers instead of 1,000,000.
+
+```java
+static boolean isPrime(int n) {
+    if (n <= 1) return false;
+    for (int i = 2; i <= Math.sqrt(n); i++) {
+        if (n % i == 0) return false;   // Divisible = not prime
+    }
+    return true;
+}
+isPrime(17);  // true
+isPrime(4);   // false
+
+```
+
+#### Find Max/Min in Array
+
+**What:** Find the largest and smallest element in an array. Fundamental pattern that appears in almost every array-based problem.
+
+**Why it works:** Start by assuming the first element is both the max and min. Then scan every element — if something is bigger than your current max, update max; if smaller than your current min, update min. After one full pass, you've found both. This is O(n) and you can't do better — you must look at every element at least once to be sure.
+
+```java
+int[] arr = {34, 12, 56, 7, 89};
+int max = arr[0], min = arr[0];
+for (int num : arr) {
+    if (num > max) max = num;
+    if (num < min) min = num;
+}
+System.out.println("Max: " + max + ", Min: " + min);  // Max: 89, Min: 7
+
+```
+
+Given the array `{5, 2, 8, 2, 5, 9}`, how many times will "Duplicate" be printed using the HashSet pattern above? And why would using an `ArrayList` instead of a `HashSet` for the `seen` collection be worse?
+
+Show Answer
+
+**"Duplicate" prints 2 times** — once for the second `5` and once for the second `2`.  
+  
+Using an `ArrayList` instead of a `HashSet` would work correctly but be **slower**. `ArrayList.contains()` is O(n) — it scans every element to check if something exists. `HashSet.add()` / `HashSet.contains()` is O(1) average — it uses hashing to jump directly to the answer. For an array of 1 million elements, that's the difference between 1 million operations and 1 trillion operations.
+
+The `isPrime()` method checks divisors up to `Math.sqrt(n)`. If you changed it to check up to `n/2` instead, would the method still return correct results? Would there be any downside?
+
+Show Answer
+
+**Yes, it would still be correct** — checking up to n/2 covers all possible factors since no factor (other than n itself) can be greater than n/2.  
+  
+**The downside is performance.** For n = 1,000,000: sqrt(n) = 1,000 checks, but n/2 = 500,000 checks. The sqrt approach is about 500x faster in this case. The mathematical insight is that factors come in pairs — if `a * b = n` and `a <= b`, then `a <= sqrt(n)`. So you only need to check the smaller half of each pair.
+
+### 16\. Practice Questions
+
+<Callout type="warn" title="Exam Strategy">
+FA Round 2 gives you subjective Java questions (write code or explain concepts). PRA tests practical coding. HSE gives HackerRank problems. Practice all three styles below.
+</Callout>
+
+What is the output of this code?
+
+```java
+int a = 5;
+int b = a++;
+int c = ++a;
+System.out.println(a + " " + b + " " + c);
+
+```
+
+1.  5 5 6
+2.  7 5 7
+3.  6 5 7
+4.  7 6 7
+
+Show Answer
+
+B) 7 5 7  
+  
+`b = a++`: b gets 5 (old value), then a becomes 6.  
+`c = ++a`: a becomes 7 first, then c gets 7.  
+Final: a=7, b=5, c=7.
+
+What is the output?
+
+```java
+String s1 = "Hello";
+String s2 = new String("Hello");
+System.out.println(s1 == s2);
+System.out.println(s1.equals(s2));
+
+```
+
+1.  true true
+2.  false false
+3.  false true
+4.  true false
+
+Show Answer
+
+C) false true  
+  
+`==` compares references. `s1` is from the String Pool, `s2` is a new object on the heap — different references, so `==` is false.  
+`.equals()` compares content — both contain "Hello", so it's true.
+
+What is the output?
+
+```java
+double d = 9.7;
+int x = (int) d;
+System.out.println(x);
+
+```
+
+1.  10
+2.  9.7
+3.  9
+4.  Compile error
+
+Show Answer
+
+C) 9  
+  
+Casting a double to int **truncates** (chops off) the decimal part. It does NOT round. 9.7 becomes 9, not 10.
+
+What happens when you compile and run this?
+
+```java
+class Dog {
+    Dog(String name) {
+        System.out.println("Dog: " + name);
+    }
+}
+public class Main {
+    public static void main(String[] args) {
+        Dog d = new Dog();
+    }
+}
+
+```
+
+1.  Prints "Dog: null"
+2.  Prints nothing
+3.  Compile error
+4.  Runtime error
+
+Show Answer
+
+C) Compile error  
+  
+Since the class defines a parameterized constructor `Dog(String name)`, Java no longer provides a default no-arg constructor. Calling `new Dog()` (no arguments) fails because there's no matching constructor.
+
+What is the output?
+
+```java
+System.out.println(10 / 3);
+System.out.println(10.0 / 3);
+
+```
+
+1.  3 and 3.0
+2.  3 and 3.3333333333333335
+3.  3.33 and 3.33
+4.  3.3333333333333335 and 3.3333333333333335
+
+Show Answer
+
+B) 3 and 3.3333333333333335  
+  
+`10 / 3`: both are int, so integer division gives 3 (truncated).  
+`10.0 / 3`: 10.0 is double, so Java promotes 3 to double and does floating-point division → 3.333...
+
+What is the output?
+
+```java
+class A {
+    A() { System.out.print("A "); }
+}
+class B extends A {
+    B() { System.out.print("B "); }
+}
+class C extends B {
+    C() { System.out.print("C"); }
+}
+new C();
+
+```
+
+1.  C B A
+2.  A B C
+3.  C
+4.  A C
+
+Show Answer
+
+B) A B C  
+  
+Constructors execute from the **top of the hierarchy down**. When you create a C object: first A's constructor runs, then B's, then C's. Parent always before child.
+
+What is the output?
+
+```java
+class Parent {
+    void show() { System.out.println("Parent"); }
+}
+class Child extends Parent {
+    void show() { System.out.println("Child"); }
+}
+Parent obj = new Child();
+obj.show();
+
+```
+
+1.  Parent
+2.  Child
+3.  Compile error
+4.  Parent Child
+
+Show Answer
+
+B) Child  
+  
+This is **runtime polymorphism**. The reference type is Parent, but the actual object is Child. At runtime, Java calls the Child's overridden version of `show()`.
+
+What is the output?
+
+```java
+try {
+    System.out.print("A ");
+    int x = 10 / 0;
+    System.out.print("B ");
+} catch (ArithmeticException e) {
+    System.out.print("C ");
+} finally {
+    System.out.print("D");
+}
+
+```
+
+1.  A B C D
+2.  A C D
+3.  A B D
+4.  A D
+
+Show Answer
+
+B) A C D  
+  
+"A" prints. Then `10/0` throws ArithmeticException. "B" is skipped (execution jumps to catch). "C" prints in catch. "D" prints in finally (always runs).
+
+Which line causes a compile error?
+
+```java
+String s = "Hello";
+int[] arr = {1, 2, 3};
+System.out.println(s.length);      // Line 1
+System.out.println(arr.length());   // Line 2
+
+```
+
+1.  Line 1 only
+2.  Line 2 only
+3.  Both lines
+4.  Neither line
+
+Show Answer
+
+C) Both lines  
+  
+Line 1: String uses `.length()` with parentheses (method), not `.length`.  
+Line 2: Array uses `.length` without parentheses (field), not `.length()`.  
+Both are wrong and cause compile errors.
+
+What is the output?
+
+```java
+int x = 2;
+switch (x) {
+    case 1: System.out.print("A ");
+    case 2: System.out.print("B ");
+    case 3: System.out.print("C ");
+    default: System.out.print("D");
+}
+
+```
+
+1.  B
+2.  B C
+3.  B C D
+4.  A B C D
+
+Show Answer
+
+C) B C D  
+  
+Execution starts at case 2 (matching value). Since there are no `break` statements, it **falls through** all subsequent cases: prints B, then C, then D.
+
+What is the output?
+
+```java
+String s = "Hello";
+s.concat(" World");
+System.out.println(s);
+
+```
+
+1.  Hello World
+2.  Hello
+3.  World
+4.  Compile error
+
+Show Answer
+
+B) Hello  
+  
+Strings are **immutable**. `concat()` returns a NEW string but the result is not assigned to any variable. `s` still points to the original "Hello". To get "Hello World", you'd need: `s = s.concat(" World");`
+
+A `protected` member is accessible from:
+
+1.  Same class only
+2.  Same class + same package only
+3.  Same class + same package + subclass in other packages
+4.  Everywhere
+
+Show Answer
+
+C) Same class + same package + subclass in other packages  
+  
+`protected` allows access from: the same class, any class in the same package, and subclasses even in different packages. The only thing it blocks is non-subclass access from other packages.
+
+What's wrong with this code?
+
+```java
+class Demo {
+    int x = 10;
+    static void show() {
+        System.out.println(x);
+    }
+}
+
+```
+
+1.  No error — prints 10
+2.  Compile error — static method can't access instance variable
+3.  Runtime error
+4.  Prints 0
+
+Show Answer
+
+B) Compile error — static method can't access instance variable  
+  
+`x` is an instance variable (non-static). The `show()` method is static. Static methods cannot access instance variables because they belong to the class, not any particular object. Fix: make x static, or access it through an object.
+
+What is the output?
+
+```java
+final int x = 10;
+x = 20;
+System.out.println(x);
+
+```
+
+1.  10
+2.  20
+3.  Compile error
+4.  Runtime error
+
+Show Answer
+
+C) Compile error  
+  
+`final` variables cannot be reassigned. Once `x` is set to 10, trying to change it to 20 causes a compile error: "cannot assign a value to final variable x".
+
+Which statement about abstract classes is FALSE?
+
+1.  An abstract class can have constructors
+2.  An abstract class can have concrete (non-abstract) methods
+3.  You can create an object of an abstract class using new
+4.  An abstract class can have instance variables
+
+Show Answer
+
+C) You can create an object of an abstract class using new  
+  
+This is false. Abstract classes **cannot be instantiated**. You must create a concrete subclass that implements all abstract methods, then instantiate that subclass.
+
+What is the wrapper class for `char`?
+
+1.  Char
+2.  Character
+3.  CharWrapper
+4.  CharacterClass
+
+Show Answer
+
+B) Character  
+  
+The wrapper class for `char` is `Character` and for `int` is `Integer`. These two are the tricky ones — all other wrappers just capitalize the primitive name (byte → Byte, double → Double, etc.).
+
+What is the default value of an instance variable of type `boolean`?
+
+1.  true
+2.  false
+3.  0
+4.  null
+
+Show Answer
+
+B) false  
+  
+The default value for `boolean` instance variables is `false`. For numeric types it's `0`, for objects (including String) it's `null`.
+
+What happens when you run: `Integer.parseInt("12.5")`?
+
+1.  Returns 12
+2.  Returns 13
+3.  Throws NumberFormatException
+4.  Returns 12.5
+
+Show Answer
+
+C) Throws NumberFormatException  
+  
+`Integer.parseInt()` expects a valid integer string. "12.5" contains a decimal point, which is not valid for an integer. Use `Double.parseDouble("12.5")` and then cast to int if needed.
+
+A class can implement how many interfaces?
+
+1.  Only 1
+2.  Only 2
+3.  Multiple (no limit)
+4.  None — classes only extend
+
+Show Answer
+
+C) Multiple (no limit)  
+  
+A class can implement as many interfaces as needed: `class Duck implements Flyable, Swimmable, Walkable { }`. However, a class can only `extends` ONE class (single inheritance).
+
+What is the output?
+
+```java
+int i = 10;
+do {
+    System.out.print(i + " ");
+    i++;
+} while (i < 10);
+
+```
+
+1.  Nothing (no output)
+2.  10
+3.  10 11
+4.  Infinite loop
+
+Show Answer
+
+B) 10  
+  
+A `do-while` loop runs the body **at least once** before checking the condition. It prints 10, increments i to 11, then checks `11 < 10` which is false, so it stops. Output: "10 ".
+
+Which is NOT valid method overloading?
+
+```java
+// Option A: int add(int a, int b) and double add(double a, double b)
+// Option B: int add(int a, int b) and int add(int a, int b, int c)
+// Option C: int add(int a, int b) and double add(int a, int b)
+// Option D: void add(int a) and void add(String a)
+
+```
+
+1.  Option A
+2.  Option B
+3.  Option C
+4.  Option D
+
+Show Answer
+
+C) Option C  
+  
+Option C has the same method name AND same parameter types (int, int) — only the return type differs. Changing ONLY the return type is NOT valid overloading. Java can't distinguish which method to call just by return type. It causes a compile error.
+
+Where must `this()` or `super()` appear in a constructor?
+
+1.  Anywhere in the constructor
+2.  Must be the FIRST statement
+3.  Must be the LAST statement
+4.  Can appear multiple times
+
+Show Answer
+
+B) Must be the FIRST statement  
+  
+`this()` (constructor chaining) and `super()` (parent constructor call) must be the very first statement in a constructor. You also cannot use both in the same constructor — it's one or the other.
+
+What is the output?
+
+```java
+ArrayList<Integer> list = new ArrayList<>();
+list.add(10);
+list.add(20);
+list.add(30);
+list.remove(1);
+System.out.println(list);
+
+```
+
+1.  \[10, 30\]
+2.  \[20, 30\]
+3.  \[10, 20\]
+4.  \[10, 20, 30\]
+
+Show Answer
+
+A) \[10, 30\]  
+  
+`list.remove(1)` removes the element at **index 1** (which is 20). After removal: \[10, 30\]. Note: `remove(int)` removes by index, `remove(Integer)` removes by value.
+
+Which of these is a CHECKED exception?
+
+1.  NullPointerException
+2.  ArrayIndexOutOfBoundsException
+3.  IOException
+4.  ArithmeticException
+
+Show Answer
+
+C) IOException  
+  
+IOException is a checked exception — the compiler forces you to handle it with try-catch or declare it with throws. The other three (NullPointerException, ArrayIndexOutOfBoundsException, ArithmeticException) are all RuntimeExceptions (unchecked) — handling them is optional.
+
+What is the output?
+
+```java
+class Animal {
+    void sound() { System.out.print("..."); }
+}
+class Dog extends Animal {
+    void sound() { System.out.print("Woof"); }
+    void fetch() { System.out.print(" Fetch!"); }
+}
+Animal a = new Dog();
+a.sound();
+a.fetch();
+
+```
+
+1.  Woof Fetch!
+2.  ... Fetch!
+3.  Woof, then compile error on a.fetch()
+4.  ..., then compile error on a.fetch()
+
+Show Answer
+
+C) Compile error on a.fetch()  
+  
+`a.sound()` works fine — it calls Dog's overridden version ("Woof") because of runtime polymorphism. But `a.fetch()` causes a **compile error** because the reference type is Animal, and Animal class doesn't have a `fetch()` method. The compiler checks the reference type, not the object type.
+
+What is the output?
+
+```java
+char c = 'A';
+int n = c + 1;
+System.out.println(n);
+System.out.println((char) n);
+
+```
+
+1.  66 and B
+2.  A1 and A1
+3.  66 and 66
+4.  Compile error
+
+Show Answer
+
+A) 66 and B  
+  
+`'A'` has ASCII value 65. Adding 1 gives 66 (printed as int). Casting `(char) 66` gives 'B' (the character with ASCII value 66).
+
+What is the output?
+
+```java
+try {
+    System.out.print("A ");
+    return;
+} finally {
+    System.out.print("B");
+}
+
+```
+
+1.  A
+2.  B
+3.  A B
+4.  Compile error
+
+Show Answer
+
+C) A B  
+  
+The `finally` block runs even when there's a `return` statement in the try block. "A" prints, then before the method actually returns, "B" prints from finally.
+
+What happens?
+
+```java
+public static void main(String[] args) {
+    int x;
+    System.out.println(x);
+}
+
+```
+
+1.  Prints 0
+2.  Prints null
+3.  Compile error — variable not initialized
+4.  Runtime error
+
+Show Answer
+
+C) Compile error — variable not initialized  
+  
+Local variables (declared inside a method) do NOT get default values. You must assign a value before using them. Instance variables (declared in a class) get defaults (int defaults to 0), but local variables do not.
+
+What is the output?
+
+```java
+String s = "ABCDEFG";
+System.out.println(s.substring(2, 5));
+
+```
+
+1.  CDE
+2.  BCDE
+3.  CDEF
+4.  BCD
+
+Show Answer
+
+A) CDE  
+  
+`substring(2, 5)` returns characters from index 2 (inclusive) to index 5 (exclusive). Indices: A=0, B=1, C=2, D=3, E=4, F=5. So indices 2,3,4 give "CDE".
+
+What is the output?
+
+```java
+HashSet<Integer> set = new HashSet<>();
+set.add(1);
+set.add(2);
+set.add(1);
+set.add(3);
+set.add(2);
+System.out.println(set.size());
+
+```
+
+1.  5
+2.  3
+3.  4
+4.  2
+
+Show Answer
+
+B) 3  
+  
+A HashSet does not allow duplicates. Adding 1, 2, 1, 3, 2 — the duplicates (1 and 2 added twice) are ignored. The set contains {1, 2, 3}, so size is 3.
+
+<Callout type="error" title="HackerRank Gotchas — Details That Cost Marks">
+These are the small things most students miss on HackerRank exams. Memorize them:
+
+*   **`.equalsIgnoreCase()`** — almost every question says "case-insensitive comparison". Using `==` or `.equals()` will fail hidden test cases
+*   **Null handling** — if your method returns null, you MUST print "No \_\_\_ Found" (exact string from the problem). Not handling null = NullPointerException = 0
+*   **`55000.0` not `55000`** — when a field is `double`, printing it shows the decimal. The output must match exactly as stored
+*   **Scanner trap** — `nextInt()` leaves `\n` in buffer. Use `Integer.parseInt(sc.nextLine().trim())` instead
+*   **No prompts** — never print "Enter name:" or any message. Just read input and print output
+*   **No debug prints** — any extra `System.out.println()` fails every test case
+*   **Static methods** — HackerRank problems often ask for a `static` method in the Solution class. Don't make it non-static
+
+
+</Callout>
+
+### Real FA Subjective Question — Full Walkthrough
+
+This is an actual FA Round 2 practice question from HackerRank. Read the full problem, then study the solution line by line.
+
+<Callout type="warn" title="Full Problem Statement">
+
+
+**Create a class Gadget** with the following attributes:
+
+*   `modelNumber` – int
+*   `category` – String
+*   `warrantyYears` – int
+*   `cost` – double
+
+Write appropriate getters and setters for all attributes, along with a parameterized constructor as required.
+
+Create a class `Solution` with the main method. Within this class, call the below method called `getGadgetByCategory` and display the result in the main method.
+
+**Implement a static method called getGadgetByCategory:** Create a static method `getGadgetByCategory` in the Solution class. This method will take an array of Gadget objects and a category as input and returns the object matching the input category.
+
+Take the necessary inputs and call `getGadgetByCategory`. For this method, the main method should print the Gadget object details as it is, if the returned value is not null, or it should print **"No Gadget Found"**.
+
+**Note:** All String comparisons need to be case-insensitive.
+
+#### Input Format:
+
+The first line contains the number of Gadget objects. For each Gadget, the next four inputs are: modelNumber, category, warrantyYears, cost. The final line contains the category to search.
+
+#### Sample Input:
+
+```java
+3
+201
+Mobile
+2
+15000
+202
+Laptop
+3
+55000
+203
+Tablet
+1
+20000
+laptop
+```
+
+#### Sample Output:
+
+```java
+202
+Laptop
+3
+55000.0
+```
+
+**Explanation:** Search key is "laptop" — matches "Laptop" case-insensitively. Prints all attributes of that Gadget exactly as stored. Note: cost is `double`, so it prints `55000.0` not `55000`.
+
+#### Sample Input 2:
+
+```java
+2
+501
+Camera
+2
+35000
+502
+Speaker
+1
+4500
+Headset
+```
+
+#### Sample Output 2:
+
+```java
+No Gadget Found
+```
+
+</Callout>
+
+#### Complete Solution:
+
+Solution.java
+
+Explain this ↓
+
+```java
+import java.util.Scanner;
+
+class Gadget {
+    private int modelNumber;
+    private String category;
+    private int warrantyYears;
+    private double cost;
+
+    public Gadget(int modelNumber, String category, int warrantyYears, double cost) {
+        this.modelNumber = modelNumber;
+        this.category = category;
+        this.warrantyYears = warrantyYears;
+        this.cost = cost;
+    }
+
+    public int getModelNumber() { return modelNumber; }
+    public String getCategory() { return category; }
+    public int getWarrantyYears() { return warrantyYears; }
+    public double getCost() { return cost; }
+}
+
+public class Solution {
+
+    public static Gadget getGadgetByCategory(Gadget[] gadgets, String category) {
+        for (Gadget g : gadgets) {
+            if (g.getCategory().equalsIgnoreCase(category)) {
+                return g;
+            }
+        }
+        return null;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = Integer.parseInt(sc.nextLine().trim());
+
+        Gadget[] gadgets = new Gadget[n];
+        for (int i = 0; i < n; i++) {
+            int model = Integer.parseInt(sc.nextLine().trim());
+            String cat = sc.nextLine().trim();
+            int warranty = Integer.parseInt(sc.nextLine().trim());
+            double cost = Double.parseDouble(sc.nextLine().trim());
+            gadgets[i] = new Gadget(model, cat, warranty, cost);
+        }
+
+        String searchCategory = sc.nextLine().trim();
+        Gadget result = getGadgetByCategory(gadgets, searchCategory);
+
+        if (result != null) {
+            System.out.println(result.getModelNumber());
+            System.out.println(result.getCategory());
+            System.out.println(result.getWarrantyYears());
+            System.out.println(result.getCost());
+        } else {
+            System.out.println("No Gadget Found");
+        }
+    }
+}
+```
+
+#### The Gadget Class
+
+**`private` fields** — The problem says "write getters and setters" which means encapsulation. Fields are `private` so no one can access them directly from outside. You read them only through getter methods.
+
+**`double cost`** — Prices can have decimals. When you print a `double`, Java automatically shows `55000.0` (with the `.0`). The output must match exactly.
+
+**`this.modelNumber = modelNumber`** — Parameter name matches field name. `this.modelNumber` = the object's field. Plain `modelNumber` = the parameter. Without `this`, the field never gets set.
+
+**Getters** — Since fields are `private`, getters are the only way to read them from outside. Convention: `get` + field name capitalized.
+
+#### The getGadgetByCategory Method
+
+**`static`** — The problem says "create a static method." It belongs to the class, not any object. Callable directly from `main`.
+
+**`for (Gadget g : gadgets)`** — For-each loop: "for each Gadget `g` in the array." Cleanest way to iterate when you don't need the index.
+
+**`equalsIgnoreCase`** — Problem says "case-insensitive." Input "laptop" must match stored "Laptop." Using `.equals()` would return `false`. #1 thing students forget.
+
+**`return null`** — No match found → return `null`. The caller must check for this.
+
+#### The main Method — Input
+
+**`Integer.parseInt(sc.nextLine().trim())`** — The safe input pattern:
+
+*   `sc.nextLine()` — reads entire line including newline, nothing left in buffer
+*   `.trim()` — removes trailing whitespace that could crash `parseInt`
+*   `Integer.parseInt()` — converts cleaned string to int
+
+If you used `sc.nextInt()` instead, it leaves `"\n"` in the buffer. Next `sc.nextLine()` reads empty string — program breaks silently.
+
+**`new Gadget[n]`** — Array of size `n`. All slots start as `null` — fill them in the loop.
+
+**`.trim()` on every line** — Trailing space means `"Laptop "` won't match `"laptop"`. Always trim.
+
+#### The main Method — Output
+
+**`result != null`** — If null and you call `result.getModelNumber()`, Java throws `NullPointerException` — 0 marks.
+
+**`getCost()` prints `55000.0`** — `double` automatically shows decimal. Problem says "print exactly as stored."
+
+**`"No Gadget Found"`** — Exact string from problem. HackerRank compares character by character.
+
+<Callout type="info" title="Summary — what this question tested">
+
+
+| Concept | Where in the code |
+| --- | --- |
+| Class with private fields | `private int modelNumber;` |
+| Parameterized constructor | `public Gadget(int, String, int, double)` |
+| Getters (encapsulation) | `getModelNumber()`, `getCategory()`, etc. |
+| Array of objects | `Gadget[] gadgets = new Gadget[n];` |
+| for-each loop | `for (Gadget g : gadgets)` |
+| Case-insensitive comparison | `.equalsIgnoreCase(category)` |
+| Null handling | `return null;` and `if (result != null)` |
+| Static method | `public static Gadget getGadgetByCategory()` |
+| Safe Scanner input | `Integer.parseInt(sc.nextLine().trim())` |
+| Exact output format | `55000.0` not `55000`, exact "No Gadget Found" |
+
+
+</Callout>
+
+### FA Subjective Question 2 — Filter + Count Pattern
+
+This variation tests **filtering with a numeric condition** and **counting matches**. Instead of returning one object, you return a count.
+
+<Callout type="warn" title="Full Problem Statement">
+
+
+**Create a class Employee** with the following attributes:
+
+*   `empId` – int
+*   `name` – String
+*   `department` – String
+*   `salary` – double
+
+Write appropriate getters and setters for all attributes, along with a parameterized constructor.
+
+Create a class `Solution` with the main method. Implement the following static methods:
+
+**1\. countEmployeesByDepartment:** Takes an array of Employee objects and a department (String). Returns the **count** of employees belonging to that department.
+
+**2\. getEmployeeWithMaxSalary:** Takes an array of Employee objects. Returns the Employee object with the **highest salary**. If the array is empty, return null.
+
+Take necessary inputs, call both methods, and print results. For countEmployeesByDepartment, print the count. For getEmployeeWithMaxSalary, print the employee's name and salary on separate lines.
+
+**Note:** All String comparisons must be case-insensitive.
+
+#### Sample Input:
+
+```java
+4
+101
+Amit
+Engineering
+75000
+102
+Priya
+Sales
+60000
+103
+Rahul
+Engineering
+82000
+104
+Sara
+Marketing
+55000
+engineering
+```
+
+#### Sample Output:
+
+```java
+2
+Rahul
+82000.0
+```
+
+**Explanation:** "engineering" matches "Engineering" case-insensitively — 2 employees found (Amit, Rahul). Max salary across ALL employees is Rahul at 82000.0.
+
+
+</Callout>
+
+#### Complete Solution:
+
+Solution.java
+
+Explain this ↓
+
+```java
+import java.util.Scanner;
+
+class Employee {
+    private int empId;
+    private String name;
+    private String department;
+    private double salary;
+
+    public Employee(int empId, String name, String department, double salary) {
+        this.empId = empId;
+        this.name = name;
+        this.department = department;
+        this.salary = salary;
+    }
+
+    public int getEmpId() { return empId; }
+    public String getName() { return name; }
+    public String getDepartment() { return department; }
+    public double getSalary() { return salary; }
+}
+
+public class Solution {
+
+    public static int countEmployeesByDepartment(Employee[] employees, String department) {
+        int count = 0;
+        for (Employee e : employees) {
+            if (e.getDepartment().equalsIgnoreCase(department)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public static Employee getEmployeeWithMaxSalary(Employee[] employees) {
+        if (employees.length == 0) return null;
+        Employee max = employees[0];
+        for (Employee e : employees) {
+            if (e.getSalary() > max.getSalary()) {
+                max = e;
+            }
+        }
+        return max;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = Integer.parseInt(sc.nextLine().trim());
+
+        Employee[] employees = new Employee[n];
+        for (int i = 0; i < n; i++) {
+            int id = Integer.parseInt(sc.nextLine().trim());
+            String name = sc.nextLine().trim();
+            String dept = sc.nextLine().trim();
+            double salary = Double.parseDouble(sc.nextLine().trim());
+            employees[i] = new Employee(id, name, dept, salary);
+        }
+
+        String searchDept = sc.nextLine().trim();
+
+        int count = countEmployeesByDepartment(employees, searchDept);
+        System.out.println(count);
+
+        Employee topEarner = getEmployeeWithMaxSalary(employees);
+        if (topEarner != null) {
+            System.out.println(topEarner.getName());
+            System.out.println(topEarner.getSalary());
+        }
+    }
+}
+```
+
+#### What's Different From the Gadget Question?
+
+This question has **two methods** instead of one, and tests two different patterns:
+
+#### Pattern 1: Count Matches (countEmployeesByDepartment)
+
+**`int count = 0;`** — Start a counter at zero. For every match, increment. This is the "count" pattern — simpler than returning an object because you just need a number at the end.
+
+**`equalsIgnoreCase`** — Same as Gadget question. "engineering" must match "Engineering". If you use `.equals()`, you'll miss the match and return 0.
+
+#### Pattern 2: Find Maximum (getEmployeeWithMaxSalary)
+
+**`Employee max = employees[0];`** — The "assume first is max" pattern. You can't start with `max = 0` because you need the whole Employee object, not just the salary number. Start with the first employee, then check if anyone has a higher salary.
+
+**`if (e.getSalary() > max.getSalary())`** — Compare using getter, NOT the field directly (fields are private). If someone's salary beats the current max, they become the new max. After the full loop, `max` holds the highest-paid employee.
+
+**`if (employees.length == 0) return null;`** — Edge case guard. If the array is empty, there's no employee\[0\] to start with — accessing it would throw `ArrayIndexOutOfBoundsException`.
+
+#### The main Method
+
+**Same input pattern as Gadget** — `Integer.parseInt(sc.nextLine().trim())` for every line. This is the safe pattern that avoids the Scanner buffer bug. You'll use this exact pattern in every FA question.
+
+**Two method calls, two outputs** — The question asks you to call both methods and print both results. Read the problem carefully — if it says "print count" and "print name and salary", that's exactly what you print. Nothing more, nothing less.
+
+<Callout type="info" title="New concepts tested (vs Gadget question)">
+
+
+| Concept | Where in the code |
+| --- | --- |
+| Counter pattern | `int count = 0; count++;` |
+| Find-max pattern | `Employee max = employees[0]; if (e.getSalary() > max.getSalary())` |
+| Two static methods | Both called from main, different return types |
+| Edge case (empty array) | `if (employees.length == 0) return null;` |
+| double salary output | `82000.0` — double always prints with .0 |
+
+
+</Callout>
+
+### FA Subjective Question 3 — Filter + Aggregate Pattern
+
+This variation tests **filtering objects that meet a condition** and **collecting them into a new array**. Instead of count or single object, you return multiple matching objects.
+
+<Callout type="warn" title="Full Problem Statement">
+
+
+**Create a class Product** with the following attributes:
+
+*   `productId` – int
+*   `productName` – String
+*   `price` – double
+*   `category` – String
+
+Write appropriate getters, setters, and a parameterized constructor.
+
+Create a class `Solution` with the main method. Implement the following static method:
+
+**getProductsByPriceRange:** Takes an array of Product objects, a `minPrice` (double), and a `maxPrice` (double). Returns an **array of Product objects** whose price falls within the range (inclusive). If no products match, return null.
+
+Take the necessary inputs, call the method, and print results. If products are found, print each product's name and price on separate lines (name first, then price). If null is returned, print **"No Products Found"**.
+
+#### Sample Input:
+
+```java
+3
+1001
+Keyboard
+1500.0
+Electronics
+1002
+Mouse
+800.0
+Electronics
+1003
+Monitor
+25000.0
+Electronics
+500.0
+2000.0
+```
+
+#### Sample Output:
+
+```java
+Keyboard
+1500.0
+Mouse
+800.0
+```
+
+**Explanation:** Price range is 500.0 to 2000.0. Keyboard (1500.0) and Mouse (800.0) fall in range. Monitor (25000.0) does not. Print matching products' name and price.
+
+
+</Callout>
+
+#### Complete Solution:
+
+Solution.java
+
+Explain this ↓
+
+```java
+import java.util.Scanner;
+
+class Product {
+    private int productId;
+    private String productName;
+    private double price;
+    private String category;
+
+    public Product(int productId, String productName, double price, String category) {
+        this.productId = productId;
+        this.productName = productName;
+        this.price = price;
+        this.category = category;
+    }
+
+    public int getProductId() { return productId; }
+    public String getProductName() { return productName; }
+    public double getPrice() { return price; }
+    public String getCategory() { return category; }
+}
+
+public class Solution {
+
+    public static Product[] getProductsByPriceRange(Product[] products, double minPrice, double maxPrice) {
+        // First pass: count how many match (need this to size the result array)
+        int count = 0;
+        for (Product p : products) {
+            if (p.getPrice() >= minPrice && p.getPrice() <= maxPrice) {
+                count++;
+            }
+        }
+
+        if (count == 0) return null;
+
+        // Second pass: fill the result array
+        Product[] result = new Product[count];
+        int index = 0;
+        for (Product p : products) {
+            if (p.getPrice() >= minPrice && p.getPrice() <= maxPrice) {
+                result[index++] = p;
+            }
+        }
+        return result;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = Integer.parseInt(sc.nextLine().trim());
+
+        Product[] products = new Product[n];
+        for (int i = 0; i < n; i++) {
+            int id = Integer.parseInt(sc.nextLine().trim());
+            String name = sc.nextLine().trim();
+            double price = Double.parseDouble(sc.nextLine().trim());
+            String category = sc.nextLine().trim();
+            products[i] = new Product(id, name, price, category);
+        }
+
+        double minPrice = Double.parseDouble(sc.nextLine().trim());
+        double maxPrice = Double.parseDouble(sc.nextLine().trim());
+
+        Product[] result = getProductsByPriceRange(products, minPrice, maxPrice);
+
+        if (result != null) {
+            for (Product p : result) {
+                System.out.println(p.getProductName());
+                System.out.println(p.getPrice());
+            }
+        } else {
+            System.out.println("No Products Found");
+        }
+    }
+}
+```
+
+#### The Hardest Part: Returning an Array of Objects
+
+This is the trickiest FA pattern. You can't just `return p;` inside the loop — you need ALL matching products. But Java arrays have a fixed size, so you can't just "add" to them. The solution: **two-pass approach**.
+
+#### Two-Pass Pattern (MEMORIZE THIS)
+
+**Pass 1: Count matches** — Loop through, count how many products fall in the price range. Now you know the exact size of the result array.
+
+**Pass 2: Fill the array** — Create `new Product[count]`, loop again, fill matching products using a separate `index` variable.
+
+**Why not use ArrayList?** You could, and it's simpler — but FA questions typically ask you to return an array, not an ArrayList. The two-pass pattern works with plain arrays which is what the question specifies.
+
+#### The Range Check
+
+**`p.getPrice() >= minPrice && p.getPrice() <= maxPrice`** — "Inclusive" means the boundaries count. Price of exactly 500.0 or exactly 2000.0 would match. If the problem said "exclusive", you'd use `>` and `<` instead of `>=` and `<=`. Read the problem statement carefully.
+
+#### The index++ Trick
+
+**`result[index++] = p;`** — This does two things in one line: assigns `p` to `result[index]`, then increments `index` for the next match. Without `index`, you'd overwrite the same slot every time.
+
+#### Printing Multiple Objects
+
+**`for (Product p : result)`** — Loop through the result array and print each product's details. The problem says "name first, then price" — so that's the order. Don't add extra labels like "Name: Keyboard" unless the problem says to.
+
+<Callout type="info" title="New concepts tested (vs previous questions)">
+
+
+| Concept | Where in the code |
+| --- | --- |
+| Return array of objects | `Product[] result = new Product[count];` |
+| Two-pass pattern | Count first, then fill — because arrays are fixed-size |
+| Range comparison | `price >= min && price <= max` |
+| index++ for filling | `result[index++] = p;` |
+| Double input parsing | `Double.parseDouble(sc.nextLine().trim())` |
+| Loop to print results | `for (Product p : result) { print... }` |
+
+
+</Callout>
+
+<Callout type="info" title="FA Subjective — The Universal Template">
+
+
+After solving three questions, notice the pattern. **Every FA Java question follows this exact skeleton:**
+
+```java
+// 1. Create the class with private fields + constructor + getters
+class ClassName { /* private fields, constructor, getters */ }
+
+// 2. Write the static method(s) in Solution class
+public static ReturnType methodName(ClassName[] arr, /* search params */) {
+    // Loop through array → check condition → return result
+}
+
+// 3. main: Scanner input → create array → call method → print output
+public static void main(String[] args) {
+    Scanner sc = new Scanner(System.in);
+    int n = Integer.parseInt(sc.nextLine().trim());
+    // Build array of objects in loop
+    // Read search parameter(s)
+    // Call method → check null → print
+}
+
+```
+
+**The only things that change are:** the class name, the field types, the method logic (search/count/max/filter), and the output format. The skeleton is always the same. If you can write this skeleton from memory in under 2 minutes, you're already halfway done.
+
+
+</Callout>
+
+<Callout type="warn" title="FA Subjective Practice">
+Practice more questions like this on HackerRank:  
+[→ HackerRank FA Subjective Mock Practice](https://www.hackerrank.com/contests/mock-pa-1/challenges)
+</Callout>
+

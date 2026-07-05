@@ -1,0 +1,1038 @@
+---
+title: REST, JSON and XML
+description: REST, JSON, and XML — definitions, key terms, and examples.
+---
+
+## What is an API?
+
+**API** stands for **Application Programming Interface**. Think of it like a **waiter in a restaurant**:
+
+<Callout type="info" title="Waiter Analogy">
+**You** (client) sit at a table and look at the menu.  
+**The waiter** (API) takes your order to the kitchen.  
+**The kitchen** (server) prepares the food.  
+**The waiter** (API) brings the food back to you.  
+  
+You never go into the kitchen yourself. The API is the middleman that lets two systems talk to each other.
+</Callout>
+
+In programming terms: an API defines **rules for how one piece of software can request data or services from another**. When you open a weather app, it uses an API to fetch weather data from a remote server.
+
+## What is REST?
+
+**REST** = **RE**presentational **S**tate **T**ransfer. It is an **architectural style** (not a protocol, not a library) for designing networked applications. Most modern web APIs follow REST.
+
+<Callout type="info" title="Key Point">
+REST is **not** a protocol like HTTP. It is a set of **guidelines/constraints** that use HTTP as the transport. An API that follows REST rules is called a **RESTful API**.
+</Callout>
+
+### REST Principles (6 Constraints)
+
+| # | Principle | What It Means |
+| --- | --- | --- |
+| 1 | **Client-Server** | Client (frontend) and Server (backend) are separate. They communicate over HTTP. |
+| 2 | **Stateless** | Each request is independent. Server does NOT remember previous requests. All info must be in the request itself. |
+| 3 | **Cacheable** | Responses can be cached by the client to improve performance. |
+| 4 | **Uniform Interface** | A consistent way to interact: use standard HTTP methods, URIs, and status codes. |
+| 5 | **Layered System** | Client doesn't know if it's talking directly to the server or through a load balancer/proxy. |
+| 6 | **Code on Demand** (optional) | Server can send executable code to the client (e.g., JavaScript). Rarely used. |
+
+<Callout type="warn" title="Exam Favorite">
+**"Stateless"** is the most asked principle. It means: every request must contain ALL the information the server needs. The server does not store session info between requests.
+</Callout>
+
+## HTTP Methods
+
+HTTP methods tell the server **what action** you want to perform. These are also called **HTTP verbs**.
+
+| Method | Purpose | Example | Has Body? |
+| --- | --- | --- | --- |
+| **GET** | Retrieve/Read data | Get list of users | No |
+| **POST** | Create new resource | Create a new user | Yes |
+| **PUT** | Update entire resource (replace) | Update all user fields | Yes |
+| **PATCH** | Update part of resource | Update only email | Yes |
+| **DELETE** | Delete a resource | Delete a user | No (usually) |
+
+<Callout type="warn" title="Example — CRUD Operations">
+`GET /api/employees` → Get all employees  
+`GET /api/employees/5` → Get employee with id 5  
+`POST /api/employees` → Create a new employee (data in body)  
+`PUT /api/employees/5` → Replace employee 5 completely  
+`PATCH /api/employees/5` → Update some fields of employee 5  
+`DELETE /api/employees/5` → Delete employee 5
+</Callout>
+
+<Callout type="error" title="Common Confusion">
+**PUT vs PATCH:**  
+**PUT** replaces the ENTIRE resource. If you send a PUT with only the name, other fields become null.  
+**PATCH** updates ONLY the fields you send. Other fields stay unchanged.
+</Callout>
+
+## HTTP Status Codes
+
+<Callout type="warn" title="Heavily Tested">
+Status codes appear in almost every REST-related question. Memorize these.
+</Callout>
+
+| Code | Name | Meaning | When Used |
+| --- | --- | --- | --- |
+| **200** | OK | Request succeeded | GET, PUT, PATCH success |
+| **201** | Created | Resource created successfully | POST success |
+| **204** | No Content | Success but no response body | DELETE success |
+| **400** | Bad Request | Invalid request data | Validation errors, malformed JSON |
+| **401** | Unauthorized | Not authenticated | Missing or invalid credentials |
+| **403** | Forbidden | Authenticated but no permission | User lacks access rights |
+| **404** | Not Found | Resource doesn't exist | Wrong URL or deleted resource |
+| **500** | Internal Server Error | Server crashed | Bug in server code |
+
+<Callout type="info" title="Quick Memory Trick">
+**2xx** = Success (all good)  
+**4xx** = Client's fault (you sent something wrong)  
+**5xx** = Server's fault (server broke)  
+  
+**401 vs 403:** 401 = "Who are you?" (not logged in). 403 = "I know who you are, but you can't do this" (logged in, but no permission).
+</Callout>
+
+### URL Structure
+
+```java
+https://api.example.com/v1/employees/42?sort=name&order=asc
+|_____|  |_____________| |_| |________| |_| |_______________|
+scheme      host        ver  endpoint   id    query params
+```
+
+| Part | Example | Purpose |
+| --- | --- | --- |
+| **Base URL** | `https://api.example.com` | Server address |
+| **Version** | `/v1` | API version |
+| **Endpoint** | `/employees` | The resource you want |
+| **Path Parameter** | `/employees/42` | Identifies specific resource (42 is the path param) |
+| **Query Parameters** | `?sort=name&order=asc` | Filter, sort, paginate (after the ? mark) |
+
+<Callout type="info" title="Path Param vs Query Param">
+**Path param** → identifies a SPECIFIC resource: `/users/5` (get user 5)  
+**Query param** → filters/modifies the result: `/users?age=25` (get users where age is 25)
+</Callout>
+
+### HTTP Headers
+
+Headers are **metadata** sent with every HTTP request and response. They carry information about the request format, authentication, and more.
+
+| Header | Purpose | Example Value |
+| --- | --- | --- |
+| **Content-Type** | Format of data in request body | `application/json` |
+| **Accept** | Format client wants in response | `application/json` |
+| **Authorization** | Authentication credentials | `Bearer eyJhbGci...` |
+| **Cache-Control** | Caching instructions | `no-cache` |
+
+<Callout type="info" title="Remember">
+**Content-Type** = "I'm SENDING you this format"  
+**Accept** = "I WANT you to REPLY in this format"
+</Callout>
+
+### Request and Response Anatomy
+
+#### HTTP Request
+
+```java
+POST /api/employees HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+Authorization: Bearer abc123token
+
+{
+  "name": "Darshan",
+  "department": "Engineering",
+  "salary": 50000
+}
+```
+
+#### HTTP Response
+
+```java
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{
+  "id": 101,
+  "name": "Darshan",
+  "department": "Engineering",
+  "salary": 50000,
+  "message": "Employee created successfully"
+}
+```
+
+### REST vs SOAP
+
+| Feature | REST | SOAP |
+| --- | --- | --- |
+| **Full Form** | REpresentational State Transfer | Simple Object Access Protocol |
+| **Type** | Architectural style | Protocol |
+| **Data Format** | JSON, XML, HTML, plain text | XML only |
+| **Transport** | HTTP | HTTP, SMTP, TCP, etc. |
+| **Speed** | Faster (lightweight) | Slower (heavy XML) |
+| **Caching** | Supports caching | No caching |
+| **Standards** | Flexible, no strict rules | Strict WS-* standards |
+| **Error Handling** | HTTP status codes | SOAP fault elements |
+| **Use Case** | Web apps, mobile, microservices | Banking, enterprise (high security) |
+| **Learning Curve** | Easy | Complex |
+
+<Callout type="warn" title="Exam Tip">
+If the question asks "which is faster?" → REST. If it asks "which uses only XML?" → SOAP. If it asks "which is a protocol?" → SOAP (REST is an architectural **style**).
+</Callout>
+
+### Idempotent Methods
+
+**Idempotent** means: calling the same request **multiple times produces the same result** as calling it once.
+
+| Method | Idempotent? | Why? |
+| --- | --- | --- |
+| **GET** | Yes | Reading data 10 times gives same result |
+| **PUT** | Yes | Replacing a resource 10 times gives same final state |
+| **DELETE** | Yes | Deleting same resource 10 times — it's still deleted |
+| **PATCH** | Not guaranteed | Can depend on current state |
+| **POST** | No | Calling POST 10 times creates 10 resources! |
+
+<Callout type="error" title="Common Trap">
+POST is **NOT** idempotent. Sending the same POST request twice creates TWO resources. This is why you sometimes see duplicate orders when you click "Buy" twice.
+</Callout>
+
+## JSON (JavaScript Object Notation)
+
+**JSON** is a lightweight **data format** used to exchange data between client and server. Almost all modern APIs use JSON. It is human-readable and easy for machines to parse.
+
+<Callout type="info" title="Key Fact">
+JSON was derived from JavaScript, but it is **language-independent**. Java, Python, C#, every language can read and write JSON.
+</Callout>
+
+### JSON Syntax Rules
+
+*   Data is in **key-value pairs**: `"key": value`
+*   Keys MUST be in **double quotes** (single quotes are INVALID)
+*   Values can be: string, number, boolean, null, object, array
+*   Objects use **curly braces** `{ }`
+*   Arrays use **square brackets** `[ ]`
+*   **No trailing commas** allowed
+*   **No comments** allowed in JSON
+
+<Callout type="warn" title="Basic JSON Object">
+
+```java
+{
+  "name": "Darshan",
+  "age": 22,
+  "isEmployee": true,
+  "address": null
+}
+```
+
+</Callout>
+
+<Callout type="warn" title="JSON Array">
+
+```java
+[
+  "Java",
+  "Python",
+  "JavaScript"
+]
+```
+
+</Callout>
+
+### JSON Data Types
+
+| Type | Example | Notes |
+| --- | --- | --- |
+| **String** | `"hello"` | Must use double quotes |
+| **Number** | `42`, `3.14`, `-10` | No quotes. Integer or decimal. |
+| **Boolean** | `true`, `false` | Lowercase only. NOT "true" in quotes. |
+| **Null** | `null` | Lowercase only. Means "empty/no value". |
+| **Object** | `{"key": "value"}` | Nested object inside another object |
+| **Array** | `[1, 2, 3]` | Ordered list of values |
+
+### Valid vs Invalid JSON
+
+<Callout type="warn" title="Exam Favorite — Spot the Error">
+These questions appear frequently. You'll be shown JSON and asked if it's valid.
+</Callout>
+
+#### VALID JSON
+
+```java
+// All keys in double quotes, proper syntax
+{
+  "name": "Darshan",
+  "age": 22,
+  "skills": ["Java", "SQL"],
+  "active": true
+}
+```
+
+#### INVALID JSON (with reasons)
+
+```java
+// ERROR 1: Single quotes (MUST be double quotes)
+{ 'name': 'Darshan' }
+
+// ERROR 2: Key without quotes
+{ name: "Darshan" }
+
+// ERROR 3: Trailing comma after last item
+{ "name": "Darshan", }
+
+// ERROR 4: Using undefined (not a JSON value)
+{ "name": undefined }
+
+// ERROR 5: Single value without object/array wrapper
+"just a string"
+// Actually this IS valid JSON! A single value is valid.
+```
+<Callout type="error" title="The #1 Rule">
+Keys in JSON MUST be in **double quotes**. Not single quotes. Not no quotes. **Double quotes only.** This is the most common trick question in exams.
+</Callout>
+
+### Nested JSON Objects and Arrays
+
+```java
+{
+  "employee": {
+    "id": 101,
+    "name": "Darshan",
+    "department": {
+      "name": "Engineering",
+      "floor": 3
+    },
+    "skills": [
+      { "name": "Java", "level": "intermediate" },
+      { "name": "SQL", "level": "beginner" }
+    ],
+    "projects": ["ILP Guide", "Chat App"]
+  }
+}
+```
+<Callout type="info" title="How to Access Nested Values">
+To get "Engineering": `obj.employee.department.name`  
+To get "SQL": `obj.employee.skills[1].name`  
+To get "Chat App": `obj.employee.projects[1]`  
+  
+Arrays are **zero-indexed**: first item is \[0\], second is \[1\].
+</Callout>
+
+## JSON in Java
+
+### Using org.json Library (JSONObject, JSONArray)
+
+#### Creating JSON from scratch
+
+```java
+import org.json.JSONObject;
+import org.json.JSONArray;
+
+JSONObject emp = new JSONObject();
+emp.put("name", "Darshan");
+emp.put("age", 22);
+emp.put("active", true);
+
+JSONArray skills = new JSONArray();
+skills.put("Java");
+skills.put("SQL");
+emp.put("skills", skills);
+
+System.out.println(emp.toString(2)); // pretty print with indent 2
+```
+
+#### Parsing a JSON string
+
+```java
+String jsonStr = "{\"name\":\"Darshan\",\"age\":22,\"skills\":[\"Java\",\"SQL\"]}";
+
+JSONObject obj = new JSONObject(jsonStr);
+
+// Get values
+String name = obj.getString("name");      // "Darshan"
+int age = obj.getInt("age");              // 22
+
+// Get array
+JSONArray skills = obj.getJSONArray("skills");
+for (int i = 0; i < skills.length(); i++) {
+    System.out.println(skills.getString(i));
+}
+// Output: Java
+//         SQL
+```
+
+#### Accessing nested values
+
+```java
+String json = "{\"employee\":{\"name\":\"Darshan\",\"dept\":{\"name\":\"Engg\"}}}";
+
+JSONObject root = new JSONObject(json);
+JSONObject employee = root.getJSONObject("employee");
+JSONObject dept = employee.getJSONObject("dept");
+String deptName = dept.getString("name");  // "Engg"
+```
+
+### Using Jackson Library (ObjectMapper)
+
+```java
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+
+ObjectMapper mapper = new ObjectMapper();
+
+// JSON String → Java Object
+String json = "{\"name\":\"Darshan\",\"age\":22}";
+Employee emp = mapper.readValue(json, Employee.class);
+
+// Java Object → JSON String
+String jsonOut = mapper.writeValueAsString(emp);
+
+// Parse to tree (when you don't have a class)
+JsonNode node = mapper.readTree(json);
+String name = node.get("name").asText();  // "Darshan"
+```
+<Callout type="info" title="Jackson vs org.json">
+**org.json** — simpler, good for quick parsing. Used in HackerRank.  
+**Jackson** — industry standard. Can map JSON directly to Java classes. Used in Spring Boot.  
+**Gson** (by Google) — similar to Jackson but simpler API. `new Gson().fromJson(json, MyClass.class)`
+</Callout>
+
+## JSON Parsing — HackerRank Pattern
+
+<Callout type="warn" title="HSE Critical — Memorize This Template">
+In HackerRank, you'll be asked to fetch data from an API, parse the JSON response, and extract specific values. This is the exact pattern you need.
+</Callout>
+
+#### Complete HackerRank Template: Fetch API + Parse JSON
+
+```java
+import java.io.*;
+import java.net.*;
+import org.json.*;
+
+public class Solution {
+    public static void main(String[] args) throws Exception {
+
+        // Step 1: Build the URL
+        String urlStr = "https://jsonmock.hackerrank.com/api/articles?page=1";
+        URL url = new URL(urlStr);
+
+        // Step 2: Open connection
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+
+        // Step 3: Read the response
+        BufferedReader br = new BufferedReader(
+            new InputStreamReader(conn.getInputStream())
+        );
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line);
+        }
+        br.close();
+
+        // Step 4: Parse JSON
+        JSONObject response = new JSONObject(sb.toString());
+
+        // Step 5: Get the data array
+        JSONArray data = response.getJSONArray("data");
+
+        // Step 6: Loop through and extract fields
+        for (int i = 0; i < data.length(); i++) {
+            JSONObject item = data.getJSONObject(i);
+
+            // Use optString to avoid errors on null values
+            String title = item.optString("title", "");
+
+            if (!title.isEmpty()) {
+                System.out.println(title);
+            }
+        }
+    }
+}
+```
+<Callout type="info" title="Key Methods to Remember">
+`getString("key")` → throws error if key is missing  
+`optString("key", "default")` → returns default if key is missing (SAFER)  
+`getInt("key")` / `optInt("key", 0)` → same for integers  
+`getJSONObject("key")` → get nested object  
+`getJSONArray("key")` → get array  
+`isNull("key")` → check if value is null  
+`has("key")` → check if key exists
+</Callout>
+
+#### Pagination Pattern (Multiple Pages)
+
+```java
+int page = 1;
+int totalPages = 1;
+
+while (page <= totalPages) {
+    String urlStr = "https://api.example.com/data?page=" + page;
+    // ... fetch and parse (same as above) ...
+
+    JSONObject response = new JSONObject(sb.toString());
+    totalPages = response.getInt("total_pages");
+
+    JSONArray data = response.getJSONArray("data");
+    // process data...
+
+    page++;
+}
+```
+
+## XML (eXtensible Markup Language)
+
+**XML** is a markup language designed to store and transport data. Unlike HTML (which displays data), XML **carries data**. It was widely used before JSON took over, but is still used in SOAP APIs, configuration files (like pom.xml, web.xml), and enterprise systems.
+
+### XML vs HTML
+
+| Feature | XML | HTML |
+| --- | --- | --- |
+| **Purpose** | Carry/store data | Display data |
+| **Tags** | You define your own tags | Predefined tags (h1, p, div) |
+| **Case Sensitive** | Yes | No |
+| **Closing Tags** | Mandatory | Optional for some tags |
+| **Strictness** | Very strict (well-formed rules) | Forgiving (browsers fix errors) |
+
+### XML Syntax
+
+```java
+<?xml version="1.0" encoding="UTF-8"?>      <!-- Prolog/Declaration -->
+<employees>                                    <!-- Root element (only ONE allowed) -->
+    <employee id="101">                        <!-- Element with attribute -->
+        <name>Darshan</name>                     <!-- Child element -->
+        <department>Engineering</department>
+        <salary>50000</salary>
+    </employee>
+    <employee id="102">
+        <name>Priya</name>
+        <department>HR</department>
+        <salary>45000</salary>
+    </employee>
+</employees>
+```
+
+#### Well-Formed XML Rules
+
+*   Must have exactly **one root element**
+*   Every opening tag MUST have a **closing tag**: `<name>...</name>`
+*   Tags are **case-sensitive**: `<Name>` and `<name>` are different
+*   Elements must be **properly nested**: `<a><b></b></a>` (not `<a><b></a></b>`)
+*   Attribute values must be in **quotes**: `id="101"`
+*   Prolog (declaration) is optional but recommended
+
+<Callout type="error" title="Common Exam Trick">
+This XML is NOT well-formed:  
+`<Name>Darshan</name>` — case mismatch (N vs n)  
+`<br>` without closing → invalid (use `<br/>` for self-closing)
+</Callout>
+
+## XML Parsing in Java
+
+### DOM Parser (Document Object Model)
+
+Loads the **entire XML into memory** as a tree. Good for small files. Easy to navigate.
+
+```java
+import javax.xml.parsers.*;
+import org.w3c.dom.*;
+import java.io.*;
+
+public class XMLParser {
+    public static void main(String[] args) throws Exception {
+
+        // Step 1: Create DocumentBuilder
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+
+        // Step 2: Parse XML file into Document
+        Document doc = builder.parse(new File("employees.xml"));
+        doc.getDocumentElement().normalize();
+
+        // Step 3: Get all "employee" elements
+        NodeList empList = doc.getElementsByTagName("employee");
+
+        // Step 4: Loop through each employee
+        for (int i = 0; i < empList.getLength(); i++) {
+            Node node = empList.item(i);
+
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element elem = (Element) node;
+
+                // Get attribute
+                String id = elem.getAttribute("id");
+
+                // Get child element text
+                String name = elem.getElementsByTagName("name")
+                                  .item(0)
+                                  .getTextContent();
+
+                String dept = elem.getElementsByTagName("department")
+                                  .item(0)
+                                  .getTextContent();
+
+                System.out.println(id + " - " + name + " - " + dept);
+            }
+        }
+    }
+}
+// Output:
+// 101 - Darshan - Engineering
+// 102 - Priya - HR
+```
+
+### SAX Parser (Simple API for XML)
+
+**Event-based**. Reads XML sequentially, fires events (start element, end element, characters). Good for **large files** because it doesn't load everything into memory.
+
+<Callout type="info" title="DOM vs SAX">
+**DOM**: Loads entire tree → Easy to navigate → Uses more memory → Good for small files  
+**SAX**: Reads sequentially → Event-based → Uses less memory → Good for large files  
+  
+For exams and HackerRank, DOM is used more often. SAX is asked as theory.
+</Callout>
+
+### JSON vs XML Comparison
+
+| Feature | JSON | XML |
+| --- | --- | --- |
+| **Full Form** | JavaScript Object Notation | eXtensible Markup Language |
+| **Syntax** | Key-value pairs: `{"k":"v"}` | Tags: `<k>v</k>` |
+| **Readability** | More readable, less verbose | More verbose (lots of tags) |
+| **Data Types** | String, Number, Boolean, Null, Object, Array | Everything is text (no native types) |
+| **Arrays** | Native support: `[1,2,3]` | No direct array — use repeated elements |
+| **Comments** | Not allowed | Allowed: `<!-- comment -->` |
+| **Parsing Speed** | Faster | Slower |
+| **File Size** | Smaller | Larger (because of closing tags) |
+| **Used In** | REST APIs, web apps, mobile | SOAP, config files, enterprise |
+| **Namespace** | Not supported | Supported |
+
+<Callout type="warn" title="Exam Tip">
+"When to use JSON?" → Web APIs, lightweight, mobile apps  
+"When to use XML?" → Configuration files (pom.xml, web.xml), SOAP APIs, when you need namespaces or comments
+</Callout>
+
+## API Consumption in Java (HttpURLConnection)
+
+### Making a GET Request
+
+```java
+import java.io.*;
+import java.net.*;
+
+URL url = new URL("https://api.example.com/users");
+HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+conn.setRequestMethod("GET");
+conn.setRequestProperty("Accept", "application/json");
+
+int statusCode = conn.getResponseCode();  // 200, 404, etc.
+
+if (statusCode == 200) {
+    BufferedReader br = new BufferedReader(
+        new InputStreamReader(conn.getInputStream())
+    );
+    StringBuilder sb = new StringBuilder();
+    String line;
+    while ((line = br.readLine()) != null) {
+        sb.append(line);
+    }
+    br.close();
+
+    System.out.println(sb.toString());
+} else {
+    System.out.println("Error: " + statusCode);
+}
+conn.disconnect();
+```
+
+### Making a POST Request
+
+```java
+URL url = new URL("https://api.example.com/users");
+HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+conn.setRequestMethod("POST");
+conn.setRequestProperty("Content-Type", "application/json");
+conn.setDoOutput(true);  // Enable sending body
+
+// Write JSON body
+String jsonBody = "{\"name\":\"Darshan\",\"age\":22}";
+OutputStream os = conn.getOutputStream();
+os.write(jsonBody.getBytes());
+os.flush();
+os.close();
+
+int code = conn.getResponseCode();  // Expect 201
+System.out.println("Response Code: " + code);
+```
+
+### Complete Template: Fetch + Parse + Extract
+
+<Callout type="warn" title="The Template That Solves 80% of HSE API Questions">
+Memorize this flow: URL → Connection → Read → Parse → Extract → Print
+</Callout>
+
+```java
+import java.io.*;
+import java.net.*;
+import org.json.*;
+
+public class Solution {
+
+    // Reusable method: fetch JSON from any URL
+    static String fetchJSON(String urlStr) throws Exception {
+        URL url = new URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+
+        BufferedReader br = new BufferedReader(
+            new InputStreamReader(conn.getInputStream())
+        );
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line);
+        }
+        br.close();
+        return sb.toString();
+    }
+
+    public static void main(String[] args) throws Exception {
+
+        // Example: Get total goals by a football team in a year
+        String team = "Barcelona";
+        int year = 2011;
+        int totalGoals = 0;
+
+        int page = 1;
+        int totalPages = 1;
+
+        while (page <= totalPages) {
+            String url = "https://jsonmock.hackerrank.com/api/football_matches"
+                + "?year=" + year
+                + "&team1=" + URLEncoder.encode(team, "UTF-8")
+                + "&page=" + page;
+
+            JSONObject resp = new JSONObject(fetchJSON(url));
+            totalPages = resp.getInt("total_pages");
+
+            JSONArray data = resp.getJSONArray("data");
+            for (int i = 0; i < data.length(); i++) {
+                JSONObject match = data.getJSONObject(i);
+                totalGoals += match.getInt("team1goals");
+            }
+            page++;
+        }
+
+        System.out.println("Total Goals: " + totalGoals);
+    }
+}
+```
+
+### Error Handling for API Calls
+
+```java
+try {
+    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    conn.setRequestMethod("GET");
+    conn.setConnectTimeout(5000);  // 5 second timeout
+    conn.setReadTimeout(5000);
+
+    int code = conn.getResponseCode();
+
+    if (code == 200) {
+        // Read from getInputStream()
+    } else {
+        // Read error from getErrorStream()
+        BufferedReader err = new BufferedReader(
+            new InputStreamReader(conn.getErrorStream())
+        );
+        // handle error...
+    }
+} catch (SocketTimeoutException e) {
+    System.out.println("Connection timed out");
+} catch (IOException e) {
+    System.out.println("Network error: " + e.getMessage());
+}
+```
+
+## Practice Questions
+
+Which HTTP method is used to CREATE a new resource?
+
+1.  GET
+2.  POST
+3.  PUT
+4.  PATCH
+
+Show Answer
+
+B) POST — POST creates a new resource. PUT replaces an existing one.
+
+What does HTTP status code 404 mean?
+
+1.  Unauthorized
+2.  Bad Request
+3.  Not Found
+4.  Internal Server Error
+
+Show Answer
+
+C) Not Found — The requested resource does not exist at the given URL.
+
+Which of the following is VALID JSON?
+
+1.  `{'name': 'Darshan'}`
+2.  `{name: "Darshan"}`
+3.  `{"name": "Darshan"}`
+4.  `{"name": "Darshan",}`
+
+Show Answer
+
+C) `{"name": "Darshan"}` — JSON keys MUST be in double quotes. A has single quotes, B has no quotes, D has a trailing comma.
+
+Which REST principle states that each request must contain all information needed to process it?
+
+1.  Client-Server
+2.  Stateless
+3.  Cacheable
+4.  Layered System
+
+Show Answer
+
+B) Stateless — The server does not store session state. Every request must be self-contained.
+
+Which HTTP method is NOT idempotent?
+
+1.  GET
+2.  PUT
+3.  DELETE
+4.  POST
+
+Show Answer
+
+D) POST — Calling POST multiple times creates multiple resources. GET, PUT, and DELETE are idempotent.
+
+What is the difference between status codes 401 and 403?
+
+1.  401 = Server error, 403 = Client error
+2.  401 = Not authenticated, 403 = Authenticated but no permission
+3.  401 = Not found, 403 = Bad request
+4.  They mean the same thing
+
+Show Answer
+
+B) 401 = Not authenticated (who are you?). 403 = Authenticated but forbidden (I know you, but you can't do this).
+
+What data format does SOAP exclusively use?
+
+1.  JSON
+2.  XML
+3.  HTML
+4.  Plain text
+
+Show Answer
+
+B) XML — SOAP uses XML exclusively. REST can use JSON, XML, HTML, or plain text.
+
+Which of the following is NOT a valid JSON data type?
+
+1.  string
+2.  number
+3.  undefined
+4.  null
+
+Show Answer
+
+C) undefined — JSON supports: string, number, boolean, null, object, array. "undefined" is a JavaScript concept, NOT valid in JSON.
+
+What is the correct way to access the value "SQL" from this JSON?  
+`{"employee": {"skills": ["Java", "SQL", "Python"]}}`
+
+1.  `employee.skills[1]`
+2.  `employee.skills[2]`
+3.  `employee.skills.1`
+4.  `employee[skills][1]`
+
+Show Answer
+
+A) employee.skills\[1\] — Arrays are zero-indexed. "Java" is \[0\], "SQL" is \[1\], "Python" is \[2\].
+
+Which status code should a REST API return after successfully CREATING a resource?
+
+1.  200 OK
+2.  201 Created
+3.  204 No Content
+4.  202 Accepted
+
+Show Answer
+
+B) 201 Created — Used specifically when a new resource has been successfully created (typically in response to POST).
+
+Which XML rule makes this invalid? `<Name>Darshan</name>`
+
+1.  Missing root element
+2.  Tags are case-sensitive — Name != name
+3.  Missing XML declaration
+4.  Missing attribute
+
+Show Answer
+
+B) XML is case-sensitive. The opening tag `<Name>` does not match the closing tag `</name>`. They must have identical casing.
+
+In the URL `https://api.com/users/5?sort=name`, what is `5`?
+
+1.  Query parameter
+2.  Path parameter
+3.  Header
+4.  Request body
+
+Show Answer
+
+B) Path parameter — It identifies a specific resource (user with id 5). Query parameters come after the ? mark (like sort=name).
+
+Which Java class is used to parse XML using the DOM approach?
+
+1.  SAXParser
+2.  JSONObject
+3.  DocumentBuilder
+4.  ObjectMapper
+
+Show Answer
+
+C) DocumentBuilder — Created from DocumentBuilderFactory.newInstance().newDocumentBuilder(). SAXParser is for SAX parsing. JSONObject is for JSON. ObjectMapper is Jackson (JSON).
+
+What does the Content-Type header specify?
+
+1.  The format the client wants in response
+2.  The format of data being sent in the request body
+3.  The authentication token
+4.  The API version
+
+Show Answer
+
+B) Content-Type tells the server the format of data in the request body (e.g., application/json). The Accept header tells the server what format the client wants in the response.
+
+Which is true about REST?
+
+1.  REST is a protocol like HTTP
+2.  REST requires XML format
+3.  REST is an architectural style that uses HTTP
+4.  REST maintains session state on the server
+
+Show Answer
+
+C) REST is an architectural style (not a protocol) that uses HTTP. It is stateless (no server-side session) and supports multiple formats (JSON, XML, etc.).
+
+What is the output of this Java code?  
+`JSONObject obj = new JSONObject("{\"a\":10,\"b\":20}");   System.out.println(obj.getInt("a") + obj.getInt("b"));`
+
+1.  "1020"
+2.  30
+3.  Compile error
+4.  "a10b20"
+
+Show Answer
+
+B) 30 — getInt() returns integer values. 10 + 20 = 30. If it were getString(), it would concatenate strings.
+
+How many root elements can an XML document have?
+
+1.  Unlimited
+2.  Two
+3.  Exactly one
+4.  Zero or more
+
+Show Answer
+
+C) Exactly one — Every well-formed XML document must have exactly one root element that contains all other elements.
+
+Which of the following is an advantage of JSON over XML?
+
+1.  JSON supports comments
+2.  JSON supports namespaces
+3.  JSON is less verbose and faster to parse
+4.  JSON is a protocol
+
+Show Answer
+
+C) JSON is less verbose (no closing tags) and faster to parse. XML supports comments and namespaces, not JSON. Neither is a protocol.
+
+What does `conn.setDoOutput(true)` do in HttpURLConnection?
+
+1.  Enables reading the response
+2.  Sets the request timeout
+3.  Enables sending a request body (for POST/PUT)
+4.  Sets the response format to JSON
+
+Show Answer
+
+C) setDoOutput(true) enables writing data to the connection's output stream — required for sending request bodies in POST and PUT requests.
+
+Which method safely returns a default value if a JSON key doesn't exist?
+
+1.  `getString("key")`
+2.  `optString("key", "default")`
+3.  `getOrDefault("key")`
+4.  `findString("key")`
+
+Show Answer
+
+B) optString("key", "default") — The opt* methods return a default value instead of throwing an exception. getString() throws JSONException if the key is missing.
+
+What is the difference between PUT and PATCH?
+
+1.  PUT creates, PATCH deletes
+2.  PUT updates entire resource, PATCH updates partial resource
+3.  PUT is idempotent, PATCH is not — but both update
+4.  Both B and C are correct
+
+Show Answer
+
+D) Both B and C. PUT replaces the entire resource (send all fields). PATCH updates only specified fields. PUT is idempotent; PATCH is not guaranteed to be.
+
+Which HTTP status code means "Success, but no response body"?
+
+1.  200
+2.  201
+3.  204
+4.  202
+
+Show Answer
+
+C) 204 No Content — The request was successful, but there is no content to return. Commonly used after DELETE operations.
+
+In XML, which of these is well-formed?
+
+1.  `<book><title>Java</book></title>`
+2.  `<book><title>Java</title></book>`
+3.  `<book><title>Java</book>`
+4.  `<book title=Java></book>`
+
+Show Answer
+
+B) Elements must be properly nested. A has wrong nesting order. C is missing closing tag for title. D has unquoted attribute value.
+
+What does `getElementsByTagName("employee")` return in DOM parsing?
+
+1.  A single Element
+2.  A NodeList of all matching elements
+3.  A String
+4.  A JSONArray
+
+Show Answer
+
+B) NodeList — It returns a NodeList containing all elements with the specified tag name. You iterate it with .item(i) and .getLength().
+
+Which of the following JSON values is valid?
+
+1.  `{"age": 25}`
+2.  `{"age": 25,}`
+3.  `{age: 25}`
+4.  `{"age": NaN}`
+
+Show Answer
+
+A) `{"age": 25}` — B has trailing comma (invalid). C has unquoted key (invalid). D has NaN which is not a valid JSON value (JSON numbers cannot be NaN or Infinity).
