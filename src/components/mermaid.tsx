@@ -10,7 +10,14 @@ export async function Mermaid({ chart }: { chart: string }) {
       transparent: true,
     });
 
-    return <div dangerouslySetInnerHTML={{ __html: svg }} />;
+    return (
+      <div className="w-full overflow-x-auto my-6 rounded-lg border bg-fd-card/50 p-4">
+        <div
+          className="flex justify-center min-w-max [&_svg]:h-auto"
+          dangerouslySetInnerHTML={{ __html: svg }}
+        />
+      </div>
+    );
   } catch (err) {
     console.error('Mermaid render error:', err);
     return (

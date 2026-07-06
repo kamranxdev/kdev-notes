@@ -1,7 +1,8 @@
 {
-  "title": "Mobile Development",
-  "pages": [
-    "flutter",
-    "react-native"
-  ]
+    "title": "Mobile Development",
+    "pages": [
+        "android",
+        "ios",
+        "cross-platform"
+    ]
 }
