@@ -1,4 +1,11 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "Kamran Khan's Technical Notes - Web, Mobile, Databases & Systems",
+  description: "A detailed repository of reference guides, syntax cheat sheets, and technical writeups. Every explanation focuses on the \"why\" behind concepts.",
+};
+
 import { source } from '@/lib/source';
 import Terminal from '@/components/Terminal';
 import {

@@ -53,11 +53,26 @@ export async function generateMetadata(props: PageProps<'/docs/[[...slug]]'>): P
   const page = source.getPage(params.slug);
   if (!page) notFound();
 
+  const title = page.data.title;
+  const description = page.data.description;
+  const imageUrl = getPageImage(page).url;
+
   return {
-    title: page.data.title,
-    description: page.data.description,
+    title,
+    description,
     openGraph: {
-      images: getPageImage(page).url,
+      title,
+      description,
+      images: imageUrl,
+    },
+    twitter: {
+      title,
+      description,
+      images: imageUrl,
+    },
+    alternates: {
+      canonical: page.url,
     },
   };
 }
+
