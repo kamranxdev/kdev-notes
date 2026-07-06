@@ -1,0 +1,79 @@
+---
+title: Programming
+---
+
+### The Art of Giving Instructions
+
+At its most fundamental level, a computer is extremely fast but completely literal. It cannot make assumptions. It cannot read between the lines. It does exactly what it is told to do — no more, no less.
+
+A **programming language** is a structured vocabulary and set of grammar rules used to give instructions to a computer. 
+
+- **Analogy**: Writing a recipe card for baking a cake.
+  - You must list the ingredients precisely (data types).
+  - You must detail the steps in order (control flow and statements).
+  - You must describe what to do if an egg is cracked or a timer rings (conditionals and event handling).
+
+If you miss a step, the cake collapses. In software, if you write a buggy instruction, the program crashes.
+
+---
+
+### How Code Executes: Compilation vs. Interpretation
+
+Computers do not understand human-readable code. They only understand binary instructions (1s and 0s) known as machine code. Programming languages bridge this gap using two primary execution models:
+
+#### 1. Compiled Languages
+- The compiler takes the entire source code file and translates it into a binary executable file (machine code) in one go.
+- *Analogy*: Translating a book from English to Spanish and printing it. Once printed, a Spanish reader can read it instantly.
+- *Examples*: C, C++, Rust, Go.
+- *Pros*: Faster execution speed at runtime.
+- *Cons*: Compilation takes time; the executable must be compiled separately for each operating system (Windows vs Mac).
+
+#### 2. Interpreted Languages
+- An interpreter reads, translates, and executes the source code line-by-step at runtime.
+- *Analogy*: A live translator translating a speech phrase-by-phrase as the speaker talks.
+- *Examples*: JavaScript, Python, Ruby.
+- *Pros*: Easy to test and run code immediately; platform-independent.
+- *Cons*: Slower execution speed because translation happens during execution.
+
+#### 3. The Hybrid Model (The Java Approach)
+- Some languages combine both. The source code is compiled into an intermediate format called **bytecode**, which is then run on a virtual machine interpreter.
+- *Analogy*: Translating a book into Esperanto (a universal intermediate language), and letting local translators on different continents translate Esperanto to their native language on the fly.
+- *Examples*: Java (compiles to `.class` bytecode, runs on the Java Virtual Machine).
+
+---
+
+### Core Concepts to Understand
+
+#### 1. Memory Layout: Stack vs. Heap
+- **The Stack**: Used for temporary variables, method calls, and primitive data. Memory allocation is fast and strictly ordered (Last In, First Out).
+- **The Heap**: Used for dynamic object allocations. Memory lives here until it is cleared by manual allocation (C/C++) or automatic garbage collection (Java, JavaScript).
+
+#### 2. Data Types: Primitives vs. References
+- **Primitive Types**: Hold the actual value directly in memory (e.g., `5`, `true`).
+- **Reference Types**: Store the memory address (pointer) showing where the actual object data resides in the heap.
+
+---
+
+### Language Track: Java
+
+Our programming notes focus on **Java**, one of the most widely used languages in enterprise applications, Android development, and backend services. Read the [Java Study Guide](./java.mdx).
+
+- **Key Superpowers**: Object-Oriented (OOP), platform-independent ("Write Once, Run Anywhere"), and highly secure memory management.
+- **Topics Covered**: JDK vs JRE vs JVM, data types, wrapper classes, memory management (Stack/Heap), String Pool, arrays, loops, and OOP concepts.
+
+---
+
+### Compiled vs. Interpreted Summary
+
+| Aspect | Compiled | Interpreted | Hybrid (Java) |
+| --- | --- | --- | --- |
+| **Execution** | Pre-translated to machine code | Translated line-by-line at runtime | Compiled to bytecode, run on JVM |
+| **Speed** | Fast | Slower | Balanced |
+| **Portability** | OS-Specific | High | High (WORA) |
+| **Error Checking** | Caught at compile time | Caught at runtime | Syntax caught at compile time; runtime JVM checks |
+
+---
+
+<Quiz question={"Which component is responsible for translating Java source code (.java) into universal bytecode (.class)?"} options={["The Java Virtual Machine (JVM)", "The Java Compiler (javac)", "The Java Runtime Environment (JRE)", "The Operating System"]} answerIndex={1}>
+The **Java Compiler (`javac`)** compiles the source code into bytecode. The JVM then executes (interprets/compiles) that bytecode at runtime.
+</Quiz>

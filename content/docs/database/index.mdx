@@ -1,0 +1,53 @@
+---
+title: Database
+---
+
+### Databases vs. Spreadsheets
+
+Why do we need databases if we already have spreadsheets like Microsoft Excel or Google Sheets?
+
+A spreadsheet is a document where anyone can type anything in any cell. You can have text in a cell that should be a number, leave essential columns blank, or duplicate rows. As data grows, spreadsheets become slow and prone to errors.
+
+A **database** is a highly structured, organized collection of data stored and accessed electronically from a computer system.
+
+- **Analogy**: A spreadsheet is like a notebook where anyone can scribble notes. A database is like a secure safety deposit room with a strict security guard at the door.
+  - The guard enforces rules: "You cannot deposit text into a box meant for gold coins" (Data Types).
+  - "Every box must have a unique serial number label" (Primary Keys).
+  - "If you move box A, you must update the reference log in ledger B" (Foreign Keys / Referential Integrity).
+
+A Relational Database Management System (RDBMS) organizes data into **tables** (relations) consisting of rows (records) and columns (attributes), enforcing strict relationships between tables.
+
+---
+
+### Core Database Topics
+
+#### SQL (Structured Query Language)
+SQL is the standard declarative language used to communicate with relational databases. Read the [SQL Study Guide](./sql.mdx).
+
+- **Analogy**: Asking a librarian for a specific book. You say: "Give me the title of the book written by author X in year Y."
+- **Key Concepts**: Data Definition (DDL), Data Manipulation (DML), Joins, Aggregate Functions, Subqueries, and Indexes.
+
+#### PL/SQL (Procedural Language/SQL)
+PL/SQL is Oracle's procedural extension of SQL. It combines the data-handling power of SQL with procedural programming features (loops, variables, conditions, error handling), allowing you to write complex programs that execute directly inside the database engine. Read the [PL/SQL Study Guide](./pl-sql.mdx).
+
+- **Analogy**: Giving the librarian a set of programming instructions: "Go through shelf A. For each book, check if it's dusty. If yes, wipe it; if it has a torn page, move it to bin B. Do this until shelf A is empty."
+- **Key Concepts**: Blocks, variables, loops, cursors, exceptions, procedures, functions, triggers, and packages.
+
+---
+
+### SQL vs. PL/SQL Comparison
+
+| Aspect | SQL | PL/SQL |
+| --- | --- | --- |
+| **Type** | Declarative Query Language | Procedural Programming Language |
+| **Execution** | Executes single queries at a time | Executes blocks of code (compiles on server) |
+| **Control Flow** | No loops, conditions, or variables | Has loops (`FOR`/`WHILE`), conditionals (`IF`), variables |
+| **Location of Run** | Database engine parses and returns | Executes entirely inside the database server JVM/engine |
+| **Use Case** | Fetching, inserting, and deleting data | Complex data validation, batch jobs, triggers |
+| **Error Handling** | Queries fail with SQL errors | Robust exception handling blocks (`EXCEPTION`) |
+
+---
+
+<Quiz question={"Which of the following describes the key advantage of PL/SQL over standard SQL?"} options={["PL/SQL is standard and runs on all database engines without modification", "PL/SQL adds programming logic like loops, variables, and exceptions to execute complex blocks of operations on the database server", "PL/SQL executes queries faster than SQL because it doesn't use index files", "PL/SQL allows you to write HTML code inside database tables"]} answerIndex={1}>
+**PL/SQL** extends SQL with procedural capabilities (variables, loops, conditions, exception handlers). This allows grouping multiple SQL statements into blocks that execute together on the server, reducing network traffic.
+</Quiz>

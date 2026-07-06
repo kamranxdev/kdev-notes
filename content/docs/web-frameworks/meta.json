@@ -1,6 +1,7 @@
 {
   "title": "Frameworks",
   "pages": [
+    "index",
     "react",
     "angular"
   ]

@@ -1,0 +1,64 @@
+---
+title: Overview
+---
+
+### Native vs. Cross-Platform
+
+When you want to build a mobile app, you face a major architectural decision: should you build it twice using native technologies, or build it once using a cross-platform framework?
+
+1. **Native Development** means writing separate apps for each platform:
+   - **iOS**: Swift or Objective-C using Xcode.
+   - **Android**: Kotlin or Java using Android Studio.
+   - *Pros*: Maximum performance, immediate access to new OS features, and perfect platform-specific feel.
+   - *Cons*: Double the development cost, separate codebases, and separate development teams.
+2. **Cross-Platform (Hybrid) Development** means writing a single codebase in one language that runs on both iOS and Android.
+   - *Pros*: Single codebase, lower development costs, and faster feature releases.
+   - *Cons*: A minor performance overhead, and relying on third-party libraries/frameworks to bridge access to native APIs.
+
+---
+
+### The Cross-Platform Architectural Models
+
+The two most popular cross-platform tools, **React Native** and **Flutter**, take completely different approaches to displaying UI elements on the screen:
+
+*   **React Native (Bridge Model)**: 
+    - Writes UI in JavaScript. At runtime, React Native uses a "bridge" to tell the operating system to create native iOS and Android buttons, text fields, and views.
+    - *Analogy*: An English traveler talking to a Spanish driver through a **real-time translator**. The traveler gives instructions in English, and the translator tells the driver in Spanish. The car is driven using native Spanish roads and controls (native OS widgets).
+*   **Flutter (Canvas Painting Model)**:
+    - Writes code in Dart. Flutter doesn't use the native OS widgets. Instead, it compiles to machine code and uses its own rendering engine to draw every button, shape, and text character directly onto a blank screen canvas.
+    - *Analogy*: An artist who bypasses local helpers and **paints the entire scene themselves** on a blank canvas using their own paintbrush and palette. The final painting looks exactly identical, no matter what room (operating system) it is hung in.
+
+---
+
+### Core Frameworks
+
+#### Flutter
+Google's UI toolkit for building natively compiled applications from a single codebase. Written in Dart, Flutter renders its own widgets using a high-performance rendering engine (Skia or Impeller), ensuring consistent visuals across iOS and Android. Read the [Flutter Study Guide](./flutter.mdx).
+
+- **Developer Experience**: "Everything is a Widget," high-velocity Hot Reload, and pixel-perfect design control.
+- **Key Concepts**: Dart programming language, widgets (Stateless vs Stateful), rendering engine, and build contexts.
+
+#### React Native
+Meta's open-source framework that combines the power of React with native platform capabilities. Written in JavaScript/TypeScript, it allows developers to build mobile UIs using standard React components that map directly to native platform UI widgets. Read the [React Native Study Guide](./react-native.mdx).
+
+- **Developer Experience**: Standard React hooks, CSS-like styling, and rich access to the NPM ecosystem.
+- **Key Concepts**: Bridge architecture (and the New Architecture with JSI), native UI components, styling, and native modules.
+
+---
+
+### Flutter vs. React Native Comparison
+
+| Criteria | Flutter | React Native |
+| --- | --- | --- |
+| **Primary Creator** | Google | Meta (Facebook) |
+| **Programming Language** | Dart | JavaScript / TypeScript |
+| **UI Rendering Model** | Custom engine draws every pixel | Bridge maps code to native widgets |
+| **Visual Consistency** | Identical on all OS versions | Adapts to the platform's native look |
+| **Performance** | High (compiled to native machine code) | Close to native (JS bridge overhead) |
+| **Hot Reload** | State-preserving Hot Reload | Fast Refresh |
+
+---
+
+<Quiz question={"How does Flutter render its UI elements on a mobile device's screen?"} options={["It compiles JS code to native Java/Swift components", "It uses a web view container to display an HTML page", "It draws all elements directly on a canvas using its own rendering engine", "It translates styles into native XML layout files"]} answerIndex={2}>
+**Flutter** does not use native OS components. It uses its own rendering engine (like Skia or Impeller) to draw pixels directly onto a screen canvas, which ensures perfect visual consistency across iOS and Android.
+</Quiz>

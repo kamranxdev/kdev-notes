@@ -1,0 +1,62 @@
+---
+title: Web Fundamentals
+---
+
+### The Architecture of the Web
+
+Imagine you're building a house from scratch. 
+
+1. **HTML (HyperText Markup Language)** is the **skeleton and structural framing**. It defines where the walls go, where the doors are positioned, and how many rooms there are. Without it, there is no physical structure.
+2. **CSS (Cascading Style Sheets)** is the **interior design and facade**. It determines the wall paint colors, the type of flooring, the lighting fixtures, and how objects are spaced. It makes the house beautiful and habitable.
+3. **JavaScript** is the **smart home automation and plumbing**. It makes the doorbell ring when clicked, opens the garage door when a button is pressed, and turns on the faucets. It brings the structure to life with interactivity.
+
+Every webpage you visit is built on these three core pillars. Master them, and you can build anything on the web.
+
+<Callout type="info" title="Why they are kept separate">
+Separation of concerns is a fundamental principle of web engineering. We keep structure (HTML), design (CSS), and logic (JS) in separate files. This makes our code easier to read, maintain, and scale as our projects grow.
+</Callout>
+
+---
+
+### Core Pillars Explained
+
+#### HTML (Structure)
+HTML is the foundation of every web document. It uses a tag-based markup system to organize text, images, inputs, and semantic sections into a document object hierarchy that the browser can understand and render. Read the [HTML Study Guide](./html.mdx).
+
+- **Analogy**: The framing, walls, and doorways of a house.
+- **Key Concepts**: Tags vs Elements, semantic markup (`<main>`, `<article>`), forms and inputs, and document structure.
+
+#### CSS (Styling & Layout)
+CSS describes how HTML elements should be presented on the screen. It controls colors, typography, spacing, and page layouts (from basic margins to multi-dimensional grid alignments). Read the [CSS Study Guide](./css.mdx).
+
+- **Analogy**: The paint, furniture placement, and wallpaper.
+- **Key Concepts**: CSS Selectors, Box Model, Specificity, Positioning, Flexbox, CSS Grid, and Media Queries for responsive design.
+
+#### JavaScript (Behavior)
+JavaScript is a dynamic programming language that executes inside the client's browser. It allows you to manipulate page elements dynamically, handle user interaction events, and communicate with servers asynchronously. Read the [JavaScript Study Guide](./javascript.mdx).
+
+- **Analogy**: Smart switches, plumbing, and automatic locks.
+- **Key Concepts**: Data types, scope (`let`/`const` vs `var`), functions, DOM manipulation, closures, and async event loops.
+
+---
+
+### Web Pillars Quick Reference
+
+| Pillar | Focus | Primary File Extension | Core Responsibility | Standards Body |
+| --- | --- | --- | --- | --- |
+| **HTML** | Structure | `.html` | Declaring content & semantic layout | WHATWG |
+| **CSS** | Presentation | `.css` | Designing visual themes & spacing | W3C |
+| **JavaScript** | Interaction | `.js` | Programming client-side behavior | Ecma International (TC39) |
+
+---
+
+### How They Work Together
+
+When you enter a URL in your browser:
+1. The browser requests and downloads the **HTML** document to build the DOM (Document Object Model) structure.
+2. It parses any linked **CSS** to construct the CSSOM (CSS Object Model) and style the elements.
+3. It executes the **JavaScript** code to add interactivity, bind event listeners, and manipulate the DOM dynamically.
+
+<Quiz question={"Which of the web pillars is responsible for defining the layout and design presentation of a page?"} options={["HTML", "CSS", "JavaScript", "SQL"]} answerIndex={1}>
+**CSS** (Cascading Style Sheets) is solely responsible for visual layout, styling, and design presentation. HTML defines the structure, and JavaScript handles logic/behavior.
+</Quiz>
