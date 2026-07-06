@@ -2,7 +2,7 @@
 title: React
 ---
 
-### 1. React Basics & Philosophy
+### 1\. React Basics & Philosophy
 
 Imagine you are building a custom workstation. You could buy a pre-configured office desk with drawers, cable holes, and stands built-in (that is Angular). Or, you could buy raw IKEA table tops, legs, brackets, and drawers (that is **React**). With React, you build exactly what you want, but you are responsible for choosing and assembling all the pieces (routing, state management, validation).
 
@@ -38,7 +38,7 @@ React is a declarative library focused on the view layer. You describe the desir
 
 ---
 
-### 2. Virtual DOM & Reconciliation
+### 2\. Virtual DOM & Reconciliation
 
 Directly manipulating the browser's **Real DOM** is slow and expensive. When you change an element's text using the Real DOM, the browser has to recalculate the page layout and repaint the screen (a process called reflow and repaint). Doing this hundreds of times a second freezes the browser.
 
@@ -76,7 +76,7 @@ The Virtual DOM acts as a draft space in memory. React compares draft versions (
 
 ---
 
-### 3. JSX (JavaScript XML)
+### 3\. JSX (JavaScript XML)
 
 **JSX** is a syntax extension for JavaScript that allows you to write HTML-like markup directly inside JavaScript files. It combines UI structure and component logic in one place.
 
@@ -123,7 +123,7 @@ JSX must return a single root element. Option 3 is invalid because it contains t
 
 ---
 
-### 4. Components & Props
+### 4\. Components & Props
 
 Components are the independent, reusable building blocks of a React user interface. 
 - **Functional Components (Modern)**: Simple JavaScript functions that accept `props` and return JSX. They use **Hooks** to manage state and lifecycles.
@@ -186,7 +186,7 @@ Props are passed from parent components and are read-only (immutable). State is 
 
 ---
 
-### 5. State Management (`useState`)
+### 5\. State Management (`useState`)
 
 State represents a component's memory — data that changes over time in response to user input, network calls, or timers. When a component's state changes, React schedules a re-render of that component and its children.
 
@@ -246,7 +246,7 @@ React batches state updates and evaluates `setCount(count + 1)` three times usin
 
 ---
 
-### 6. Component Lifecycle & Effects (`useEffect`)
+### 6\. Component Lifecycle & Effects (`useEffect`)
 
 The `useEffect` hook allows functional components to perform side effects (such as data fetching, manual DOM manipulation, setting up event listeners, or connecting to web sockets).
 
@@ -302,7 +302,7 @@ The cleanup function runs right before the component is destroyed (unmounted) or
 
 ---
 
-### 7. Ref Management (`useRef`)
+### 7\. Ref Management (`useRef`)
 
 `useRef` is a hook that provides a way to persist mutable values across renders without triggering a new render when the value changes. It is also used to reference DOM nodes directly.
 
@@ -371,7 +371,7 @@ Updating a ref's `.current` property changes its value immediately and persists 
 
 ---
 
-### 8. Performance Optimization Hooks
+### 8\. Performance Optimization Hooks
 
 By default, when a parent component renders, **all of its child components render recursively**, regardless of whether their props changed. React offers optimization hooks to prevent unnecessary work.
 
@@ -424,7 +424,7 @@ In JavaScript, functions are objects. Every time a parent component renders, it 
 
 ---
 
-### 9. Advanced State & Context
+### 9\. Advanced State & Context
 
 As your application grows, passing props down through multiple layers of components (called **Prop Drilling**) becomes difficult to manage.
 
@@ -504,7 +504,7 @@ The Context API provides a way to share values between components without having
 
 ---
 
-### 10. Lists & Keys
+### 10\. Lists & Keys
 
 When rendering lists of components from an array, you must assign a unique `key` prop to each item.
 
@@ -540,7 +540,7 @@ If list items are reordered, their index changes but their data stays the same. 
 
 ---
 
-### 11. Forms: Controlled vs. Uncontrolled
+### 11\. Forms: Controlled vs. Uncontrolled
 
 Forms in React handle input elements in one of two ways:
 
@@ -592,7 +592,7 @@ Controlled Components synchronize the input value with React state, making React
 
 ---
 
-### 12. Routing (React Router)
+### 12\. Routing (React Router)
 
 React Router is the standard library used to handle client-side routing in React SPAs, allowing navigation without page reloads.
 
@@ -653,7 +653,7 @@ function App() {
 
 ---
 
-### 13. Rules of Hooks & Common Gotchas
+### 13\. Rules of Hooks & Common Gotchas
 
 Hooks are JavaScript functions, but they enforce two strict rules that must be followed for React to execute them correctly:
 

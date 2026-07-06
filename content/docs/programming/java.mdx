@@ -31,7 +31,7 @@ Hello.class  →  JVM (Java Virtual Machine)  →  Output on screen
 `java` = Runs the bytecode on the JVM
 </Callout>
 
-### JDK vs JRE vs JVM
+### 2\. JDK vs JRE vs JVM
 
 These three terms confuse everyone. Think of them as nested boxes:
 
@@ -45,7 +45,7 @@ These three terms confuse everyone. Think of them as nested boxes:
 **JDK contains JRE, which contains JVM.** JDK ⊃ JRE ⊃ JVM. To develop Java programs, you need the JDK.
 </Callout>
 
-### The main() Method — Entry Point
+### 3\. The main() Method — Entry Point
 
 Every Java program starts running from the `main` method. Here's the exact signature you must memorize:
 
@@ -70,7 +70,7 @@ Why each keyword matters:
 If you change the signature — like removing `static` or changing `String[]` to `int[]` — the program compiles but the JVM won't find the entry point and throws **NoSuchMethodError**.
 </Callout>
 
-### 2\. Data Types
+### 4\. Data Types
 
 Data types tell Java what kind of value a variable holds. Java has two categories:
 
@@ -108,7 +108,7 @@ int age = 22;               // age stores the VALUE 22 directly
 
 ```
 
-### Default Values
+### 5\. Default Values
 
 When you declare a variable as a class field (not inside a method), Java gives it a default value if you don't assign one:
 
@@ -156,7 +156,7 @@ B) 0, null, then compile error on the third print
   
 `x` is a class field (int) — defaults to `0`. `s` is a class field (String) — defaults to `null`. But `y` is a **local variable** — it has no default. The compiler catches that `y` was never assigned and refuses to compile. The code won't even run.
 </Quiz>
-### Wrapper Classes & Autoboxing
+### 6\. Wrapper Classes & Autoboxing
 
 Java has two kinds of data: **primitives** (`int`, `double`, `char`, etc.) and **objects**. The problem is — Java collections like `ArrayList` can ONLY store objects, not primitives. So you can't write `ArrayList<int>`.
 
@@ -240,7 +240,7 @@ String s3 = "" + 42;                  // quick trick: concatenate with empty str
 `int` → `Integer` and `char` → `Character` — these two are the only ones where the wrapper name is very different from the primitive. All others just capitalize the first letter.
 </Callout>
 
-### 3\. Type Conversions
+### 7\. Type Conversions
 
 <Callout type="warn" title="Practical Application">
 Real-world problems often require converting between String, int, and double. Know `Integer.parseInt()`, `Double.parseDouble()`, and `String.valueOf()` by heart.
@@ -303,7 +303,7 @@ System.out.println(Math.floor(3.9));   // 3.0 (rounds DOWN)
 
 ```
 
-### 4\. Operators
+### 8\. Operators
 
 #### Arithmetic Operators
 
@@ -395,7 +395,7 @@ int d = ++c;   // PRE-increment: c becomes 6 FIRST, then d gets 6
 `int a = 5; int b = ++a;` → **b = 6, a = 6** (++a increments FIRST, then returns the new value).
 </Callout>
 
-### 5\. Strings
+### 9\. Strings
 
 <Callout type="warn" title="Key Concept">
 Strings are one of the most commonly used types in Java. Understanding equals() vs ==, substring(), immutability, and the String Pool is essential for writing correct code.
@@ -529,7 +529,7 @@ System.out.println(x.equals(z)); // true — same content
 <Quiz question={"**Q: What does this code print?**\n```java\nString name = \"Amit\";\nname.toUpperCase();\nSystem.out.println(name);\n```"} options={["AMIT", "Amit", "amit", "Compilation error"]} answerIndex={1}>
 
 </Quiz>
-### StringBuilder & StringBuffer
+### 10\. StringBuilder & StringBuffer
 
 #### Why Does Immutability Cause Problems?
 
@@ -588,7 +588,7 @@ String result = sb.toString();
 <Quiz question={"**Q: Which is the most efficient way to concatenate 500 strings?**"} options={["Using `+` operator in a loop", "Using `String.concat()` in a loop", "Using `StringBuilder.append()` in a loop", "All have the same performance"]} answerIndex={2}>
 
 </Quiz>
-### 6\. Arrays
+### 11\. Arrays
 
 An array is a container that holds a **fixed number** of values of the **same type**. Think of it as a row of numbered boxes.
 
@@ -655,7 +655,7 @@ for (int i = 0; i < grid.length; i++) {
 
 ```
 
-### Array of Objects
+### 12\. Array of Objects
 
 A very common pattern in Java is to create an **array of custom objects** — not just an array of `int` or `String`. You create a class, then make an array where each element is an object of that class.
 
@@ -756,7 +756,7 @@ if (result != null) {
 
 </Callout>
 
-### 7\. Control Flow
+### 13\. Control Flow
 
 #### if / else if / else
 
@@ -843,7 +843,7 @@ for (int i = 0; i < 5; i++) {
 A common question: "What's the output of this do-while when condition is initially false?"
 </Callout>
 
-### 8\. Methods
+### 14\. Methods
 
 #### Why Do Methods Exist?
 
@@ -961,7 +961,7 @@ Java is **ALWAYS pass by value**. For primitives, it passes a copy of the value.
 <Quiz question={"**Q: Which of these is valid method overloading?**"} options={["`int show(int a)` and `double show(int a)` \u2014 same params, different return", "`void show(int a)` and `void show(double a)` \u2014 different param types", "`void show(int a)` and `void show(int a)` \u2014 identical signatures", "None of the above"]} answerIndex={1}>
 
 </Quiz>
-### 9\. OOP — Object-Oriented Programming
+### 15\. OOP — Object-Oriented Programming
 
 **Why does OOP exist?** Imagine you're building a school management system. Without OOP (in "procedural" style), you'd have 100 loose functions like `getStudentName()`, `calculateFees()`, `assignTeacher()` — and 50 global variables floating around. When the system grows, you can't tell which function works with which data. Change one variable and three random functions break. It's chaos — like a kitchen where every chef shares the same 50 bowls with no labels.
 
@@ -981,7 +981,7 @@ Imagine you're a employee using the company's HR portal:
 **OOP** = Data and functions live together inside objects. Each object manages its own state. Essential for large, real-world systems.
 </Callout>
 
-### Classes & Objects
+### 16\. Classes & Objects
 
 **Class = Blueprint.** It describes what something IS and what it CAN DO.  
 **Object = Instance.** It's an actual thing built from the blueprint.
@@ -1066,7 +1066,7 @@ Priya. `b = a` makes both variables point to the same object. Changing `b.name` 
 <Quiz question={"How many objects are created in heap memory?\n\n```java\nStudent s1 = new Student();\nStudent s2 = new Student();\nStudent s3 = s1;\n\n```"} options={["3", "2", "1", "0"]} answerIndex={1}>
 2\. Only `new` creates objects. `s3 = s1` just copies the reference — no new object is created.
 </Quiz>
-### Constructors (VERY IMPORTANT)
+### 17\. Constructors (VERY IMPORTANT)
 
 **Why do we need constructors?** Imagine you buy a new phone. Out of the box, it has no name set, no Wi-Fi configured, no language selected. Before you can use it, you go through a "setup wizard" that initializes everything. A constructor IS that setup wizard for an object — it runs the moment the object is born and sets up its initial state.
 
@@ -1155,7 +1155,7 @@ Student(String name, int age) {
 <Quiz question={"What happens when you compile and run this code?\n\n```java\nclass Book {\n    String title;\n    Book(String title) {\n        this.title = title;\n    }\n}\nBook b = new Book();\n\n```"} options={["Creates a Book with title = null", "Creates a Book with title = \"\"", "Compile error \u2014 no default constructor available", "Runtime exception"]} answerIndex={2}>
 Compile error. Since a parameterized constructor is defined, Java does NOT provide a free default constructor. `new Book()` fails because there's no no-arg constructor.
 </Quiz>
-### Encapsulation
+### 18\. Encapsulation
 
 **Why does hiding data matter?** Imagine your bank account balance is a `public` variable. Any piece of code, anywhere in the program, could do this:
 
@@ -1241,7 +1241,7 @@ B. Encapsulation = private fields + public getters/setters. This hides the data 
 <Quiz question={"What is the output?\n\n```java\nclass Employee {\n    private int age;\n    public void setAge(int age) {\n        if (age > 0 && age < 120) this.age = age;\n    }\n    public int getAge() { return age; }\n}\nEmployee e = new Employee();\ne.setAge(-5);\nSystem.out.println(e.getAge());\n\n```"} options={["\\-5", "Compile error", "0", "Runtime exception"]} answerIndex={2}>
 0\. The setter rejects -5 (fails the `age > 0` check), so `age` keeps its default value of 0. This is encapsulation protecting the data.
 </Quiz>
-### Inheritance
+### 19\. Inheritance
 
 **What problem does inheritance solve?** Imagine you're building a system with `Dog`, `Cat`, and `Bird` classes. All three have `name`, `age`, and an `eat()` method. Without inheritance, you'd copy-paste these into all three classes. Now imagine you need to add a `weight` field — you'd have to update three classes. With 20 animal types? That's 20 places to edit. Inheritance solves this: write the common stuff ONCE in an `Animal` parent class, and every child class gets it for free.
 
@@ -1354,7 +1354,7 @@ P C. Parent constructor always runs first. Even though we wrote `new Child()`, J
 <Quiz question={"Which statement about inheritance is FALSE?"} options={["A child class inherits public methods from the parent", "Java supports single class inheritance only", "super() must be the first statement in a child constructor", "A child class inherits the parent's constructors"]} answerIndex={3}>
 D is FALSE. Constructors are NEVER inherited. The child must define its own constructors and can call the parent's constructor using `super()`.
 </Quiz>
-### Polymorphism
+### 20\. Polymorphism
 
 **Poly = many, morph = forms.** The word literally means "many forms." Same method name behaves differently depending on context.
 
@@ -1447,7 +1447,7 @@ Car. Runtime polymorphism in action. The reference type is `Vehicle` but the act
 <Quiz question={"Which is method overloading?"} options={["Child class redefines parent's method with same signature", "Same class has multiple methods with same name but different parameters", "Using @Override annotation", "Parent reference pointing to child object"]} answerIndex={1}>
 B. Overloading = same name, different parameter lists, in the same class. A is overriding, C is related to overriding, D is upcasting.
 </Quiz>
-### Abstraction
+### 21\. Abstraction
 
 **What is abstraction really?** You drive a car every day. You turn the steering wheel, press the accelerator, hit the brakes. Do you know how the engine combustion works? How the hydraulic braking system functions? No — and you don't need to. The steering wheel, pedals, and gear shift are the **abstract interface**. They hide the terrifying complexity underneath and give you a simple way to interact.
 
@@ -1561,7 +1561,7 @@ Compile error. If a class extends an abstract class, it MUST implement ALL abstr
 <Quiz question={"Which statement is TRUE about interfaces?"} options={["A class can implement only one interface", "Interfaces can have constructors", "Interface variables are implicitly public, static, and final", "Interfaces cannot have any method with a body"]} answerIndex={2}>
 C. All variables in an interface are implicitly `public static final` (constants). A is false (multiple implements allowed), B is false (no constructors), D is false (Java 8+ default methods have bodies).
 </Quiz>
-### 10\. Access Modifiers
+### 22\. Access Modifiers
 
 #### Why Do Access Levels Exist?
 
@@ -1602,7 +1602,7 @@ Also: "Default" access modifier means you write **NO keyword at all** — NOT th
 <Quiz question={"**Q: Class A and Class B are in the same package. Class A has a variable `int x;` (no access modifier). Can Class B access `x`?**"} options={["Yes \u2014 default access allows same-package access", "No \u2014 no modifier means private", "No \u2014 it's a compile error to have no modifier", "Only if B extends A"]} answerIndex={0}>
 
 </Quiz>
-### 11\. static Keyword
+### 23\. static Keyword
 
 Think of a classroom. Every student has their own name, their own marks, their own bag — that's **instance data** (belongs to each object). But the classroom itself has things that are shared — the class teacher's name, the room number, the total number of students. Those shared things belong to the class, not to any one student. That's what `static` is.
 
@@ -1782,7 +1782,7 @@ class Config {
 
 </Callout>
 
-### 12\. final Keyword
+### 24\. final Keyword
 
 #### What Does "final" Mean?
 
@@ -1851,7 +1851,7 @@ final class Immutable { }
 <Quiz question={"**Q: What happens when you compile this code?**\n```java\nfinal int x = 10;\nx = 20;\nSystem.out.println(x);\n```"} options={["Prints 20", "Prints 10", "Compilation error \u2014 cannot reassign final variable", "Runtime exception"]} answerIndex={2}>
 
 </Quiz>
-### 13\. Exception Handling
+### 25\. Exception Handling
 
 #### What IS an Exception?
 
@@ -1982,7 +1982,7 @@ Avoid writing `catch (Exception e)` — it's too broad. It catches EVERY excepti
 <Quiz question={"**Q: Which of these is a checked exception?**"} options={["NullPointerException", "IOException", "ArithmeticException", "ArrayIndexOutOfBoundsException"]} answerIndex={1}>
 
 </Quiz>
-### 14\. Collections Basics
+### 26\. Collections Basics
 
 <Callout type="warn" title="Practical Application">
 ArrayList and HashMap are essential for building real projects (e.g. JDBC, Servlets, Spring Boot). Know how to add, get, loop, and remove elements.
@@ -2087,7 +2087,7 @@ You can't write `ArrayList<int>` — collections only hold objects. Use the wrap
 <Quiz question={"**Q: What happens when you call `put()` with an existing key in a HashMap?**"} options={["It throws a DuplicateKeyException", "It replaces the old value with the new value", "It ignores the new value and keeps the old one", "It stores both values under the same key"]} answerIndex={1}>
 
 </Quiz>
-### 15\. Common Coding Patterns
+### 27\. Common Coding Patterns
 
 <Callout type="warn" title="Practical Application">
 These patterns cover string manipulation, array operations, and basic math logic — the building blocks of most real-world Java code.
@@ -2261,7 +2261,7 @@ Using an `ArrayList` instead of a `HashSet` would work correctly but be **slower
   
 **The downside is performance.** For n = 1,000,000: sqrt(n) = 1,000 checks, but n/2 = 500,000 checks. The sqrt approach is about 500x faster in this case. The mathematical insight is that factors come in pairs — if `a * b = n` and `a <= b`, then `a <= sqrt(n)`. So you only need to check the smaller half of each pair.
 </Quiz>
-### 16\. Practice Questions
+### 28\. Practice Questions
 
 <Callout type="warn" title="Practice Strategy">
 Practice writing code from scratch and explaining concepts. Below are practice problems in different styles.
@@ -2436,13 +2436,11 @@ These are the small things that trip up many developers in Java programs:
 
 </Callout>
 
-### Practice Question — Full Walkthrough
+### 29\. Practice Question — Full Walkthrough
 
+<Problem title="29\. Practice Question — Full Walkthrough">
+<ProblemDescription>
 Below is a practice problem — read carefully and study the solution line by line.
-
-<Callout type="warn" title="Full Problem Statement">
-
-
 **Create a class Gadget** with the following attributes:
 
 *   `modelNumber` – int
@@ -2460,11 +2458,11 @@ Take the necessary inputs and call `getGadgetByCategory`. For this method, the m
 
 **Note:** All String comparisons need to be case-insensitive.
 
-#### Input Format:
+**Input Format:**
 
 The first line contains the number of Gadget objects. For each Gadget, the next four inputs are: modelNumber, category, warrantyYears, cost. The final line contains the category to search.
 
-#### Sample Input:
+**Sample Input:**
 
 ```java
 3
@@ -2483,7 +2481,7 @@ Tablet
 laptop
 ```
 
-#### Sample Output:
+**Sample Output:**
 
 ```java
 202
@@ -2494,7 +2492,7 @@ Laptop
 
 **Explanation:** Search key is "laptop" — matches "Laptop" case-insensitively. Prints all attributes of that Gadget exactly as stored. Note: cost is `double`, so it prints `55000.0` not `55000`.
 
-#### Sample Input 2:
+**Sample Input 2:**
 
 ```java
 2
@@ -2509,15 +2507,14 @@ Speaker
 Headset
 ```
 
-#### Sample Output 2:
+**Sample Output 2:**
 
 ```java
 No Gadget Found
 ```
-
-</Callout>
-
-#### Complete Solution:
+</ProblemDescription>
+<ProblemSolution>
+**Complete Solution:**
 
 Solution.java
 
@@ -2584,7 +2581,7 @@ public class Solution {
 }
 ```
 
-#### The Gadget Class
+**The Gadget Class**
 
 **`private` fields** — The problem says "write getters and setters" which means encapsulation. Fields are `private` so no one can access them directly from outside. You read them only through getter methods.
 
@@ -2594,7 +2591,7 @@ public class Solution {
 
 **Getters** — Since fields are `private`, getters are the only way to read them from outside. Convention: `get` + field name capitalized.
 
-#### The getGadgetByCategory Method
+**The getGadgetByCategory Method**
 
 **`static`** — The problem says "create a static method." It belongs to the class, not any object. Callable directly from `main`.
 
@@ -2604,7 +2601,7 @@ public class Solution {
 
 **`return null`** — No match found → return `null`. The caller must check for this.
 
-#### The main Method — Input
+**The main Method — Input**
 
 **`Integer.parseInt(sc.nextLine().trim())`** — The safe input pattern:
 
@@ -2618,7 +2615,7 @@ If you used `sc.nextInt()` instead, it leaves `"\n"` in the buffer. Next `sc.nex
 
 **`.trim()` on every line** — Trailing space means `"Laptop "` won't match `"laptop"`. Always trim.
 
-#### The main Method — Output
+**The main Method — Output**
 
 **`result != null`** — If null and you call `result.getModelNumber()`, Java throws `NullPointerException` — 0 marks.
 
@@ -2644,14 +2641,13 @@ If you used `sc.nextInt()` instead, it leaves `"\n"` in the buffer. Next `sc.nex
 
 
 </Callout>
+</ProblemSolution>
+</Problem>
+### 30\. Practice Question 2 — Filter + Count Pattern
 
-### Practice Question 2 — Filter + Count Pattern
-
+<Problem title="30\. Practice Question 2 — Filter + Count Pattern">
+<ProblemDescription>
 This variation tests **filtering with a numeric condition** and **counting matches**. Instead of returning one object, you return a count.
-
-<Callout type="warn" title="Full Problem Statement">
-
-
 **Create a class Employee** with the following attributes:
 
 *   `empId` – int
@@ -2671,7 +2667,7 @@ Take necessary inputs, call both methods, and print results. For countEmployeesB
 
 **Note:** All String comparisons must be case-insensitive.
 
-#### Sample Input:
+**Sample Input:**
 
 ```java
 4
@@ -2694,7 +2690,7 @@ Marketing
 engineering
 ```
 
-#### Sample Output:
+**Sample Output:**
 
 ```java
 2
@@ -2703,11 +2699,9 @@ Rahul
 ```
 
 **Explanation:** "engineering" matches "Engineering" case-insensitively — 2 employees found (Amit, Rahul). Max salary across ALL employees is Rahul at 82000.0.
-
-
-</Callout>
-
-#### Complete Solution:
+</ProblemDescription>
+<ProblemSolution>
+**Complete Solution:**
 
 Solution.java
 
@@ -2785,17 +2779,17 @@ public class Solution {
 }
 ```
 
-#### What's Different From the Gadget Question?
+**What's Different From the Gadget Question?**
 
 This question has **two methods** instead of one, and tests two different patterns:
 
-#### Pattern 1: Count Matches (countEmployeesByDepartment)
+**Pattern 1: Count Matches (countEmployeesByDepartment)**
 
 **`int count = 0;`** — Start a counter at zero. For every match, increment. This is the "count" pattern — simpler than returning an object because you just need a number at the end.
 
 **`equalsIgnoreCase`** — Same as Gadget question. "engineering" must match "Engineering". If you use `.equals()`, you'll miss the match and return 0.
 
-#### Pattern 2: Find Maximum (getEmployeeWithMaxSalary)
+**Pattern 2: Find Maximum (getEmployeeWithMaxSalary)**
 
 **`Employee max = employees[0];`** — The "assume first is max" pattern. You can't start with `max = 0` because you need the whole Employee object, not just the salary number. Start with the first employee, then check if anyone has a higher salary.
 
@@ -2803,7 +2797,7 @@ This question has **two methods** instead of one, and tests two different patter
 
 **`if (employees.length == 0) return null;`** — Edge case guard. If the array is empty, there's no employee\[0\] to start with — accessing it would throw `ArrayIndexOutOfBoundsException`.
 
-#### The main Method
+**The main Method**
 
 **Same input pattern as the Gadget question** — `Integer.parseInt(sc.nextLine().trim())` for every line. This is the safe pattern that avoids the Scanner buffer bug.
 
@@ -2822,14 +2816,13 @@ This question has **two methods** instead of one, and tests two different patter
 
 
 </Callout>
+</ProblemSolution>
+</Problem>
+### 31\. Practice Question 3 — Filter + Aggregate Pattern
 
-### Practice Question 3 — Filter + Aggregate Pattern
-
+<Problem title="31\. Practice Question 3 — Filter + Aggregate Pattern">
+<ProblemDescription>
 This variation tests **filtering objects that meet a condition** and **collecting them into a new array**. Instead of count or single object, you return multiple matching objects.
-
-<Callout type="warn" title="Full Problem Statement">
-
-
 **Create a class Product** with the following attributes:
 
 *   `productId` – int
@@ -2845,7 +2838,7 @@ Create a class `Solution` with the main method. Implement the following static m
 
 Take the necessary inputs, call the method, and print results. If products are found, print each product's name and price on separate lines (name first, then price). If null is returned, print **"No Products Found"**.
 
-#### Sample Input:
+**Sample Input:**
 
 ```java
 3
@@ -2865,7 +2858,7 @@ Electronics
 2000.0
 ```
 
-#### Sample Output:
+**Sample Output:**
 
 ```java
 Keyboard
@@ -2875,11 +2868,9 @@ Mouse
 ```
 
 **Explanation:** Price range is 500.0 to 2000.0. Keyboard (1500.0) and Mouse (800.0) fall in range. Monitor (25000.0) does not. Print matching products' name and price.
-
-
-</Callout>
-
-#### Complete Solution:
+</ProblemDescription>
+<ProblemSolution>
+**Complete Solution:**
 
 Solution.java
 
@@ -2961,11 +2952,11 @@ public class Solution {
 }
 ```
 
-#### The Hardest Part: Returning an Array of Objects
+**The Hardest Part: Returning an Array of Objects**
 
 This is the trickiest FA pattern. You can't just `return p;` inside the loop — you need ALL matching products. But Java arrays have a fixed size, so you can't just "add" to them. The solution: **two-pass approach**.
 
-#### Two-Pass Pattern (MEMORIZE THIS)
+**Two-Pass Pattern (MEMORIZE THIS)**
 
 **Pass 1: Count matches** — Loop through, count how many products fall in the price range. Now you know the exact size of the result array.
 
@@ -2973,15 +2964,15 @@ This is the trickiest FA pattern. You can't just `return p;` inside the loop —
 
 **Why not use ArrayList?** You could, and it's simpler — but FA questions typically ask you to return an array, not an ArrayList. The two-pass pattern works with plain arrays which is what the question specifies.
 
-#### The Range Check
+**The Range Check**
 
 **`p.getPrice() >= minPrice && p.getPrice() <= maxPrice`** — "Inclusive" means the boundaries count. Price of exactly 500.0 or exactly 2000.0 would match. If the problem said "exclusive", you'd use `>` and `<` instead of `>=` and `<=`. Read the problem statement carefully.
 
-#### The index++ Trick
+**The index++ Trick**
 
 **`result[index++] = p;`** — This does two things in one line: assigns `p` to `result[index]`, then increments `index` for the next match. Without `index`, you'd overwrite the same slot every time.
 
-#### Printing Multiple Objects
+**Printing Multiple Objects**
 
 **`for (Product p : result)`** — Loop through the result array and print each product's details. The problem says "name first, then price" — so that's the order. Don't add extra labels like "Name: Keyboard" unless the problem says to.
 
@@ -3029,4 +3020,5 @@ public static void main(String[] args) {
 
 
 </Callout>
-
+</ProblemSolution>
+</Problem>

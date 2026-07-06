@@ -16,7 +16,7 @@ CSS controls how HTML elements look — colors, spacing, layout, fonts, animatio
 Inline styles are like writing instructions on every single brick of a house — tedious and impossible to maintain. External CSS is like having a single blueprint that controls the entire building. Change one line in the blueprint, and every room updates. That is why real projects always use external stylesheets.
 </Callout>
 
-### CSS Selectors
+### 1\. CSS Selectors
 
 **Why do selectors exist?** Imagine you are a teacher in a classroom of 30 students. You need a way to say "Hey, YOU specifically" or "everyone in the back row" or "all students wearing blue shirts." CSS selectors are exactly that — they are how you _point at_ specific HTML elements and say "I want to style YOU."
 
@@ -68,7 +68,7 @@ B) `div p` — the descendant selector matches `<p>` at any depth inside `<div>`
 <Quiz question={"What is the difference between `p.intro` and `.intro p`?"} options={["They are the same thing", "`p.intro` selects paragraphs with class \"intro\"; `.intro p` selects paragraphs inside elements with class \"intro\"", "`p.intro` selects elements with id \"intro\"; `.intro p` selects class \"intro\"", "`p.intro` is invalid CSS syntax"]} answerIndex={1}>
 B) `p.intro` means "a `<p>` element that HAS class intro" (no space = same element). `.intro p` means "any `<p>` that is INSIDE an element with class intro" (space = descendant relationship). Completely different selections.
 </Quiz>
-### Box Model
+### 2\. Box Model
 
 **Why does the box model matter?** Here is the single most important thing to understand about CSS layout: _every single HTML element is a rectangular box_. Not some elements. Not just divs. EVERY element — paragraphs, headings, images, links — they are all invisible boxes sitting on the page.
 
@@ -135,7 +135,7 @@ B) 350px — width(300) + padding(20x2) + border(5x2) = 350px. Margin is not par
 <Quiz question={"Two adjacent elements: first has `margin-bottom: 40px`, second has `margin-top: 25px`. What is the gap between them?"} options={["65px", "40px", "25px", "32.5px"]} answerIndex={1}>
 B) 40px — vertical margins collapse. The larger margin wins, so the gap is 40px, not 65px. This only happens with vertical margins (top/bottom), never horizontal (left/right).
 </Quiz>
-### Specificity & Cascade
+### 3\. Specificity & Cascade
 
 **Why does specificity exist?** Imagine you have 3 bosses. Boss A says "paint the wall blue." Boss B says "paint the wall red." Boss C says "paint the wall green." Whose instruction do you follow? You need a pecking order — a way to decide who wins.
 
@@ -183,7 +183,7 @@ B) `div#nav ul.menu li` — specificity is 0,1,1,3 (1 ID + 1 class + 3 elements)
 <Quiz question={"Two rules target the same element: `.header { color: blue; }` appears on line 10, and `.header { color: red; }` appears on line 50. What color is the text?"} options={["Blue \u2014 first rule wins", "Red \u2014 last rule wins when specificity is equal", "Browser default color", "Depends on the HTML structure"]} answerIndex={1}>
 B) Red. When two selectors have the same specificity (both are `.header` = 0,0,1,0), the cascade rule kicks in: the one that appears LATER in the stylesheet wins. This is the "C" in CSS — Cascading.
 </Quiz>
-### Display & Position
+### 4\. Display & Position
 
 #### Display property
 
@@ -270,7 +270,7 @@ B) `display: none` removes the element completely — it takes no space, as if i
 <Quiz question={"What does `position: absolute` do?"} options={["Positions the element relative to its normal position", "Positions the element relative to the viewport", "Positions the element relative to the nearest positioned ancestor", "Keeps the element in normal document flow"]} answerIndex={2}>
 C) It removes the element from normal flow and positions it relative to the nearest ancestor that has a position value other than `static`. If no positioned ancestor exists, it uses the document body. Remember: `relative` = nudge from where you were; `absolute` = teleport to exact coordinates inside your parent.
 </Quiz>
-### Flexbox
+### 5\. Flexbox
 
 **Why does Flexbox exist?** Before Flexbox, centering a div vertically was a legendary CSS struggle. Developers used hacks with tables, floats, and negative margins just to put something in the middle of the page. Flexbox was invented to solve this: it gives you a simple, powerful way to arrange elements in a row or column, with total control over spacing and alignment.
 
@@ -348,7 +348,7 @@ B) `justify-content` — it aligns items along the main axis. `align-items` alig
 <Quiz question={"You have a flex container with `flex-direction: column`. Which property controls horizontal alignment of the items?"} options={["`justify-content`", "`align-items`", "`flex-wrap`", "`flex-basis`"]} answerIndex={1}>
 B) `align-items`. When `flex-direction` is `column`, the main axis becomes vertical and the cross axis becomes horizontal. Since `align-items` controls the cross axis, it now controls horizontal alignment. This axis-swap is a commonly confused point.
 </Quiz>
-### CSS Grid
+### 6\. CSS Grid
 
 **Why does Grid exist if we have Flexbox?** Flexbox is one-dimensional — it handles a row OR a column. Grid is two-dimensional — it handles rows AND columns at the same time. Think of Flexbox as arranging items on a clothesline (one direction). Grid is like arranging items on a chessboard (rows and columns simultaneously).
 
@@ -378,7 +378,7 @@ Grid is great for page-level layouts with defined rows and columns — use it wh
 In practice, you often use Grid for the overall page structure and Flexbox for individual components within it.
 </Callout>
 
-### Units — px, em, rem, %
+### 7\. Units — px, em, rem, %
 
 **Why are there so many unit types?** Imagine building with only centimeters — it works for a bookshelf but not for a building that needs to scale. CSS has different units because different situations need different kinds of measurement:
 
@@ -413,7 +413,7 @@ In practice, you often use Grid for the overall page structure and Flexbox for i
 <Quiz question={"If root font-size is 16px, what is `2.5rem` in pixels?"} options={["25px", "32px", "40px", "48px"]} answerIndex={2}>
 C) 40px — `rem` is always relative to root font-size. 2.5 x 16px = 40px. It does not matter how many elements this is nested inside — `rem` always looks at the root.
 </Quiz>
-### Colors & Backgrounds
+### 8\. Colors & Backgrounds
 
 **Why so many color formats?** Different formats exist for different use cases: named colors are readable, hex is compact, RGB gives precise control, and RGBA adds transparency. Understanding all formats — and especially the distinction between `opacity` and `rgba` — is essential for writing correct, maintainable CSS.
 
@@ -447,7 +447,7 @@ C) 40px — `rem` is always relative to root font-size. 2.5 x 16px = 40px. It do
 `background: rgba(0,0,0,0.5)` only makes the **background** transparent — children remain fully visible. Use rgba when you want a semi-transparent background with readable text on top.
 </Callout>
 
-### Text & Fonts
+### 9\. Text & Fonts
 
 Text styling controls how your content reads. The key insight: `font-*` properties control the typeface itself (family, size, weight), while `text-*` properties control how the text is displayed (alignment, decoration, transformation).
 
@@ -481,7 +481,7 @@ a { text-decoration: none; }
 }
 ```
 
-### Pseudo-classes & Pseudo-elements
+### 10\. Pseudo-classes & Pseudo-elements
 
 **Why do these exist?** Sometimes you want to style an element based on its _state_ (is the mouse hovering over it? is it the first item in a list?) or a _part_ of an element (just the first letter, or insert an icon before it). You cannot create a CSS class for "the paragraph the mouse is currently hovering over" because that changes every second. Pseudo-classes and pseudo-elements solve this.
 
@@ -539,7 +539,7 @@ The order must be **:link → :visited → :hover → :active** (remember: **L**
 <Quiz question={"Which pseudo-element requires the `content` property to work?"} options={["`::first-line`", "`::before`", "`::first-letter`", "`:hover`"]} answerIndex={1}>
 B) `::before` (and `::after`) require the `content` property — without it, they will not render at all. Even if you want nothing visible, you need `content: ""`. Note: `:hover` is a pseudo-CLASS (single colon), not a pseudo-element.
 </Quiz>
-### Transitions & Animations
+### 11\. Transitions & Animations
 
 **Why do transitions exist?** Without transitions, CSS changes happen instantly — a button goes from blue to red in 0 milliseconds. That feels jarring and cheap. Transitions add smooth, gradual changes that make your UI feel polished and professional. Think of it like a dimmer switch vs a light switch — both control brightness, but the dimmer does it smoothly.
 
@@ -582,7 +582,7 @@ B) `::before` (and `::after`) require the `content` property — without it, the
 Put the `transition` property on the **base state** (not the hover state). This way, the transition plays both when hovering IN and OUT. If you put it only on `:hover`, the transition will play when hovering in but snap back instantly when hovering out.
 </Callout>
 
-### Responsive Design
+### 12\. Responsive Design
 
 **Why does responsive design matter?** People browse on phones, tablets, laptops, and 4K monitors. A design that looks perfect on a laptop will be unreadable on a phone if it is not responsive. Media queries let you write different CSS rules for different screen sizes — like having different outfits for different weather.
 
@@ -617,7 +617,7 @@ Without this tag in HTML `<head>`, media queries will NOT work on mobile devices
 <Quiz question={"In a mobile-first approach, which media query do you use to add styles for larger screens?"} options={["`@media (max-width: 768px)`", "`@media (min-width: 768px)`", "`@media (screen)`", "`@media (device-width: 768px)`"]} answerIndex={1}>
 B) `min-width` means "apply these styles when the screen is AT LEAST this wide." In mobile-first, you write base styles for small screens, then use `min-width` breakpoints to progressively add styles for larger screens. `max-width` is for desktop-first (scaling down).
 </Quiz>
-### Shorthand Properties
+### 13\. Shorthand Properties
 
 Shorthand properties let you set multiple related properties in one line. Less typing, cleaner code. But you need to remember the order of values.
 
@@ -644,7 +644,7 @@ Margin, padding, and border-radius with 4 values always go **clockwise**: Top �
 <Quiz question={"What does `margin: 10px 20px 30px;` mean?"} options={["top: 10px, right: 20px, bottom: 30px, left: 20px", "top: 10px, right: 20px, bottom: 30px, left: 0", "top: 10px, right: 30px, bottom: 20px, left: 10px", "top: 10px, right: 20px, bottom: 30px, left: 30px"]} answerIndex={0}>
 A) 3-value shorthand: top = 10px, right = 20px, bottom = 30px, left = same as right = 20px. When the left value is missing, it mirrors the right value.
 </Quiz>
-### More Practice Questions
+### 14\. More Practice Questions
 
 <Quiz question={"An element has `width: 200px; box-sizing: border-box; padding: 20px; border: 5px solid;`. What is the total width on screen?"} options={["250px", "200px", "150px", "210px"]} answerIndex={1}>
 B) 200px. With `box-sizing: border-box`, the width includes padding and border. The content area shrinks to 150px (200 - 20*2 - 5*2) to accommodate, but the total on-screen width remains 200px.

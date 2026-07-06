@@ -24,7 +24,7 @@ function getOverlapScore(option, explanation) {
   const optWords = optClean.match(/\w+/g) || [];
   const expWords = new Set(expClean.match(/\w+/g) || []);
   if (optWords.length === 0) return 0;
-  
+
   let overlapLength = 0;
   let optLength = 0;
   for (const word of optWords) {
@@ -52,7 +52,7 @@ function parseFileQuestions(lines) {
 
   for (let idx = 0; idx < anchors.length; idx++) {
     const { idx: anchorIdx, type: anchorType } = anchors[idx];
-    
+
     // Find 4 options above anchorIdx
     let currOptNum = 4;
     let k = anchorIdx - 1;
@@ -69,7 +69,7 @@ function parseFileQuestions(lines) {
       let matched = false;
       let val = "";
 
-      const mNum = l.match(new RegExp(`^${currOptNum}\\.\\s+(.*)$`));
+      const mNum = l.match(new RegExp(`^${currOptNum}\.\\s+(.*)$`));
       if (mNum) {
         if (isNum === false) break;
         isNum = true;
@@ -79,9 +79,9 @@ function parseFileQuestions(lines) {
         const letter = String.fromCharCode(64 + currOptNum); // A, B, C, D
         const patterns = [
           new RegExp(`^\\*\\*${letter}\\)\\*\\*\\s*(.*)$`),
-          new RegExp(`^\\*\\*${letter}\\.?\\*\\*\\s*(.*)$`),
+          new RegExp(`^\\*\\*${letter}\.?\\*\\*\\s*(.*)$`),
           new RegExp(`^${letter}\\)\\s*(.*)$`),
-          new RegExp(`^${letter}\\.\\s*(.*)$`),
+          new RegExp(`^${letter}\.\\s*(.*)$`),
           new RegExp(`^\\*\\*${letter}\\)\\s*(.*)$`),
         ];
         for (const p of patterns) {
@@ -301,10 +301,10 @@ for (const q of questions) {
     const options = q.optionsData.map(o => o.val);
     const qProp = `question={${JSON.stringify(q.questionText)}}`;
     const optsProp = `options={${JSON.stringify(options)}}`;
-    
+
     const ansVal = q.correctIdx !== null ? q.correctIdx : "null";
     const ansProp = `answerIndex={${ansVal}}`;
-    
+
     repParts.push(`<Quiz ${qProp} ${optsProp} ${ansProp}>`);
   } else {
     const qProp = `question={${JSON.stringify(q.questionText)}}`;
@@ -312,7 +312,7 @@ for (const q of questions) {
   }
   repParts.push(q.explanationText);
   repParts.push("</Quiz>");
-  
+
   newLines.splice(q.questionStart, q.explanationEnd - q.questionStart, repParts.join('\n'));
 }
 

@@ -26,7 +26,7 @@ In programming terms: an API defines **rules for how one piece of software can r
 REST is **not** a protocol like HTTP. It is a set of **guidelines/constraints** that use HTTP as the transport. An API that follows REST rules is called a **RESTful API**.
 </Callout>
 
-### REST Principles (6 Constraints)
+### 1\. REST Principles (6 Constraints)
 
 | # | Principle | What It Means |
 | --- | --- | --- |
@@ -93,7 +93,7 @@ Status codes appear in almost every REST-related question. Memorize these.
 **401 vs 403:** 401 = "Who are you?" (not logged in). 403 = "I know who you are, but you can't do this" (logged in, but no permission).
 </Callout>
 
-### URL Structure
+### 2\. URL Structure
 
 ```java
 https://api.example.com/v1/employees/42?sort=name&order=asc
@@ -114,7 +114,7 @@ scheme      host        ver  endpoint   id    query params
 **Query param** → filters/modifies the result: `/users?age=25` (get users where age is 25)
 </Callout>
 
-### HTTP Headers
+### 3\. HTTP Headers
 
 Headers are **metadata** sent with every HTTP request and response. They carry information about the request format, authentication, and more.
 
@@ -130,7 +130,7 @@ Headers are **metadata** sent with every HTTP request and response. They carry i
 **Accept** = "I WANT you to REPLY in this format"
 </Callout>
 
-### Request and Response Anatomy
+### 4\. Request and Response Anatomy
 
 #### HTTP Request
 
@@ -162,7 +162,7 @@ Content-Type: application/json
 }
 ```
 
-### REST vs SOAP
+### 5\. REST vs SOAP
 
 | Feature | REST | SOAP |
 | --- | --- | --- |
@@ -181,7 +181,7 @@ Content-Type: application/json
 If the question asks "which is faster?" → REST. If it asks "which uses only XML?" → SOAP. If it asks "which is a protocol?" → SOAP (REST is an architectural **style**).
 </Callout>
 
-### Idempotent Methods
+### 6\. Idempotent Methods
 
 **Idempotent** means: calling the same request **multiple times produces the same result** as calling it once.
 
@@ -205,7 +205,7 @@ POST is **NOT** idempotent. Sending the same POST request twice creates TWO reso
 JSON was derived from JavaScript, but it is **language-independent**. Java, Python, C#, every language can read and write JSON.
 </Callout>
 
-### JSON Syntax Rules
+### 7\. JSON Syntax Rules
 
 *   Data is in **key-value pairs**: `"key": value`
 *   Keys MUST be in **double quotes** (single quotes are INVALID)
@@ -240,7 +240,7 @@ JSON was derived from JavaScript, but it is **language-independent**. Java, Pyth
 
 </Callout>
 
-### JSON Data Types
+### 8\. JSON Data Types
 
 | Type | Example | Notes |
 | --- | --- | --- |
@@ -251,7 +251,7 @@ JSON was derived from JavaScript, but it is **language-independent**. Java, Pyth
 | **Object** | `{"key": "value"}` | Nested object inside another object |
 | **Array** | `[1, 2, 3]` | Ordered list of values |
 
-### Valid vs Invalid JSON
+### 9\. Valid vs Invalid JSON
 
 <Callout type="warn" title="Key Concept — Spot the Error">
 These questions appear frequently. You'll be shown JSON and asked if it's valid.
@@ -292,7 +292,7 @@ These questions appear frequently. You'll be shown JSON and asked if it's valid.
 Keys in JSON MUST be in **double quotes**. Not single quotes. Not no quotes. **Double quotes only.** This is a commonly misunderstood behaviour.
 </Callout>
 
-### Nested JSON Objects and Arrays
+### 10\. Nested JSON Objects and Arrays
 
 ```java
 {
@@ -321,7 +321,7 @@ Arrays are **zero-indexed**: first item is \[0\], second is \[1\].
 
 ## JSON in Java
 
-### Using org.json Library (JSONObject, JSONArray)
+### 11\. Using org.json Library (JSONObject, JSONArray)
 
 #### Creating JSON from scratch
 
@@ -373,7 +373,7 @@ JSONObject dept = employee.getJSONObject("dept");
 String deptName = dept.getString("name");  // "Engg"
 ```
 
-### Using Jackson Library (ObjectMapper)
+### 12\. Using Jackson Library (ObjectMapper)
 
 ```java
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -487,7 +487,7 @@ while (page <= totalPages) {
 
 **XML** is a markup language designed to store and transport data. Unlike HTML (which displays data), XML **carries data**. It was widely used before JSON took over, but is still used in SOAP APIs, configuration files (like pom.xml, web.xml), and enterprise systems.
 
-### XML vs HTML
+### 13\. XML vs HTML
 
 | Feature | XML | HTML |
 | --- | --- | --- |
@@ -497,7 +497,7 @@ while (page <= totalPages) {
 | **Closing Tags** | Mandatory | Optional for some tags |
 | **Strictness** | Very strict (well-formed rules) | Forgiving (browsers fix errors) |
 
-### XML Syntax
+### 14\. XML Syntax
 
 ```java
 <?xml version="1.0" encoding="UTF-8"?>      <!-- Prolog/Declaration -->
@@ -532,7 +532,7 @@ This XML is NOT well-formed:
 
 ## XML Parsing in Java
 
-### DOM Parser (Document Object Model)
+### 15\. DOM Parser (Document Object Model)
 
 Loads the **entire XML into memory** as a tree. Good for small files. Easy to navigate.
 
@@ -584,7 +584,7 @@ public class XMLParser {
 // 102 - Priya - HR
 ```
 
-### SAX Parser (Simple API for XML)
+### 16\. SAX Parser (Simple API for XML)
 
 **Event-based**. Reads XML sequentially, fires events (start element, end element, characters). Good for **large files** because it doesn't load everything into memory.
 
@@ -595,7 +595,7 @@ public class XMLParser {
 In practice, DOM is used more often for API parsing. SAX is important for theory and large file handling.
 </Callout>
 
-### JSON vs XML Comparison
+### 17\. JSON vs XML Comparison
 
 | Feature | JSON | XML |
 | --- | --- | --- |
@@ -617,7 +617,7 @@ In practice, DOM is used more often for API parsing. SAX is important for theory
 
 ## API Consumption in Java (HttpURLConnection)
 
-### Making a GET Request
+### 18\. Making a GET Request
 
 ```java
 import java.io.*;
@@ -648,7 +648,7 @@ if (statusCode == 200) {
 conn.disconnect();
 ```
 
-### Making a POST Request
+### 19\. Making a POST Request
 
 ```java
 URL url = new URL("https://api.example.com/users");
@@ -668,7 +668,7 @@ int code = conn.getResponseCode();  // Expect 201
 System.out.println("Response Code: " + code);
 ```
 
-### Complete Template: Fetch + Parse + Extract
+### 20\. Complete Template: Fetch + Parse + Extract
 
 <Callout type="warn" title="The Template That Solves Most API Problems">
 Memorise this flow: URL → Connection → Read → Parse → Extract → Print
@@ -731,7 +731,7 @@ public class Solution {
 }
 ```
 
-### Error Handling for API Calls
+### 21\. Error Handling for API Calls
 
 ```java
 try {

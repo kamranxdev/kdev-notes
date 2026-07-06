@@ -3,7 +3,7 @@ title: Unix / Linux
 description: Unix and Linux are the backbone of every server and cloud instance
 ---
 
-### What is Unix/Linux?
+### 1\. What is Unix/Linux?
 
 **Why should you care?** Every server you'll ever work with at organizations runs Linux. Every cloud instance (AWS, Azure, GCP) runs Linux. Every Android phone runs a Linux kernel. When you deploy your Java web app at work, it's going to a Linux server. You won't be clicking icons — you'll be typing commands in a terminal. That's Unix.
 
@@ -24,7 +24,7 @@ Unix was built at Bell Labs in 1969. Linux is a free, open-source recreation of 
 <Quiz question={"In Unix, `Report.txt` and `report.txt` are:"} options={["The same file", "Two different files", "An error \u2014 you can't have both", "Depends on the directory"]} answerIndex={1}>
 Unix is case-sensitive. `Report.txt` and `report.txt` are two completely separate files. This is different from Windows where they'd be the same file.
 </Quiz>
-### File System Hierarchy
+### 2\. File System Hierarchy
 
 **Why does this matter?** In Windows, you dump everything into C:\\Users or wherever you want. Unix is organized like a well-planned office building — every department has its floor, and if you need something, you know exactly which floor to go to.
 
@@ -49,7 +49,7 @@ Think of it as **an apartment building**:
 <Quiz question={"A system administrator wants to check the configuration of a service. Which directory should they look in?"} options={["/home", "/tmp", "/etc", "/bin"]} answerIndex={2}>
 `/etc` stores all system configuration files. Think "Every Thing Configured." If you need to change how a service behaves, its config file is in /etc.
 </Quiz>
-### Essential Commands — Quick Reference
+### 3\. Essential Commands — Quick Reference
 
 **Why learn these?** In Unix, there's no "right-click > New Folder" or "drag file to trash." Everything happens through commands. Think of each command as a verb — `ls` = "look", `cd` = "go to", `cp` = "copy", `rm` = "delete". Once you learn 20 verbs, you can do anything.
 
@@ -86,7 +86,7 @@ Don't memorize this table. Read through it once, then use the practice questions
 | `du` | Disk usage | `-h` human-readable |
 | `df` | Disk free space | `-h` human-readable |
 
-### File Permissions
+### 4\. File Permissions
 
 **Why do permissions exist?** Imagine you work in an office building. Not everyone should have access to every room. The intern shouldn't be able to edit the CEO's files. The accountant shouldn't be able to delete the codebase. Unix permissions are like **security badges** — they control who can open which doors and what they can do once inside.
 
@@ -183,7 +183,7 @@ Owner: rw- = 4+2+0 = **6**. Group: r-- = 4+0+0 = **4**. Others: --- = 0+0+0 = **
 <Quiz question={"You want to make a shell script executable by the owner, but keep it read-only for everyone else. Which command?"} options={["chmod 777 script.sh", "chmod 744 script.sh", "chmod 644 script.sh", "chmod 700 script.sh"]} answerIndex={1}>
 744 = Owner: rwx (7 = read+write+execute), Group: r-- (4 = read only), Others: r-- (4 = read only). The owner can execute it, everyone else can only read. Option D (700) would also make it executable for owner, but others can't even read it.
 </Quiz>
-### grep — Pattern Searching
+### 5\. grep — Pattern Searching
 
 **Why does grep exist?** Imagine you have a 10,000-line server log and something crashed at 3 AM. Are you going to read all 10,000 lines? No. You want to search for "error" or "failed" and see only those lines. That's grep — it's **Ctrl+F for the terminal**, but way more powerful.
 
@@ -222,7 +222,7 @@ Flags combine: `-i` (ignore case) + `-c` (count) = case-insensitive count.
 <Quiz question={"You want to find all lines in `access.log` that do NOT contain \"200 OK\". Which command?"} options={["grep \"200 OK\" access.log", "grep -c \"200 OK\" access.log", "grep -v \"200 OK\" access.log", "grep -n \"200 OK\" access.log"]} answerIndex={2}>
 `-v` inverts the match — it shows every line that does NOT contain the pattern. This is useful for filtering out noise and finding errors (anything that isn't "200 OK" is probably a problem).
 </Quiz>
-### Pipes and Redirection
+### 6\. Pipes and Redirection
 
 **Why do pipes exist?** Remember the Unix philosophy — small tools chained together? Pipes are the chains. Each command does one thing well, and the pipe (`|`) connects them like LEGO bricks snapping together.
 
@@ -269,7 +269,7 @@ Read it like: "Show the log file, **then** keep only lines with '404', **then** 
 <Quiz question={"You run `echo \"hello\" > greet.txt` three times. What does greet.txt contain?"} options={["hello hello hello", "hello (three lines)", "hello (one line)", "The file is empty"]} answerIndex={1}>
 `>` overwrites every time. Each run erases the file and writes "hello" fresh. After three runs, you still just have one "hello". If you wanted three lines, you'd use `>>` (append).
 </Quiz>
-### Process Management
+### 7\. Process Management
 
 **Why learn this?** When your Java app hangs on a server, you can't just click the X button — there's no GUI. You need to find the frozen process and kill it from the terminal. Process management is how you become the Task Manager of a Linux server.
 
@@ -319,7 +319,7 @@ fg               # bring a background process to the foreground
 <Quiz question={"A process with PID 5678 is frozen and not responding to `kill 5678`. What should you do?"} options={["kill -15 5678", "kill -9 5678", "stop 5678", "rm 5678"]} answerIndex={0}>
 `kill -9` sends SIGKILL, which the process cannot catch, ignore, or refuse. It's the "nuclear option" — the OS forcefully terminates the process. Regular `kill` sends SIGTERM (signal 15), which a frozen process might ignore.
 </Quiz>
-### tar and gzip
+### 8\. tar and gzip
 
 **Why?** You know how you right-click a folder in Windows and "Send to > Compressed (zipped) folder"? Unix has two separate steps for this: **tar** bundles files together (like putting papers in a folder), and **gzip** compresses the bundle (like vacuum-sealing the folder to make it smaller). Usually you do both at once.
 
@@ -343,7 +343,7 @@ Extracting: **x**v**z**f = "eXtract, Verbose, unZip, File" → `tar -xvzf name.t
 The only letter that changes is c (create) vs x (extract). Everything else stays the same.
 </Callout>
 
-### sed — Stream Editor
+### 9\. sed — Stream Editor
 
 **Why does sed exist?** You need to replace "http" with "https" in 500 config files. Or delete all blank lines from a log. Or change every occurrence of a username. You're NOT going to open each file and Ctrl+H manually. **sed is the "Find and Replace" of the terminal** — it processes text automatically, line by line, at machine speed.
 
@@ -390,7 +390,7 @@ Without `/g`, sed only replaces the FIRST match on each line. The result would b
 <Quiz question={"Which command deletes all lines containing \"DEBUG\" from a file and saves the change?"} options={["sed '/DEBUG/d' file.txt", "sed -i '/DEBUG/d' file.txt", "sed 's/DEBUG//g' file.txt", "grep -v \"DEBUG\" file.txt"]} answerIndex={1}>
 Option A prints the result but doesn't save it. Option B uses `-i` (in-place) to actually modify the file. Option C removes the word "DEBUG" but keeps the rest of the line. Option D also works for filtering but doesn't modify the original file.
 </Quiz>
-### awk — Powerful Column-Based Text Processing
+### 10\. awk — Powerful Column-Based Text Processing
 
 <Callout type="error" title="Real-world problems often require awk">
 **awk** is essential for working with tabular data. Typical tasks: "Given a table/file, find the max salary", "Print employees in a department", "Calculate total/average".
@@ -648,7 +648,7 @@ All of these follow the patterns above. Practice with the emp.txt examples until
 | Sum per group | `awk '{a[$2]+=$3} END {for(k in a) print k,a[k]}' file` |
 | Formatted output | `awk '{printf "%-10s %d\n",$1,$3}' file` |
 
-### Shell Scripting Basics
+### 11\. Shell Scripting Basics
 
 **Why write shell scripts?** You've been typing commands one at a time. But what if you need to run the same 10 commands every morning? Or automate a backup every night? A shell script is just a **text file full of commands that run automatically**, one after another. It's like recording a macro in Excel — write the steps once, run them whenever you want.
 
@@ -797,7 +797,7 @@ Spaces around `=` in variable assignment cause an error. Bash interprets `NAME` 
 <Quiz question={"Which operator checks if a number is greater than or equal to another in bash?"} options={["\\>=", "\\-ge", "\\-gte", "\\-greq"]} answerIndex={1}>
 `-ge` = **g**reater-or-**e**qual. Bash uses `-eq`, `-ne`, `-gt`, `-lt`, `-ge`, `-le` for numeric comparisons. The `>=` operator doesn't work in `[ ]` test brackets.
 </Quiz>
-### Special Path Symbols
+### 12\. Special Path Symbols
 
 These are shortcuts for navigating the file system. Think of them as **bookmarks**:
 
@@ -813,7 +813,7 @@ These are shortcuts for navigating the file system. Think of them as **bookmarks
 `~` = home directory is the most commonly asked. Also remember: `cd ..` goes up one level, `cd ../..` goes up two levels.
 </Callout>
 
-### crontab — Scheduling
+### 13\. crontab — Scheduling
 
 **Why?** You wrote a backup script. Great. Now who runs it at 2 AM every night? You're not setting an alarm to wake up and type the command. **crontab is the alarm clock of Unix** — it runs commands automatically on a schedule, whether you're asleep, on vacation, or doing anything else.
 
@@ -840,7 +840,7 @@ The format has 5 time fields followed by the command to run:
 <Quiz question={"What does the cron expression `0 0 * * 0` mean?"} options={["Every minute on Sunday", "Midnight every day", "Midnight every Sunday", "Noon every Saturday"]} answerIndex={2}>
 Minute=0, Hour=0 (midnight), Day=* (any), Month=* (any), Weekday=0 (Sunday). So it runs at midnight every Sunday. Remember: 0 in the weekday field = Sunday.
 </Quiz>
-### Practice Questions — Unix
+### 14\. Practice Questions — Unix
 
 <Quiz question={"Which command lists all files including hidden files?"} options={["ls -l", "ls -a", "ls -R", "ls -h"]} answerIndex={1}>
 ✅ B) `ls -a` shows ALL files including hidden ones (starting with dot).
@@ -899,23 +899,19 @@ Minute=0, Hour=0 (midnight), Day=* (any), Month=* (any), Weekday=0 (Sunday). So 
 
 </Callout>
 
-### Practice Walkthrough — Employee Salary Problem
+### 15\. Practice Walkthrough — Employee Salary Problem
 
+<Problem title="15\. Practice Walkthrough — Employee Salary Problem">
+<ProblemDescription>
 Below is a practice problem — read carefully and study the solution line by line.
-
-<Callout type="warn" title="Problem: Total Salary by Division">
-
-
 Employee data is in a CSV file: `EmpName,Role,Division,Salary`
 
 Calculate the total salary of employees in the "Sales" division (case-insensitive). Print `Total Salary = [sum]`. If no match, print `No Employee Found`.
 
 File name is passed as command-line argument `$1`.
-
-
-</Callout>
-
-#### Solution:
+</ProblemDescription>
+<ProblemSolution>
+**Solution:**
 
 ```java
 awk -F"," '
@@ -948,3 +944,5 @@ END {
 <Callout type="warn" title="Practice">
 Practice writing code from scratch and explaining concepts. Work through similar problems using the emp.txt examples shown in the awk section above.
 </Callout>
+</ProblemSolution>
+</Problem>

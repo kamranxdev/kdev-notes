@@ -2,7 +2,7 @@
 title: Angular
 ---
 
-### 1. Angular Basics & Core Philosophies
+### 1\. Angular Basics & Core Philosophies
 
 Imagine you are building a planned township. You don't just need blueprints for the houses (components); you need zoning laws, centralized water systems (Services/DI), a road network (Routing), and garbage collection. You want everything pre-planned, structured, and regulated. That is **Angular**. 
 
@@ -33,7 +33,7 @@ A framework calls your code (inversion of control), dictating the architecture a
 
 ---
 
-### 2. Angular Architecture
+### 2\. Angular Architecture
 
 An Angular application is structured around a few core building blocks:
 
@@ -84,7 +84,7 @@ The `selector` property defines the CSS selector that triggers the rendering of 
 
 ---
 
-### 3. Data Binding
+### 3\. Data Binding
 
 Data binding is the communication bridge between the TypeScript class (logic) and the HTML template (view). It controls how data flows between them.
 
@@ -142,7 +142,7 @@ An easy way to remember the syntax for two-way data binding: the parentheses (ba
 
 ---
 
-### 4. Directives
+### 4\. Directives
 
 Directives are instructions in the HTML template that tell Angular how to manipulate or change the DOM. They fall into three categories:
 
@@ -210,7 +210,7 @@ The modern `@` control flow is built directly into the Angular compiler. It is f
 
 ---
 
-### 5. Component Lifecycle Hooks
+### 5\. Component Lifecycle Hooks
 
 Every component in Angular goes through a lifecycle from creation (instantiation) to destruction (removal from the DOM). Angular provides lifecycle hooks that let you run custom logic at specific stages.
 
@@ -273,7 +273,7 @@ If you subscribe to an RxJS Observable manually inside a component, you **must u
 
 ---
 
-### 6. Dependency Injection (DI) & Services
+### 6\. Dependency Injection (DI) & Services
 
 Imagine you run a restaurant. Instead of each chef leaving the kitchen to fetch raw ingredients from a market (creating service instances inside components), you hire a centralized delivery provider (Angular's Dependency Injection system) that delivers ingredients directly to the kitchen on demand.
 
@@ -348,7 +348,7 @@ export class ItemListComponent implements OnInit {
 
 ---
 
-### 7. Pipes
+### 7\. Pipes
 
 Pipes are template utilities used to transform and format data directly inside the HTML markup, without modifying the underlying value in the TypeScript class.
 
@@ -404,7 +404,7 @@ The `async` pipe manages the subscription lifecycle automatically, subscribing t
 
 ---
 
-### 8. Asynchronous Programming with RxJS
+### 8\. Asynchronous Programming with RxJS
 
 Angular relies heavily on **RxJS (Reactive Extensions for JavaScript)** for asynchronous operations, including HTTP requests and state events. 
 
@@ -473,7 +473,7 @@ state$.subscribe(val => console.log('Sub B:', val)); // Output: Sub B: Updated S
 
 ---
 
-### 9. Forms: Template-driven vs. Reactive
+### 9\. Forms: Template-driven vs. Reactive
 
 Angular offers two separate paradigms for handling user inputs and validations:
 
@@ -529,7 +529,7 @@ Reactive Forms are model-driven and defined directly inside the TypeScript class
 
 ---
 
-### 10. Routing & Route Guards
+### 10\. Routing & Route Guards
 
 Angular's Router allows users to navigate between different pages without reloading the browser.
 
@@ -603,7 +603,7 @@ export const adminGuard: CanActivateFn = (route, state) => {
 
 ---
 
-### 11. Modern Angular: Signals
+### 11\. Modern Angular: Signals
 
 Introduced in Angular 16, **Signals** are a brand new reactive model. Think of them like cells in an Excel spreadsheet. If cell `A1` contains a number, and cell `B1` contains the formula `=A1 * 10`, Excel automatically recalculates `B1` the millisecond you change `A1`.
 
@@ -658,7 +658,7 @@ To read a signal, you invoke it like a function: `mySignal()`. This sets up a de
 
 ---
 
-### 12. Angular Common Gotchas
+### 12\. Angular Common Gotchas
 
 <Callout type="error" title="1. Can't bind to 'ngModel' since it isn't a known property">
 **The Trap:** Attempting to use `[(ngModel)]` in a standalone component without importing `FormsModule`.  
