@@ -1,7 +1,7 @@
 {
     "title": "Android",
     "pages": [
-        "kotlin",
-        "java"
+        "kotlin-android",
+        "java-android"
     ]
 }
