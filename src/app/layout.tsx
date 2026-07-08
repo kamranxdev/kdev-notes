@@ -1,7 +1,12 @@
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import './global.css';
 import { Inter } from 'next/font/google';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+import PWARegistration from '@/components/PWARegistration';
+
+export const viewport: Viewport = {
+  themeColor: '#c9fd74',
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://notes.kamranx.dev'),
@@ -13,6 +18,14 @@ export const metadata: Metadata = {
   keywords: ["programming", "web development", "database", "SQL", "Linux shell", "Next.js", "React", "developer reference"],
   authors: [{ name: "Kamran Khan", url: "https://kamranx.dev" }],
   creator: "Kamran Khan",
+  icons: {
+    icon: "/favicon.svg",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Kamran's Notes",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -38,6 +51,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
     <html lang="en" className={inter.className} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
         <RootProvider>{children}</RootProvider>
+        <PWARegistration />
       </body>
     </html>
   );
