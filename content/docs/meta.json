@@ -5,12 +5,13 @@
     "web-fundamentals",
     "web-frameworks",
     "---Mobile Development---",
-    "...mobile-development",
-    "---Backend & Databases---",
+    "...(mobile-development)",
     "programming",
-    "database",
-    "---Systems & Integration---",
+    "---Databases---",
+    "...database",
+    "---Systems---",
     "unix-linux",
+    "---API & Integration---",
     "rest-json-xml"
   ]
 }

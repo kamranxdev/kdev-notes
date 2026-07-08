@@ -1,7 +1,6 @@
 {
-  "title": "Web Fundamentals",
+  "title": "Fundamentals",
   "pages": [
-    "index",
     "html",
     "css",
     "javascript"

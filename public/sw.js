@@ -43,7 +43,16 @@ self.addEventListener('fetch', (event) => {
   }
 
   // API calls should bypass service worker cache
-  if (url.pathname.startsWith('/api')) {
+  // Bypass service worker on localhost or for Next.js dev server HMR/hot-reload requests
+  if (
+    self.location.hostname === 'localhost' ||
+    self.location.hostname === '127.0.0.1' ||
+    url.pathname.startsWith('/api') ||
+    url.pathname.startsWith('/_next/webpack-hmr') ||
+    url.pathname.includes('turbopack-hmr') ||
+    url.pathname.includes('-update.js') ||
+    url.pathname.includes('-update.json')
+  ) {
     return;
   }
 
@@ -84,11 +93,18 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // Silently fail network fetch if offline
       });
 
-      return cachedResponse || fetchPromise;
+      if (cachedResponse) {
+        // Run fetch in background to update cache, catching errors silently
+        fetchPromise.catch(() => {
+          // Silently fail network fetch if offline
+        });
+        return cachedResponse;
+      }
+
+      // If not in cache, return the direct fetch promise (errors propagate naturally)
+      return fetchPromise;
     })
   );
 });

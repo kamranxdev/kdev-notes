@@ -1,7 +1,6 @@
 {
   "title": "Database",
   "pages": [
-    "index",
     "sql",
     "pl-sql"
   ]
