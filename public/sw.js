@@ -56,28 +56,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For HTML documents/pages: Network-First with Cache Fallback
+  // For HTML documents/pages: Stale-While-Revalidate (Instant Offline-First + Background Update)
   if (request.mode === 'navigate' || (request.headers.get('accept') && request.headers.get('accept').includes('text/html'))) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Clone the response and save it to cache
-          const responseCopy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseCopy);
-          });
-          return response;
-        })
-        .catch(() => {
-          // If network fails, try to return from cache
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // If completely offline and page not cached, fallback to root '/'
-            return caches.match('/');
-          });
-        })
+      caches.match(request).then((cachedResponse) => {
+        const fetchPromise = fetch(request).then((networkResponse) => {
+          if (networkResponse.status === 200) {
+            const responseCopy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseCopy);
+            });
+          }
+          return networkResponse;
+        });
+
+        if (cachedResponse) {
+          // Serve from cache immediately; fetch fresh content in the background
+          fetchPromise.catch(() => { /* Silently catch background errors if offline */ });
+          return cachedResponse;
+        }
+
+        // If not in cache, wait for the network response
+        return fetchPromise.catch(() => {
+          // Completely offline and page not cached: fallback to root '/'
+          return caches.match('/');
+        });
+      })
     );
     return;
   }
