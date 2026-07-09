@@ -1,595 +1,264 @@
 ---
-title: PL/SQL
-description: Generated MDX Guide
+title: PL/SQL — Procedural Language / SQL
+description: An analogy-driven, advanced developer reference guide to Oracle PL/SQL, covering block architectures, collection types, bulk processing, cursors, compound triggers, mutating errors, and autonomous transactions.
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+### 1. PL/SQL Architecture & Engine Context Switches
 
-## PL/SQL
+Imagine a bank manager (the **PL/SQL Engine**) and a database vault clerk (the **SQL Engine**).
+*   The manager processes logic, runs loops, checks conditions, and writes instructions in a notebook.
+*   The clerk can open vault drawers, read records, and write data to cards.
+*   **Context Switch**: Every time the manager needs data, they must walk over to the clerk, explain the request, wait for the clerk to find the record, and walk back.
 
-<Callout type="warn" title="📋 Scope">
-**PL/SQL** is Oracle's procedural extension to SQL — used for writing stored programs inside the database.
-</Callout>
+```
+              ┌──────────────────────────────────────────────┐
+              │              PL/SQL Block Input              │
+              └──────────────────────┬───────────────────────┘
+                                     ▼
+                       ┌──────────────────────────────┐
+                       │        PL/SQL Engine         │
+                       │  (Runs Loops, Assignments)  │
+                       └──────┬────────────────▲──────┘
+                         SQL  │                │  SQL
+                  Statements  │                │  Data
+                              ▼                │
+                       ┌───────────────────────┴──────┐
+                       │          SQL Engine          │
+                       │   (Runs SELECT, INSERT...)   │
+                       └──────────────────────────────┘
+```
 
-### 1\. What is PL/SQL?
+> [!WARNING]
+> If the manager runs a loop 10,000 times, walking back and forth to the clerk for a single folder each time (row-by-row fetching), this creates massive performance overhead. This is called a **row-by-row context switch bottleneck**.
 
-Imagine you're at a restaurant. SQL is like pointing at a menu item and saying "give me that" — you can ask for data, but that's it. You can't say "if the pasta is sold out, get me pizza instead" or "keep bringing bread until I say stop." SQL has no logic — no decisions, no loops, no error handling.
+---
 
-**PL/SQL** (Procedural Language / SQL) is Oracle's way of adding a brain to SQL. It wraps programming logic — IF/ELSE decisions, loops, variables, error handling — around your SQL statements so they can run as a complete program _inside the database itself_.
+### 2. Block Structures & Anchors
 
-<Callout type="info" title="✅ Key fact">
-PL/SQL = SQL + procedural programming. It is **Oracle-specific** (not MySQL, not PostgreSQL). Think of it as writing a small program that lives and runs inside the database — no external application needed.
-</Callout>
+PL/SQL code is written in structured blocks.
+*   **Scalar Anchoring (`%TYPE`)**: Copies the data type and constraints of a database column dynamically. *Analogy: Buying a key blank designed to copy a specific room key.*
+*   **Record Anchoring (`%ROWTYPE`)**: Copies the structure of an entire table row dynamically. *Analogy: Cloning a master room layout card.*
 
-**Why does it matter?** Without PL/SQL, your application would need to send dozens of separate SQL commands over the network. With PL/SQL, you bundle all that logic into one block, send it once, and the database handles it. Faster, cleaner, fewer network round trips.
-
-<Callout type="warn" title="🔍 Real-world analogy">
-SQL alone is like texting a friend one instruction at a time: "Open the fridge." "Is there milk?" "If yes, pour a glass." "If no, go to the store." Each message is a separate trip.  
-  
-PL/SQL is like handing them a written note with ALL the instructions at once. They read the whole thing and do it all in one go. That's the efficiency gain.
-</Callout>
-
-<Quiz question={"What does PL/SQL add to regular SQL?"} options={["The ability to create tables","Procedural logic like IF/ELSE, loops, and error handling","Support for NoSQL databases","A graphical user interface for queries"]} answerIndex={1}>
-B) SQL can already create tables. PL/SQL's purpose is adding programming constructs — decisions, loops, variables, exception handling — on top of SQL. It turns SQL from a "question-answer" tool into a full programming language inside the database.
-</Quiz>
-<Quiz question={"PL/SQL is specific to which database system?"} options={["MySQL","PostgreSQL","Oracle","SQL Server"]} answerIndex={2}>
-C) PL/SQL is Oracle's proprietary procedural extension. MySQL uses stored procedures with a different syntax, PostgreSQL has PL/pgSQL, and SQL Server has T-SQL. PL/SQL is always Oracle.
-</Quiz>
-### 2\. Block Structure — The Core Structure
-
-Every PL/SQL program is organized into **blocks**. Think of a block like a recipe card:
-
-*   **Ingredients list (DECLARE)** — what you need before you start. Variables, constants, cursors go here. _Optional_ — some recipes need no prep.
-*   **Cooking steps (BEGIN...END)** — the actual work. Your SQL statements and logic go here. _Mandatory_ — a recipe with no steps isn't a recipe.
-*   **What to do if something goes wrong (EXCEPTION)** — burned the toast? Ran out of sugar? Handle it here instead of crashing. _Optional_ — but smart cooks always have a backup plan.
-
-```java
--- PL/SQL block structure
+```sql
 DECLARE
-  -- Variables (OPTIONAL) — "ingredients list"
-  v_name VARCHAR2(50);
-BEGIN
-  -- Your logic (MANDATORY) — "cooking steps"
-  v_name := 'Darshan';
-  DBMS_OUTPUT.PUT_LINE('Hello, ' || v_name);
-EXCEPTION
-  -- Error handling (OPTIONAL) — "backup plan"
-  WHEN OTHERS THEN
-    DBMS_OUTPUT.PUT_LINE('Error occurred');
-END;
-/
-```
-<Callout type="error" title="⚠️ Common trap">
-The block ends with **END;** (semicolon) followed by **/** on the next line. The **/** tells Oracle to execute the block. Forgetting the **/** means your block just sits there doing nothing.
-</Callout>
-
-<Callout type="info" title="💡 Tip">
-"Which section is mandatory?" → **BEGIN**. DECLARE and EXCEPTION are optional. The simplest valid block is just `BEGIN ... END;`
-</Callout>
-
-<Callout type="info" title="✅ Section order — memorize">
-**DECLARE** (optional) → **BEGIN** (mandatory) → **EXCEPTION** (optional) → **END;** (mandatory)  
-Memory trick: **D-B-E-E** — "Don't Bother Except Errors"
-</Callout>
-
-**Anonymous blocks vs Named blocks:** The block above is _anonymous_ — it runs once and disappears. When you save a block as a procedure, function, or trigger, it becomes a _named block_ stored in the database. Same structure, just reusable.
-
-<Quiz question={"Which section of a PL/SQL block is MANDATORY?"} options={["DECLARE","BEGIN","EXCEPTION","Both DECLARE and EXCEPTION"]} answerIndex={1}>
-B) BEGIN is the only mandatory section. You can write a valid block with just BEGIN and END — no DECLARE, no EXCEPTION. The simplest block: `BEGIN NULL; END;`
-</Quiz>
-<Quiz question={"Correct order of PL/SQL block sections?"} options={["BEGIN → DECLARE → EXCEPTION → END","DECLARE → BEGIN → EXCEPTION → END","DECLARE → EXCEPTION → BEGIN → END","BEGIN → EXCEPTION → DECLARE → END"]} answerIndex={1}>
-B) DECLARE → BEGIN → EXCEPTION → END. Always. You can't handle exceptions before you've done the work, and you can't do work before declaring your tools. Think recipe: ingredients first, steps second, backup plan last.
-</Quiz>
-### 3\. Variables & Data Types
-
-**Why do we need variables?** Imagine you're a cashier. A customer buys 3 items. You need a temporary place to hold the running total while you scan each one. That's a variable — a named container that holds a value while your program runs.
-
-In PL/SQL, variables live in the DECLARE section. You give each one a name, a type (what kind of data it holds), and optionally an initial value.
-
-```java
-DECLARE
-  v_salary   NUMBER(10, 2);          -- number with 2 decimals
-  v_name     VARCHAR2(100);          -- variable-length text (up to 100 chars)
-  v_dob      DATE;                   -- date + time
-  v_active   BOOLEAN;               -- TRUE / FALSE / NULL
-BEGIN
-  v_salary := 75000;  -- Assignment uses := (not =)
-END;
-/
-```
-<Callout type="error" title="⚠️ := not =">
-PL/SQL uses **:=** for assignment (put a value into a variable). The single **\=** is only used for comparison. This trips up every beginner. If you write `v_salary = 75000`, Oracle will throw an error.
-</Callout>
-
-#### Anchor Types — The Smart Way
-
-**The problem:** You declare `v_name VARCHAR2(50)`, but the actual column in the employees table is VARCHAR2(100). Now your variable is too small and your program crashes. Worse — if someone changes the column size later, your code silently breaks.
-
-**The solution:** Instead of hardcoding the type, _anchor_ your variable to the column itself. "Whatever type that column is, make me the same."
-
-```java
-DECLARE
-  -- %TYPE — borrows type from ONE column
-  v_emp_name employees.first_name%TYPE;     -- "same type as first_name column"
-
-  -- %ROWTYPE — borrows structure of ENTIRE row
-  v_emp_row  employees%ROWTYPE;            -- has .first_name, .salary, .dept_id, etc.
-
-  -- CONSTANT — a value that NEVER changes
-  c_tax_rate CONSTANT NUMBER := 0.18;     -- must assign value immediately
-BEGIN
-  NULL;
-END;
-/
-```
-<Callout type="info" title="✅ %TYPE vs %ROWTYPE — know the difference">
-**%TYPE** = copies a single column's data type. Use when you need one value.  
-**%ROWTYPE** = copies the entire row structure. Use when you need a whole record.  
-  
-Think of it this way: %TYPE is like copying one column header from a spreadsheet. %ROWTYPE is like copying the entire header row.
-</Callout>
-
-<Quiz question={"What does %TYPE do?"} options={["Matches an entire table row","Matches a specific column's data type","Creates a record type","Defines function return type"]} answerIndex={1}>
-B) %TYPE anchors a variable to a single column's type. If the column is VARCHAR2(100), your variable automatically becomes VARCHAR2(100). %ROWTYPE is the one that matches a whole row.
-</Quiz>
-<Quiz question={"How is a CONSTANT declared in PL/SQL?"} options={["CONST c\\_rate NUMBER := 0.18;","c\\_rate CONSTANT NUMBER := 0.18;","DECLARE CONSTANT c\\_rate = 0.18;","FIXED c\\_rate NUMBER := 0.18;"]} answerIndex={1}>
-B) The syntax is: `name CONSTANT datatype := value;` — the keyword CONSTANT goes between the name and the type. It must be initialized on the same line (you can't assign it later).
-</Quiz>
-### 4\. Control Structures
-
-**Why?** Without control structures, your program runs top to bottom like a conveyor belt — every line executes, no matter what. But real problems need decisions ("is this employee eligible for a bonus?") and repetition ("process every row in this table"). Control structures give your program a brain.
-
-#### IF Statement — Making Decisions
-
-Works exactly like you'd expect: check a condition, do something if true, something else if false.
-
-```java
-IF v_score >= 85 THEN
-  DBMS_OUTPUT.PUT_LINE('Distinction');
-ELSIF v_score >= 60 THEN    -- Note: ELSIF not ELSEIF
-  DBMS_OUTPUT.PUT_LINE('First Class');
-ELSE
-  DBMS_OUTPUT.PUT_LINE('Pass');
-END IF;
-```
-<Callout type="error" title="⚠️ Spelling trap">
-It's **ELSIF** — not ELSEIF, not ELSE IF. Watch carefully when choosing between these options.
-</Callout>
-
-#### CASE Statement — Cleaner Multi-Way Branching
-
-When you have many specific values to check (like a grade or status code), CASE is cleaner than chaining IF/ELSIF.
-
-```java
-CASE v_grade
-  WHEN 'A' THEN DBMS_OUTPUT.PUT_LINE('Excellent');
-  WHEN 'B' THEN DBMS_OUTPUT.PUT_LINE('Good');
-  ELSE          DBMS_OUTPUT.PUT_LINE('Average');
-END CASE;
-```
-
-#### Loops — Doing Things Repeatedly
-
-PL/SQL gives you three types of loops. Think of them as three ways to eat a bag of chips:
-
-*   **Basic LOOP** — keep eating until you decide to stop (you must explicitly say "EXIT"). Dangerous if you forget to stop.
-*   **WHILE LOOP** — keep eating while there are chips left (checks before each bite).
-*   **FOR LOOP** — eat exactly 10 chips (you know the count upfront).
-
-```java
--- 1. Basic LOOP — needs EXIT to stop (or it runs forever!)
-LOOP
-  DBMS_OUTPUT.PUT_LINE(v_i);
-  v_i := v_i + 1;
-  EXIT WHEN v_i > 5;
-END LOOP;
-
--- 2. WHILE LOOP — checks condition FIRST, then executes
-WHILE v_j <= 5 LOOP
-  DBMS_OUTPUT.PUT_LINE(v_j);
-  v_j := v_j + 1;
-END LOOP;
-
--- 3. FOR LOOP — counter managed automatically, no manual increment
-FOR i IN 1..5 LOOP
-  DBMS_OUTPUT.PUT_LINE(i);
-END LOOP;
-```
-
-| Loop type | When to use | Stops via |
-| --- | --- | --- |
-| **LOOP** | Unknown iterations, exit mid-loop | EXIT / EXIT WHEN |
-| **WHILE LOOP** | Condition checked before each iteration | Condition becomes FALSE |
-| **FOR LOOP** | Known count (1 to N) | Range exhausted automatically |
-
-<Quiz question={"Which loop MUST have EXIT or EXIT WHEN to prevent infinite execution?"} options={["FOR LOOP","WHILE LOOP","Basic LOOP...END LOOP","Cursor FOR loop"]} answerIndex={2}>
-C) The basic LOOP has no built-in stop condition. Without EXIT or EXIT WHEN, it loops forever. WHILE stops when its condition is false. FOR stops when the range is exhausted. Only the basic LOOP needs an explicit exit.
-</Quiz>
-<Quiz question={"What is the correct keyword for \"else if\" in PL/SQL?"} options={["ELSE IF","ELSEIF","ELSIF","ELIF"]} answerIndex={2}>
-C) ELSIF — no space, no second E. This is one of the most commonly tested spelling traps. ELSE IF (two words) is wrong. ELSEIF (one word with E) is wrong. ELIF is Python, not PL/SQL.
-</Quiz>
-### 5\. Cursors
-
-**The problem:** When you use `SELECT INTO` in PL/SQL, it expects exactly ONE row back. But what if your query returns 50 employees? `SELECT INTO` crashes with TOO\_MANY\_ROWS. You need a way to process rows one at a time.
-
-**That's what a cursor is.** Think of it as a bookmark in a book. The database runs your query and gets back a stack of results. The cursor points to the current row — you read it, process it, then move the cursor to the next row. Repeat until done.
-
-<Callout type="warn" title="🔍 Analogy">
-Imagine a stack of student exam papers on your desk. You can't grade them all at once — you pick up the top one (FETCH), grade it (process), then pick the next. The cursor is your hand pointing at "which paper am I on right now?" When the stack is empty, you stop.
-</Callout>
-
-<Callout type="info" title="✅ Two types of cursors">
-**Implicit cursor:** Oracle creates it automatically behind the scenes for every INSERT, UPDATE, DELETE, and SELECT INTO. You don't declare it — Oracle handles everything. You can check what happened using SQL%FOUND, SQL%NOTFOUND, SQL%ROWCOUNT.  
-  
-**Explicit cursor:** YOU declare it for multi-row SELECT queries. You control the whole lifecycle: OPEN → FETCH → CLOSE. Use this when a query returns multiple rows.
-</Callout>
-
-#### Implicit Cursor — Automatic
-
-Every time you run a DML statement, Oracle silently creates an implicit cursor. You don't see it, but you can ask it questions:
-
-```java
-BEGIN
-  UPDATE employees SET salary = salary * 1.1 WHERE dept_id = 10;
-
-  -- SQL%ROWCOUNT tells you how many rows were affected
-  DBMS_OUTPUT.PUT_LINE(SQL%ROWCOUNT || ' employees got a raise');
-
-  IF SQL%NOTFOUND THEN
-    DBMS_OUTPUT.PUT_LINE('No employees in dept 10');
-  END IF;
-END;
-/
-```
-
-#### Explicit Cursor — 4-Step Pattern
-
-When your SELECT returns many rows, you declare an explicit cursor and follow this strict sequence:
-
-1.  **DECLARE** — define the query the cursor will run
-2.  **OPEN** — execute the query and create the result set
-3.  **FETCH** — grab one row at a time (in a loop)
-4.  **CLOSE** — release the resources
-
-```java
-DECLARE
-  -- Step 1: DECLARE the cursor (define the query)
-  CURSOR c_emp IS
-    SELECT first_name, salary FROM employees WHERE dept_id = 10;
+  -- Copy type from employee name column
   v_name employees.first_name%TYPE;
-  v_sal  employees.salary%TYPE;
+  -- Copy structure of entire employee row
+  v_emp_row employees%ROWTYPE;
 BEGIN
-  OPEN c_emp;           -- Step 2: OPEN (runs the query)
-  LOOP
-    FETCH c_emp INTO v_name, v_sal;  -- Step 3: FETCH one row
-    EXIT WHEN c_emp%NOTFOUND;       -- stop when no more rows
-    DBMS_OUTPUT.PUT_LINE(v_name || ' earns ' || v_sal);
-  END LOOP;
-  CLOSE c_emp;          -- Step 4: CLOSE (free resources)
-END;
-/
-```
-<Callout type="error" title="⚠️ Always CLOSE your cursors">
-An unclosed cursor is like leaving a file open on your computer — it wastes memory. Oracle has a limit on open cursors. If you forget to close them, eventually you'll hit ORA-01000: maximum open cursors exceeded.
-</Callout>
-
-#### Cursor Attributes
-
-| Attribute | Returns | Meaning |
-| --- | --- | --- |
-| `%FOUND` | BOOLEAN | TRUE if last FETCH got a row |
-| `%NOTFOUND` | BOOLEAN | TRUE if last FETCH found nothing (used to exit loops) |
-| `%ROWCOUNT` | NUMBER | How many rows fetched so far |
-| `%ISOPEN` | BOOLEAN | TRUE if cursor is currently open |
-
-#### Cursor FOR Loop — The Shortcut
-
-The 4-step pattern works, but it's verbose. PL/SQL offers a shortcut that handles OPEN, FETCH, and CLOSE automatically:
-
-```java
-BEGIN
-  FOR emp IN (SELECT first_name, salary FROM employees) LOOP
-    DBMS_OUTPUT.PUT_LINE(emp.first_name || ' — ' || emp.salary);
-  END LOOP;  -- auto OPEN, FETCH, CLOSE — no manual work
-END;
-/
-```
-<Callout type="info" title="💡 Tip">
-The cursor FOR loop is the preferred way in real code because it's shorter and Oracle handles cleanup. But the 4-step pattern (DECLARE → OPEN → FETCH → CLOSE) is fundamental, so know both.
-</Callout>
-
-<Quiz question={"Correct sequence for an explicit cursor?"} options={["OPEN → DECLARE → FETCH → CLOSE","DECLARE → FETCH → OPEN → CLOSE","DECLARE → OPEN → FETCH → CLOSE","OPEN → FETCH → DECLARE → CLOSE"]} answerIndex={2}>
-C) DECLARE → OPEN → FETCH → CLOSE. You must define the query first (DECLARE), then execute it (OPEN), then read rows one by one (FETCH), and finally release resources (CLOSE). You can't FETCH from a cursor that hasn't been OPENed.
-</Quiz>
-<Quiz question={"Cursor attribute that returns TRUE when the last FETCH got a row?"} options={["%NOTFOUND","%ISOPEN","%ROWCOUNT","%FOUND"]} answerIndex={3}>
-D) %FOUND returns TRUE when the last FETCH successfully retrieved a row. %NOTFOUND is the opposite — TRUE when there are no more rows. %ROWCOUNT returns a number, not a boolean. %ISOPEN checks if the cursor is open, not if data was found.
-</Quiz>
-### 6\. Procedures
-
-**The problem:** You've written a PL/SQL block that gives an employee a raise. It works great. But now you need to use the same logic in 5 different places. Are you going to copy-paste the block 5 times? What happens when the logic changes — do you update all 5 copies?
-
-**A procedure is a named, reusable block of code stored in the database.** Write it once, call it from anywhere. It's like saving a recipe in a cookbook — you don't rewrite it every time you cook; you just say "follow the raise recipe."
-
-<Callout type="warn" title="🔍 Analogy">
-A procedure is like a vending machine. You put in inputs (coins + selection), it does its job internally (retrieves the item), and optionally gives you something back (change through OUT parameter). The key insight: **a procedure DOES something** — it performs an action. It doesn't have to return a value.
-</Callout>
-
-```java
-CREATE OR REPLACE PROCEDURE give_raise (
-  p_emp_id  IN  employees.employee_id%TYPE,  -- input: which employee
-  p_amount  IN  NUMBER,                     -- input: raise amount
-  p_new_sal OUT NUMBER                      -- output: new salary after raise
-) IS
-  v_old_sal NUMBER;
-BEGIN
-  SELECT salary INTO v_old_sal FROM employees WHERE employee_id = p_emp_id;
-  p_new_sal := v_old_sal + p_amount;
-  UPDATE employees SET salary = p_new_sal WHERE employee_id = p_emp_id;
-END give_raise;
-/
-```
-<Callout type="info" title="✅ Parameter Modes — Critical">
-**IN** — read-only input. The procedure can read it but not change it. This is the **default** if you don't specify a mode.  
-**OUT** — write-only output. The procedure sets a value that the caller can read after the call.  
-**IN OUT** — both directions. The caller passes a value in, the procedure can modify it, and the caller sees the change.
-</Callout>
-
-<Callout type="info" title="💡 Naming convention">
-Notice the prefixes: `p_` for parameters, `v_` for local variables, `c_` for constants. This isn't required by Oracle, but it's standard practice and helps you instantly know what something is.
-</Callout>
-
-<Quiz question={"What is the default parameter mode in a PL/SQL procedure?"} options={["OUT","IN","IN OUT","RETURN"]} answerIndex={1}>
-B) If you don't specify a mode, it defaults to IN (read-only). So `p_name VARCHAR2` is the same as `p_name IN VARCHAR2`. The procedure can read the value but cannot modify it.
-</Quiz>
-### 7\. Functions
-
-**Functions are like procedures with one key difference: a function MUST return exactly one value.**
-
-Think of the difference this way: A _procedure_ is like telling someone "go clean the room" — they do it, but they don't hand you anything back. A _function_ is like asking "what's 2 + 2?" — they MUST give you an answer back.
-
-```java
-CREATE OR REPLACE FUNCTION get_annual_salary (
-  p_emp_id IN employees.employee_id%TYPE
-) RETURN NUMBER IS
-  v_monthly NUMBER;
-BEGIN
-  SELECT salary INTO v_monthly FROM employees WHERE employee_id = p_emp_id;
-  RETURN v_monthly * 12;  -- MUST have a RETURN statement
-END;
-/
-```
-<Callout type="info" title="✅ Function vs Procedure — know this cold">
-
-
-| Feature | Procedure | Function |
-| --- | --- | --- |
-| Returns a value? | No (uses OUT params optionally) | **Yes, MUST return exactly one** |
-| RETURN keyword? | Not required | **Required in header AND body** |
-| Can use in SQL SELECT? | No | **Yes!** |
-| Primary purpose | Perform an action (update, insert, etc.) | Calculate and return a value |
-
-
-</Callout>
-
-**The big advantage of functions:** You can use them directly inside SQL queries. This is something procedures cannot do.
-
-```java
--- Using a function inside a SELECT — procedures CAN'T do this
-SELECT first_name, get_annual_salary(employee_id) AS annual
-FROM employees;
-```
-
-<Quiz question={"Key difference between PROCEDURE and FUNCTION?"} options={["Procedures can have parameters; functions cannot","Functions must return a value; procedures need not","Procedures are stored; functions are not","Functions cannot call procedures"]} answerIndex={1}>
-B) A function MUST return exactly one value using the RETURN keyword. A procedure performs an action but doesn't have to return anything (though it can pass values back through OUT parameters). Both can have parameters, both are stored in the database.
-</Quiz>
-<Quiz question={"Where CAN a function be used that a procedure CANNOT?"} options={["Inside a PL/SQL block","Inside a SQL SELECT statement","Inside a trigger","Inside another procedure"]} answerIndex={1}>
-B) Functions can be called directly inside SQL statements (SELECT, WHERE, etc.) because they return a value that SQL can use. Procedures cannot appear in SQL — they must be called with EXECUTE or from within a PL/SQL block.
-</Quiz>
-### 8\. Triggers
-
-**Why do triggers exist?** Sometimes you want something to happen automatically every time data changes — without relying on the application to remember. For example: "Every time someone inserts a new employee, automatically set the created\_at timestamp." Or: "If someone tries to insert a negative salary, block it."
-
-**A trigger is a PL/SQL block that fires automatically** when a specific event (INSERT, UPDATE, DELETE) happens on a table. You don't call a trigger — Oracle calls it for you. It's like a burglar alarm: you set it up once, and it activates on its own when someone opens the door.
-
-<Callout type="warn" title="🔍 Analogy">
-Think of a trigger as a security guard at a building entrance. A **BEFORE trigger** is a guard who checks your ID before you enter — they can stop you or modify your entry pass. An **AFTER trigger** is a CCTV camera that records your entry after you've already walked in — it can log what happened but can't change it.
-</Callout>
-
-```java
-CREATE OR REPLACE TRIGGER trg_before_insert
-BEFORE INSERT ON employees
-FOR EACH ROW
-BEGIN
-  -- Validation: reject bad data BEFORE it enters the table
-  IF :NEW.salary < 0 THEN
-    RAISE_APPLICATION_ERROR(-20001, 'Salary cannot be negative');
-  END IF;
-  -- Auto-fill: set timestamp automatically
-  :NEW.created_at := SYSDATE;
+  SELECT first_name INTO v_name FROM employees WHERE employee_id = 101;
 END;
 /
 ```
 
-#### :NEW and :OLD — The Two Magic Variables
+---
 
-Inside a row-level trigger, you have access to the data being changed:
+### 3. PL/SQL Collections & Records
 
-*   **:NEW** — the values AFTER the change (what's being inserted or updated TO)
-*   **:OLD** — the values BEFORE the change (what was there before)
+Collections are PL/SQL's version of arrays or lookup tables:
 
-| Operation | :OLD | :NEW |
-| --- | --- | --- |
-| **INSERT** | NULL (nothing existed before) | Values being inserted |
-| **UPDATE** | Values before update | Values after update |
-| **DELETE** | Values being deleted | NULL (nothing will exist after) |
+*   **Associative Array (Index-by Table)**: A private dictionary address book in memory. Keys can be integers or strings.
+*   **Nested Table**: A dynamic set of drawers. Starts uninitialized (`NULL`) and must be initialized using a constructor before use. It can grow indefinitely.
+*   **Varray**: A rigid cardboard egg carton with a fixed number of slots. Must be initialized using a constructor and cannot exceed its declared capacity.
 
-<Callout type="info" title="💡 Tip">
-In a DELETE trigger, **:NEW is NULL** (the row is being removed — there's no "new" version). In an INSERT trigger, **:OLD is NULL** (the row didn't exist before). Only UPDATE has BOTH :OLD and :NEW.
-</Callout>
-
-| Concept | Detail |
-| --- | --- |
-| **BEFORE trigger** | Fires before DML executes. Can modify :NEW values. Best for validation and auto-filling fields. |
-| **AFTER trigger** | Fires after DML completes. Cannot modify :NEW. Best for logging and auditing. |
-| **FOR EACH ROW** | Makes it a row-level trigger — fires once per affected row. Required to use :NEW/:OLD. |
-| **Statement-level** | Without FOR EACH ROW — fires once per statement regardless of how many rows are affected. |
-
-<Callout type="error" title="⚠️ BEFORE vs AFTER — key distinction">
-Only **BEFORE** triggers can modify :NEW values (because the data hasn't been written yet). AFTER triggers see the data after it's already committed — too late to change it. The answer is always BEFORE.
-</Callout>
-
-<Quiz question={"In a BEFORE INSERT trigger, which holds the values being inserted?"} options={[":OLD",":NEW",":INSERTED","Both :OLD and :NEW"]} answerIndex={1}>
-B) :NEW holds the incoming values for INSERT. :OLD is NULL because nothing existed before the insert — there's no "old" version of a row that's being created for the first time. :INSERTED doesn't exist in PL/SQL.
-</Quiz>
-<Quiz question={"Which trigger can modify :NEW values?"} options={["AFTER trigger","INSTEAD OF trigger","BEFORE trigger","AUTONOMOUS trigger"]} answerIndex={2}>
-C) BEFORE triggers fire before the data is written to the table, so :NEW can still be changed. AFTER triggers fire after the write — :NEW is read-only at that point. Think: a guard at the door can change your entry pass (BEFORE), but the security camera that recorded you walking in can't change what happened (AFTER).
-</Quiz>
-### 9\. Exception Handling
-
-**Why?** Programs break. A query returns zero rows when you expected one. Someone divides by zero. A value doesn't fit into a variable. Without exception handling, your entire block crashes and the user sees a cryptic Oracle error. With exception handling, you catch the error, handle it gracefully, and keep control.
-
-<Callout type="warn" title="🔍 Analogy">
-Exception handling is like the safety net under a trapeze artist. The artist (your code in BEGIN) does the risky work. If they fall (an error occurs), the net (EXCEPTION section) catches them instead of letting them hit the ground. Without the net, one mistake and the show is over.
-</Callout>
-
-The EXCEPTION section goes right before END; and catches specific errors using WHEN:
-
-```java
-BEGIN
-  SELECT salary INTO v_salary FROM employees WHERE employee_id = 9999;
-  -- If employee 9999 doesn't exist, this crashes... unless we catch it:
-EXCEPTION
-  WHEN NO_DATA_FOUND THEN
-    DBMS_OUTPUT.PUT_LINE('No employee found.');
-  WHEN TOO_MANY_ROWS THEN
-    DBMS_OUTPUT.PUT_LINE('Multiple rows returned.');
-  WHEN ZERO_DIVIDE THEN
-    DBMS_OUTPUT.PUT_LINE('Cannot divide by zero.');
-  WHEN OTHERS THEN
-    DBMS_OUTPUT.PUT_LINE(SQLCODE || ' — ' || SQLERRM);
-END;
-/
-```
-<Callout type="info" title="✅ The 4 predefined exceptions — memorize these">
-**NO\_DATA\_FOUND** — your SELECT INTO returned 0 rows. The employee/record doesn't exist.  
-**TOO\_MANY\_ROWS** — your SELECT INTO returned more than 1 row. It expected exactly one.  
-**ZERO\_DIVIDE** — you tried to divide a number by zero.  
-**VALUE\_ERROR** — wrong type or value doesn't fit (e.g., putting 'abc' into a NUMBER variable).  
-  
-**WHEN OTHERS** — the catch-all. Catches any exception not handled above. Always put it LAST.
-</Callout>
-
-#### SQLCODE and SQLERRM — Debugging Tools
-
-Inside WHEN OTHERS, you often want to know what went wrong:
-
-*   **SQLCODE** — returns the numeric error code (e.g., -1 for unique constraint violation)
-*   **SQLERRM** — returns the human-readable error message text
-
-<Callout type="info" title="💡 Tip">
-"Which keyword handles exceptions in PL/SQL?" → **WHEN**. Not CATCH (that's Java), not HANDLE, not RESCUE (that's Ruby). The syntax is always `WHEN exception_name THEN`.
-</Callout>
-
-#### User-Defined Exceptions
-
-Oracle's predefined exceptions cover common cases, but what about your business rules? "Salary can't exceed 500000" isn't a database error — it's YOUR rule. You can create custom exceptions:
-
-```java
+```sql
 DECLARE
-  e_salary_too_high EXCEPTION;    -- Step 1: declare it
-  v_salary NUMBER := 600000;
+  -- Varray limited to 3 items
+  TYPE type_phones IS VARRAY(3) OF VARCHAR2(15);
+  v_list type_phones := type_phones('+1-555', '+1-777'); // Constructor
 BEGIN
-  IF v_salary > 500000 THEN
-    RAISE e_salary_too_high;       -- Step 2: raise it
-  END IF;
-EXCEPTION
-  WHEN e_salary_too_high THEN    -- Step 3: handle it
-    DBMS_OUTPUT.PUT_LINE('Salary exceeds maximum limit!');
+  v_list.EXTEND; // Allocate slot 3
+  v_list(3) := '+1-999';
 END;
 /
 ```
 
-<Quiz question={"Which keyword handles exceptions in PL/SQL?"} options={["CATCH","HANDLE","WHEN","RESCUE"]} answerIndex={2}>
-C) WHEN. The syntax is `WHEN exception_name THEN handler_code`. PL/SQL doesn't use CATCH (Java), HANDLE, or RESCUE (Ruby). Every exception handler starts with WHEN.
-</Quiz>
-<Quiz question={"Exception raised when SELECT INTO returns more than one row?"} options={["NO\\_DATA\\_FOUND","VALUE\\_ERROR","TOO\\_MANY\\_ROWS","CURSOR\\_ALREADY\\_OPEN"]} answerIndex={2}>
-C) TOO\_MANY\_ROWS. SELECT INTO expects exactly one row. Zero rows gives NO\_DATA\_FOUND. More than one gives TOO\_MANY\_ROWS. If you need multiple rows, use a cursor instead.
-</Quiz>
-<Quiz question={"What does SQLCODE return in an exception handler?"} options={["Error text message","Numeric error code","Exception name","Line number of error"]} answerIndex={1}>
-B) SQLCODE returns the numeric error code (like -1, -1422, etc.). SQLERRM returns the text description. Together they give you the full picture of what went wrong.
-</Quiz>
-<Quiz question={"Which exception is raised for division by zero?"} options={["VALUE\\_ERROR","ARITHMETIC\\_ERROR","ZERO\\_DIVIDE","NUMERIC\\_OVERFLOW"]} answerIndex={2}>
-C) ZERO\_DIVIDE is the predefined Oracle exception for division by zero. ARITHMETIC\_ERROR and NUMERIC\_OVERFLOW don't exist as standard PL/SQL exceptions. VALUE\_ERROR is for type mismatches, not division errors.
-</Quiz>
-### 10\. Packages
+---
 
-**Why packages?** As your database grows, you might have 20 procedures and 15 functions scattered everywhere. A package groups related procedures, functions, variables, and cursors into one organized unit — like putting related files into a folder instead of dumping everything on your desktop.
+### 4. Bulk Processing & Performance Optimization
 
-<Callout type="warn" title="🔍 Analogy">
-A package is like a TV remote control. The **specification** (public interface) is the front of the remote — the buttons you can see and press. The **body** (implementation) is the circuit board inside — the actual code that makes things work. Users only interact with the buttons; they don't need to know what's inside.
-</Callout>
+To minimize the performance cost of context switches between the PL/SQL and SQL engines, use bulk operations:
 
-Every package has two parts:
+#### BULK COLLECT (Efficient Fetching)
+Instead of walking back and forth fetching rows one-by-one, the manager gives the clerk a large cart and says "go fetch all 500 folders in one trip."
 
-*   **Specification (spec)** — declares WHAT the package offers (public procedure/function signatures). This is the "menu" other code can call.
-*   **Body** — contains the actual implementation code. This is where the real work happens.
-
-```java
--- Specification: the public menu (what others can call)
-CREATE OR REPLACE PACKAGE emp_pkg AS
-  PROCEDURE hire(p_name VARCHAR2, p_sal NUMBER);
-  FUNCTION get_salary(p_id NUMBER) RETURN NUMBER;
-END emp_pkg;
-/
-
--- Body: the actual implementation (hidden from callers)
-CREATE OR REPLACE PACKAGE BODY emp_pkg AS
-  PROCEDURE hire(p_name VARCHAR2, p_sal NUMBER) IS BEGIN
-    INSERT INTO employees(first_name, salary) VALUES(p_name, p_sal);
-  END;
-  FUNCTION get_salary(p_id NUMBER) RETURN NUMBER IS v_sal NUMBER;
-  BEGIN
-    SELECT salary INTO v_sal FROM employees WHERE employee_id = p_id;
-    RETURN v_sal;
-  END;
-END emp_pkg;
+```sql
+DECLARE
+  TYPE type_emp_tab IS TABLE OF employees%ROWTYPE;
+  v_emps type_emp_tab;
+BEGIN
+  -- Fetch entire result set in a single context switch
+  SELECT * BULK COLLECT INTO v_emps FROM employees WHERE department_id = 10;
+END;
 /
 ```
 
-**Calling package members:** Use dot notation — `emp_pkg.hire('Darshan', 50000);`
+> [!TIP]
+> Fetching millions of rows at once using `BULK COLLECT` can exhaust the database server's RAM. Use the `LIMIT` clause with explicit cursors to fetch data in manageable batches (typically 100 to 1000 rows at a time).
 
-<Callout type="info" title="✅ Spec vs Body">
-**Specification** = public contract. Change it and all dependent code must be recompiled.  
-**Body** = private implementation. You can change the body without affecting any calling code (as long as the spec stays the same).  
-  
-This is _encapsulation_ — the same idea as public/private in Java.
-</Callout>
+```sql
+DECLARE
+  CURSOR c_emps IS SELECT * FROM employees;
+  TYPE type_emp_tab IS TABLE OF employees%ROWTYPE;
+  v_batch type_emp_tab;
+BEGIN
+  OPEN c_emps;
+  LOOP
+    FETCH c_emps BULK COLLECT INTO v_batch LIMIT 100;
+    EXIT WHEN v_batch.COUNT = 0;
+    -- Process batch of 100
+  END LOOP;
+  CLOSE c_emps;
+END;
+/
+```
 
-<Quiz question={"Package SPECIFICATION contains:"} options={["Implementation code","Private variables only","Public declarations — procedure/function signatures","Only cursor definitions"]} answerIndex={2}>
-C) The specification is the public interface — it declares what procedures and functions the package offers (their names, parameters, return types). The actual implementation code lives in the body. Think of the spec as the restaurant menu (what's available) and the body as the kitchen (where the food is made).
-</Quiz>
-### 11\. Practice Questions — PL/SQL (Mixed)
+#### FORALL (Efficient Writing)
+Handing the clerk a stack of 500 update forms and saying "run all these updates in one go."
 
-These questions mix all topics. Aim for 80%+ to confirm you have a solid grasp of PL/SQL.
+```sql
+DECLARE
+  TYPE type_id_list IS TABLE OF employees.employee_id%TYPE;
+  v_ids type_id_list := type_id_list(101, 102, 103, 104);
+BEGIN
+  -- FORALL is not a loop; it is a batch instruction sent to the SQL engine
+  FORALL i IN 1..v_ids.COUNT
+    UPDATE employees 
+    SET salary = salary * 1.05 
+    WHERE employee_id = v_ids(i);
+END;
+/
+```
 
-<Quiz question={"What is the assignment operator in PL/SQL?"} options={["\\=",":=","==","\\=\\>"]} answerIndex={1}>
-B) := is the assignment operator. = is for comparison only. == doesn't exist in PL/SQL. =\> is used for named parameter notation in procedure calls.
+---
+
+### 5. Cursors: Pointer Light Beams
+
+A cursor is a pointer to the result set of a query in the database.
+*   **Analogy**: A laser pointer. Instead of carrying a 10-ton file cabinet into your office, you shine a laser pointer (cursor) on one folder at a time, reading it and moving to the next.
+*   **Ref Cursor**: A portable laser pointer. You can create a query pointer and hand the laser pointer to another module or client application so they can read the rows themselves.
+
+```sql
+DECLARE
+  -- Weak ref cursor (can point to any query structure)
+  TYPE type_generic_cursor IS REF CURSOR;
+  v_cursor type_generic_cursor;
+  v_name employees.first_name%TYPE;
+BEGIN
+  OPEN v_cursor FOR SELECT first_name FROM employees WHERE department_id = 20;
+  LOOP
+    FETCH v_cursor INTO v_name;
+    EXIT WHEN v_cursor%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE(v_name);
+  END LOOP;
+  CLOSE v_cursor;
+END;
+/
+```
+
+---
+
+### 6. Triggers & The Mutating Table Error
+
+#### The Paradox of Pulling the Rug
+*   **Mutating Trigger (ORA-04091)**: Imagine writing a rule: "Every time a chair is moved (row update), recount all chairs in the room to check the total count." But while the chair is mid-air (row-level trigger), the table state is unstable. Oracle throws a mutating error to prevent reading from a floor that is currently shaking.
+
+#### The Solution: Compound Triggers
+A compound trigger acts as a smart assistant who writes down notes on moved chairs in a notebook during the event, and only recounts the total room once everyone has finished moving chairs (statement-level end).
+
+```sql
+CREATE OR REPLACE TRIGGER trg_check_salary
+FOR UPDATE OF salary ON employees
+COMPOUND TRIGGER
+  -- Private global collection to record updates
+  TYPE type_id_list IS TABLE OF employees.employee_id%TYPE;
+  v_updated_ids type_id_list := type_id_list();
+
+  -- 1. Row-level: record the IDs, do NOT query the table
+  AFTER EACH ROW IS
+  BEGIN
+    v_updated_ids.EXTEND;
+    v_updated_ids(v_updated_ids.LAST) := :NEW.employee_id;
+  END AFTER EACH ROW;
+
+  -- 2. Statement-level: run checks after all updates complete
+  AFTER STATEMENT IS
+    v_total NUMBER;
+  BEGIN
+    -- Safe to query now that the table is stable
+    SELECT SUM(salary) INTO v_total FROM employees;
+    DBMS_OUTPUT.PUT_LINE('Total salary pool: ' || v_total);
+  END AFTER STATEMENT;
+END;
+/
+```
+
+---
+
+### 7. Autonomous Transactions: Separate Logbooks
+
+By default, all DML operations in PL/SQL are part of the current transaction. If the main transaction rolls back, all updates roll back.
+*   **Autonomous Transaction**: A separate, independent transaction block.
+*   **Analogy**: A separate logbook. You open a new notebook, write down log entries, commit them, and close the book. Even if you rip up and burn the main transaction book later, the entries in the logbook remain safe.
+
+```sql
+CREATE OR REPLACE PROCEDURE log_error(p_msg VARCHAR2) IS
+  PRAGMA AUTONOMOUS_TRANSACTION; // Instructs Oracle to run this independently
+BEGIN
+  INSERT INTO error_logs (log_msg, log_time) VALUES (p_msg, SYSDATE);
+  COMMIT; // Commits ONLY the error log entry, does not affect main transaction
+END;
+/
+```
+
+---
+
+### 8. Conceptual Quizzes
+
+<Quiz question="What is the performance benefit of using BULK COLLECT in PL/SQL?" options={["It auto-commits transactions.","It reduces context switches between the PL/SQL and SQL engines by fetching multiple rows in a single operation.","It bypasses the SQL engine entirely.","It increases stack frame memory."]} answerIndex={1}>
+`BULK COLLECT` fetches multiple rows at once into a PL/SQL collection in a single database context switch, reducing communications overhead.
 </Quiz>
-<Quiz question={"What does %ROWTYPE do?"} options={["Returns the number of rows in a table","Declares a variable matching one column's type","Declares a record matching an entire row's structure","Counts rows affected by a cursor"]} answerIndex={2}>
-C) %ROWTYPE creates a record variable with the same structure as an entire table row — one field for each column. %TYPE (without ROW) matches a single column. %ROWCOUNT counts cursor rows.
+
+<Quiz question="What is a mutating table error (ORA-04091)?" options={["An error when a trigger is disabled.","An error that occurs when a row-level trigger attempts to query or modify the same table that fired it while the table is in an unstable state.","An error due to insufficient RAM.","A deadlock scenario."]} answerIndex={1}>
+A mutating table error happens when a row-level trigger tries to read or write to the table that triggered it while that table is undergoing modifications.
 </Quiz>
-<Quiz question={"In a cursor FOR loop, which steps are handled AUTOMATICALLY by Oracle?"} options={["Only OPEN","OPEN and CLOSE","OPEN, FETCH, and CLOSE","Only FETCH"]} answerIndex={2}>
-C) The cursor FOR loop automatically handles all three: OPEN (executes the query), FETCH (gets each row), and CLOSE (releases resources). That's why it's the preferred shortcut — you just write the loop body and Oracle handles the plumbing.
-</Quiz>
-<Quiz question={"Which DML operation has BOTH :OLD and :NEW available in a trigger?"} options={["INSERT","DELETE","UPDATE","SELECT"]} answerIndex={2}>
-C) UPDATE is the only operation that has both a "before" state (:OLD) and an "after" state (:NEW). INSERT has only :NEW (nothing existed before). DELETE has only :OLD (nothing will exist after). SELECT doesn't fire triggers.
-</Quiz>
-<Quiz question={"What happens if you use SELECT INTO and the query returns 0 rows?"} options={["The variable stays NULL — no error","TOO\\_MANY\\_ROWS exception is raised","NO\\_DATA\\_FOUND exception is raised","The block silently exits"]} answerIndex={2}>
-C) NO\_DATA\_FOUND is raised immediately. Unlike some languages where a missing result just returns null, PL/SQL treats zero rows from SELECT INTO as an error. You must either handle it with EXCEPTION or ensure the query will always return exactly one row.
-</Quiz>
-<Quiz question={"Can a function be called inside a SQL SELECT statement?"} options={["No, only procedures can","Yes, because functions return a value","Only if it has no parameters","Only if it returns VARCHAR2"]} answerIndex={1}>
-B) Functions return a value, so SQL can use that value in a column, WHERE clause, etc. Procedures don't return values in a way SQL can use, so they can't appear in SELECT statements.
-</Quiz>
-<Quiz question={"What is the purpose of RAISE\\_APPLICATION\\_ERROR?"} options={["Re-raises the current exception","Creates a custom error with a user-defined message and error number","Logs errors to a table","Exits the current block silently"]} answerIndex={1}>
-B) RAISE\_APPLICATION\_ERROR(error\_number, message) creates a custom Oracle error. The error number must be between -20000 and -20999. This is how you enforce business rules — e.g., blocking a negative salary with a meaningful error message.
-</Quiz>
+
+---
+
+### 9. Practice Problems
+
+<Problem title="Problem 1: Batched Salary Updates">
+<ProblemDescription>
+Write a PL/SQL procedure that increases the salary of all employees in department `20` by 10%. Use explicit cursors and `BULK COLLECT` with a `LIMIT` of 100 to process updates in batches, avoiding memory exhaustion. Use `FORALL` to execute the updates.
+</ProblemDescription>
+<ProblemSolution>
+This procedure combines batch fetching and bulk updates:
+
+```sql
+CREATE OR REPLACE PROCEDURE update_dept_salaries IS
+  CURSOR c_emps IS 
+    SELECT employee_id FROM employees WHERE department_id = 20;
+    
+  TYPE type_id_tab IS TABLE OF employees.employee_id%TYPE;
+  v_ids type_id_tab;
+BEGIN
+  OPEN c_emps;
+  LOOP
+    -- 1. Fetch 100 IDs at a time
+    FETCH c_emps BULK COLLECT INTO v_ids LIMIT 100;
+    EXIT WHEN v_ids.COUNT = 0;
+    
+    -- 2. Execute updates in a single batch
+    FORALL i IN 1..v_ids.COUNT
+      UPDATE employees 
+      SET salary = salary * 1.10 
+      WHERE employee_id = v_ids(i);
+      
+    COMMIT; -- Commit batch transaction
+  END LOOP;
+  CLOSE c_emps;
+END;
+/
+```
+</ProblemSolution>
+</Problem>

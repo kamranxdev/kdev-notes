@@ -1,846 +1,189 @@
 ---
 title: HyperText Markup Language (HTML)
+description: A deep-dive guide to HTML5 document parser pipelines, semantic structural markup, accessibility (a11y), form validations, browser data storage APIs, and media sandbox security.
 ---
 
-### 1\. HTML Basics
+### 1. The Browser Rendering Pipeline & DOM Tree
 
-Imagine you're building a house. Before you paint the walls (CSS) or install smart home automation (JavaScript), you need the **structure** — the walls, the rooms, the doors. That's what HTML is. It's the skeleton of every web page. Without HTML, there's nothing to style and nothing to make interactive.
+Understanding HTML requires knowing how the browser translates raw markup bytes into pixels on a screen. This sequence of steps is called the **Critical Rendering Path (CRP)**.
+*   **Analogy**: Preparing a pop-up book.
 
-HTML stands for **HyperText Markup Language**. The key word is **markup** — it "marks up" content to tell the browser "this is a heading," "this is a paragraph," "this is an image." It does NOT do calculations, loops, or logic — that's why it's **NOT a programming language**.
-
-<Callout type="warn" title="Think of it this way">
-If you hand someone a plain text document, they won't know which line is the title, which is a paragraph, or which is a list. HTML is like a set of sticky notes you attach to each part saying "this is the title," "this is a list item," etc. The browser reads those sticky notes (tags) and renders the content accordingly.
-</Callout>
-
-| Concept | Detail |
-| --- | --- |
-| Current version | **HTML5** (released 2014, living standard maintained by WHATWG) |
-| File extension | `.html` or `.htm` |
-| Case sensitivity | HTML tags are **NOT case-sensitive**, but lowercase is the convention |
-| Rendered by | Web browsers (Chrome, Firefox, Edge, Safari) |
-| W3C | World Wide Web Consortium — the standards body (historical). WHATWG maintains the living spec now. |
-
-<Callout type="info" title="Key Concept">
-"HTML is a programming language" — **FALSE**. It's a markup language. This is a commonly misunderstood point.
-</Callout>
-
-#### Tags, Elements & Attributes
-
-HTML has three building blocks. Understanding the difference between them is like understanding the difference between a brick, a wall, and the color of the wall:
-
-*   **Tag** — the instruction itself, like `<p>`. Think of it as a label.
-*   **Element** — the complete unit: opening tag + content + closing tag. The whole package.
-*   **Attribute** — extra information about the element, written inside the opening tag. Like settings on a TV remote — `href`, `src`, `class` are all attributes.
-
-```java
-<!-- Tag: the markup instruction -->
-<p>This is a paragraph.</p>
-
-<!-- Element = opening tag + content + closing tag -->
-<a href="https://example.com" target="_blank">Click here</a>
-
-<!-- Attributes: name="value" pairs inside the opening tag -->
-<img src="photo.jpg" alt="A photo" width="300">
-
-<!-- Self-closing (void) tags — NO closing tag -->
-<br>  <hr>  <img>  <input>  <meta>  <link>
-```
-<Callout type="error" title="Void elements to memorize">
-Some elements have NO content inside them — they're like a light switch (either on or off, no content in between). These are called **void elements** and they do NOT have a closing tag: `<br>`, `<hr>`, `<img>`, `<input>`, `<meta>`, `<link>`, `<area>`, `<col>`, `<embed>`, `<source>`, `<track>`, `<wbr>`.
-</Callout>
-
-<Quiz question={"Which of the following is TRUE about HTML?"} options={["HTML is a programming language used to create dynamic content", "HTML tags are case-sensitive \u2014 \\<P\\> and \\<p\\> are different", "HTML is a markup language that defines the structure of web content", "HTML can perform calculations and logical operations"]} answerIndex={1}>
-HTML is a **markup language**, not a programming language. It defines structure (headings, paragraphs, lists) but cannot do math, loops, or logic. Tags are NOT case-sensitive — \<P\> and \<p\> are the same, though lowercase is convention.
-</Quiz>
-<Quiz question={"Which of these is a void (self-closing) element?"} options={["`<div>`", "`<p>`", "`<br>`", "`<span>`"]} answerIndex={3}>
-`<br>` is a void element — it represents a line break and has no content, so it needs no closing tag. `<div>`, `<p>`, and `<span>` all have content between their opening and closing tags.
-</Quiz>
-### 2\. Document Structure
-
-Every HTML page follows the same blueprint — think of it like a letter. Every letter has a format: the envelope info (who it's to, return address) and the actual letter content. An HTML page is the same:
-
-*   **`<!DOCTYPE html>`** — the "stamp" that tells the browser "I'm HTML5." Without it, the browser might render in quirks mode (older, unpredictable behavior).
-*   **`<html>`** — the "envelope." Everything goes inside.
-*   **`<head>`** — the "back of the envelope." Contains info ABOUT the page (title, CSS links, meta info) but nothing the user sees directly.
-*   **`<body>`** — the "letter itself." Everything the user sees on screen goes here.
-
-```java
-<!DOCTYPE html>          <!-- Declaration: tells browser this is HTML5 -->
-<html lang="en">          <!-- Root element -->
-<head>                    <!-- Metadata, title, links, scripts -->
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Page Title</title>     <!-- Shown in browser tab -->
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>                   <!-- Visible content goes here -->
-  <h1>Hello World</h1>
-  <p>Content here.</p>
-  <script src="app.js"></script>
-</body>
-</html>
+```mermaid
+graph TD
+    HTML[1. Raw HTML Bytes] --> tokens[2. Tokenizer]
+    tokens --> DOM[3. DOM Tree Node Creation]
+    CSS[1. Raw CSS Bytes] --> cssom_build[2. CSSOM Tree Creation]
+    DOM --> render_tree[4. Render Tree Combination]
+    cssom_build --> render_tree
+    render_tree --> layout[5. Layout / Reflow]
+    layout --> paint[6. Painting / Rasterization]
+    paint --> composite[7. Compositing Layers]
+    
+    style HTML fill:#4f46e5,stroke:#312e81,stroke-width:2px,color:#fff
+    style CSS fill:#0891b2,stroke:#155e75,stroke-width:2px,color:#fff
+    style DOM fill:#0d9488,stroke:#115e59,stroke-width:2px,color:#fff
+    style render_tree fill:#ea580c,stroke:#9a3412,stroke-width:2px,color:#fff
+    style layout fill:#dc2626,stroke:#991b1b,stroke-width:2px,color:#fff
+    style paint fill:#a855f7,stroke:#6b21a8,stroke-width:2px,color:#fff
+    style composite fill:#4b5563,stroke:#1f2937,stroke-width:2px,color:#fff
 ```
 
-| Element | Purpose |
-| --- | --- |
-| `<!DOCTYPE html>` | Not a tag — it's a declaration. Tells the browser to use HTML5 standards mode. |
-| `<html>` | Root element. Everything goes inside this. |
-| `<head>` | Contains metadata, title, CSS links, scripts. NOT visible on page. |
-| `<title>` | Text shown in the browser tab. Goes inside `<head>`. |
-| `<body>` | All visible page content. Only ONE `<body>` per document. |
+1.  **Raw HTML Bytes**: Raw trees and paper fiber. The raw code bytes are downloaded from the server.
+2.  **Tokenizer**: A factory machine cutting cards into shapes (tags). The stream of text characters is parsed into distinct tag tokens (e.g. `StartTag: <html>`).
+3.  **DOM Tree Nodes**: The individual cut-out cardboard pieces (DOM Elements). Nodes are instantiated based on the tokens.
+4.  **DOM Tree**: Gluing the cut-out cardboard pieces together so they nest correctly into one another. A parent-child node hierarchy is constructed.
+5.  **CSSOM Tree**: Parallel instructions specifying how to paint and color each cardboard piece.
+6.  **Render Tree**: Selecting only the visible cardboard pieces. If a piece has `display: none` specified in the CSSOM instructions, it is folded completely out of sight.
+7.  **Layout (Reflow)**: Drawing blueprint grids to calculate the exact dimensions (width, height, coordinates) of each cardboard piece relative to the viewport.
+8.  **Painting (Rasterization)**: Spray-painting colors, text, and images onto each cardboard piece.
+9.  **Compositing**: Merging the background, middle ground, and pop-up layers onto the final page screen.
 
-<Callout type="info" title="Common Mistake">
-`<!DOCTYPE html>` is NOT an HTML tag. It's a document type declaration. This is a commonly confused point.
-</Callout>
+#### Parser-Blocking Scripts: Construction Site Crew
+By default, if the crew building the wall encounters a special blueprint document (a `<script>` tag), they drop their bricks, run to download the document, read it immediately, and only then return to laying bricks (blocking the parser).
+*   **`defer`**: "Read this blueprint during lunch." The crew continues laying bricks, downloading the script in the background, and only runs it *after* the DOM tree is fully parsed. Order of execution is preserved.
+*   **`async`**: "Run this blueprint the second it arrives." The crew continues laying bricks, downloading the script in the background, but drops everything to run it immediately when it finishes, interrupting the parser.
 
-<Quiz question={"Which of the following is TRUE about `<!DOCTYPE html>`?"} options={["It is the root element of an HTML page", "It is a declaration that tells the browser to use HTML5 standards mode", "It must be placed inside the `<head>` element", "It is optional and has no effect on rendering"]} answerIndex={1}>
-`<!DOCTYPE html>` is a **declaration**, not a tag. It goes at the very top of the file (before `<html>`) and tells the browser to render using HTML5 standards mode. Without it, the browser may use quirks mode which causes inconsistent rendering.
-</Quiz>
-### 3\. Text Formatting Tags
+---
 
-When you write a document in Word, you bold important words, italicize book titles, and underline headings. HTML gives you the same tools — but with a twist: some tags are just about **looks**, and some carry **meaning**.
+### 2. Semantic Markup & Web Accessibility (a11y)
 
-Why does this matter? Imagine a blind person using a screen reader. The screen reader can't "see" bold text. But if you use `<strong>` instead of `<b>`, the screen reader knows to emphasize that word in speech. Same visual result, completely different experience for accessibility. This is called **semantic meaning**.
+Semantic HTML means using tags that describe the *meaning* of the content, not how it looks.
+*   **Analogy**: Labeling rooms in a public building.
+    *   *Non-semantic* `<div id="nav">`: A room with a generic cardboard wall that you happen to walk through.
+    *   *Semantic* `<nav>`: An architectural archway clearly marked "HALLWAY" in concrete. If a blind visitor walks in (screen reader), they can feel the archway shape and know instantly they are in a navigation area.
 
-<Callout type="warn" title="Analogy">
-`<b>` is like writing in thick marker — it looks bold but carries no special importance.  
-`<strong>` is like highlighting a key term in a textbook — it's bold AND signals "this is important, pay attention."
-</Callout>
-
-#### Headings: The hierarchy of your page
-
-`<h1>` through `<h6>` create headings, biggest to smallest. Think of them like a book: `<h1>` is the book title, `<h2>` is a chapter title, `<h3>` is a section within a chapter. You should only have ONE `<h1>` per page (just like a book has one title), and you shouldn't skip levels (don't jump from h1 to h4).
-
-#### Complete formatting reference
-
-| Tag | Purpose | Visual |
-| --- | --- | --- |
-| `<h1>` to `<h6>` | Headings (h1 = largest, h6 = smallest) | Bold, sized |
-| `<p>` | Paragraph | Block with margins |
-| `<br>` | Line break (void element) | New line |
-| `<hr>` | Horizontal rule (void element) | Horizontal line |
-| `<b>` | Bold text (no semantic meaning) | **Bold** |
-| `<strong>` | Important text (semantic bold) | **Bold** |
-| `<i>` | Italic text (no semantic meaning) | _Italic_ |
-| `<em>` | Emphasized text (semantic italic) | _Italic_ |
-| `<u>` | Underlined text | Underline |
-| `<s>` / `<del>` | Strikethrough | ~Struck~ |
-| `<mark>` | Highlighted text (HTML5) | Yellow highlight |
-| `<small>` | Smaller text | Small |
-| `<sub>` | Subscript — H2O | Below baseline |
-| `<sup>` | Superscript — x2 | Above baseline |
-| `<pre>` | Preformatted text (preserves spaces/newlines) | Monospaced |
-| `<code>` | Inline code | Monospaced |
-| `<blockquote>` | Block quotation | Indented block |
-| `<abbr>` | Abbreviation — hover shows full form | Dotted underline |
-| `<cite>` | Citation / title of a work | _Italic_ |
-
-<Callout type="info" title="Semantic vs Non-semantic">
-`<strong>` vs `<b>` — Both look bold, but `<strong>` tells screen readers and search engines the text is **important**. Same for `<em>` vs `<i>`. Understanding this distinction matters for accessibility and SEO.
-</Callout>
-
-<Quiz question={"What is the key difference between `<strong>` and `<b>`?"} options={["`<strong>` makes text bigger, `<b>` makes it bold", "They are completely identical in every way", "`<strong>` carries semantic importance, `<b>` is only visual", "`<b>` is HTML5, `<strong>` is deprecated"]} answerIndex={0}>
-Both render as bold, but `<strong>` tells browsers, screen readers, and search engines that the text is **important**. `<b>` just makes it visually bold with no semantic meaning. Always prefer `<strong>` for important content.
-</Quiz>
-<Quiz question={"Which tag preserves whitespace and line breaks exactly as written in the source code?"} options={["`<code>`", "`<p>`", "`<pre>`", "`<blockquote>`"]} answerIndex={2}>
-`<pre>` (preformatted text) preserves all spaces, tabs, and newlines exactly as you typed them. Normal HTML collapses multiple spaces into one. `<code>` just changes the font to monospace — it does NOT preserve whitespace on its own.
-</Quiz>
-### 4\. Lists
-
-Why do lists exist as separate tags? Can't you just type "1. First item" in a paragraph? You could, but the browser (and screen readers) wouldn't KNOW it's a list. By using list tags, you tell the browser "these items are related and ordered/unordered," which helps with accessibility, styling, and structure.
-
-HTML gives you three types of lists:
-
-*   **Unordered list (`<ul>`)** — when order doesn't matter. Like a shopping list: milk, eggs, bread — any order is fine. Shows as bullets.
-*   **Ordered list (`<ol>`)** — when sequence matters. Like cooking steps: first heat the pan, THEN add oil. Shows as numbers.
-*   **Description list (`<dl>`)** — for term-definition pairs. Like a glossary or dictionary.
-
-```java
-<!-- Unordered List (bullets) -->
-<ul>
-  <li>Item 1</li>
-  <li>Item 2</li>
-</ul>
-
-<!-- Ordered List (numbers) -->
-<ol type="A" start="3">
-  <li>Third item (shows as C)</li>
-  <li>Fourth item (shows as D)</li>
-</ol>
-
-<!-- Description List -->
-<dl>
-  <dt>HTML</dt>
-  <dd>HyperText Markup Language</dd>
-  <dt>CSS</dt>
-  <dd>Cascading Style Sheets</dd>
-</dl>
 ```
-<Callout type="warn" title="Description list memory trick">
-`<dl>` = Description List (the container), `<dt>` = Description **T**erm (the word), `<dd>` = Description **D**efinition (the meaning). Think: DL wraps DT + DD, just like a dictionary wraps words + definitions.
-</Callout>
-
-| Attribute | Used On | Purpose |
-| --- | --- | --- |
-| `type` | `<ol>` | Numbering style: `1`, `A`, `a`, `I`, `i` |
-| `start` | `<ol>` | Start counting from a specific number |
-| `reversed` | `<ol>` | Count in descending order (HTML5) |
-| `value` | `<li>` inside `<ol>` | Set a specific number for that item |
-| `type` | `<ul>` | Bullet style: `disc` (default), `circle`, `square` (deprecated — use CSS) |
-
-<Callout type="info" title="Key Concept">
-"Which tag is used for a description list?" — Answer: `<dl>` with `<dt>` (term) and `<dd>` (description). NOT `<ul>` or `<ol>`.
-</Callout>
-
-<Quiz question={"Which tag represents a single item inside a list?"} options={["`<list>`", "`<item>`", "`<dd>`", "`<li>`"]} answerIndex={3}>
-`<li>` (list item) is used inside both `<ul>` and `<ol>`. `<dd>` is for description definitions only (inside `<dl>`). There is no `<list>` or `<item>` tag in HTML.
-</Quiz>
-<Quiz question={"What does `<ol type=\"A\" start=\"3\">` produce?"} options={["A numbered list starting from 3", "A list with items labeled C, D, E...", "A list with items labeled A, B, C... starting from the 3rd item", "An error \u2014 type and start cannot be used together"]} answerIndex={0}>
-`type="A"` changes numbering to uppercase letters. `start="3"` starts counting from 3. Since A=1, B=2, C=3, the list starts at C and continues D, E, F... The start value is always a number, and the type determines how that number is displayed.
-</Quiz>
-### 5\. Links & Images
-
-The "HT" in HTML stands for **HyperText** — text that links to other text. Links are what make the web a "web." Without them, every page would be an island. The `<a>` (anchor) tag is how you connect pages together.
-
-#### Anchor Tag (`<a>`)
-
-Think of `<a>` as a doorway. The `href` attribute is the address of where the door leads. The `target` attribute decides whether you walk through the door in the same room (same tab) or open a new room (new tab).
-
-```java
-<!-- External link -->
-<a href="https://google.com" target="_blank">Google</a>
-
-<!-- Internal link (same page) -->
-<a href="#section-id">Jump to section</a>
-
-<!-- Email link -->
-<a href="mailto:darshan@example.com">Email me</a>
-
-<!-- Phone link -->
-<a href="tel:+919999999999">Call me</a>
-
-<!-- Download link -->
-<a href="file.pdf" download>Download PDF</a>
+        Traditional Non-Semantic Layout               Semantic HTML5 Layout
+        ┌───────────────────────────────┐               ┌───────────────────────────────┐
+        │     <div id="header">         │               │          <header>             │
+        ├───────────────────────────────┤               ├───────────────────────────────┤
+        │     <div id="nav">            │               │            <nav>              │
+        ├───────────────────────────────┤               ├───────────────────────────────┤
+        │     <div id="main-content">   │               │            <main>             │
+        │   ┌────────────────────────┐  │               │   ┌────────────────────────┐  │
+        │   │  <div class="post">    │  │               │   │       <article>        │  │
+        │   └────────────────────────┘  │               │   └────────────────────────┘  │
+        ├───────────────────────────────┤               ├───────────────────────────────┤
+        │     <div id="sidebar">        │               │            <aside>            │
+        ├───────────────────────────────┤               ├───────────────────────────────┤
+        │     <div id="footer">         │               │            <footer>           │
+        └───────────────────────────────┘               └───────────────────────────────┘
 ```
 
-| Attribute | Purpose |
-| --- | --- |
-| `href` | URL the link points to |
-| `target="_blank"` | Open in new tab |
-| `target="_self"` | Open in same tab (default) |
-| `target="_parent"` | Open in parent frame |
-| `target="_top"` | Open in full window (breaks out of all frames) |
-| `download` | Download instead of navigating (HTML5) |
-| `rel="noopener"` | Security — prevents the new page from accessing `window.opener` |
+#### Key Semantic Structural Elements
+*   `<header>`: Introduces a page or section (contains logo, search form, or navigation).
+*   `<nav>`: Defines a block of navigation links.
+*   `<main>`: Represents the primary content of the document. **Only one `<main>` is allowed per page.**
+*   `<article>`: Represents self-contained, independent content that could be distributed or reused (e.g., a blog post, forum card, or news article).
+*   `<section>`: Groups related content together under a single thematic heading.
+*   `<aside>`: Represents content tangentially related to the main content (e.g. sidebars or callouts).
+*   `<footer>`: Concludes a page or section (contains copyrights, contact links).
 
-<Callout type="error" title="Don't confuse <a> and <link>">
-`<a>` creates a clickable hyperlink on the page. `<link>` goes in the `<head>` and connects external resources like CSS files. They sound similar but do completely different things.
-</Callout>
+#### Accessible Rich Internet Applications (ARIA)
+When standard HTML elements are not enough, ARIA attributes provide metadata to screen readers to make web apps accessible:
+*   `role="..."`: Defines the purpose of an element (e.g. `role="dialog"`, `role="button"`, `role="alert"`).
+*   `aria-label="..."`: Provides an invisible text description for screen readers when no visible text label exists.
+*   `aria-describedby="..."`: Points to the `id` of another element containing a detailed description of this element.
+*   `aria-hidden="true"`: Hides decorative elements (like icons) from screen readers.
 
-#### Image Tag (`<img>`)
-
-Images use the `<img>` tag — a void element (no closing tag, because there's no text content "inside" an image). The `src` attribute points to the image file, and `alt` describes what the image shows. Why is `alt` mandatory? Two reasons: (1) if the image fails to load, the alt text appears instead, and (2) screen readers read the alt text to visually impaired users.
-
-```java
-<img src="photo.jpg" alt="Description of image" width="400" height="300">
-
-<!-- Image as a link -->
-<a href="page.html">
-  <img src="button.png" alt="Click me">
-</a>
-
-<!-- Figure with caption (HTML5) -->
-<figure>
-  <img src="chart.png" alt="Sales chart">
-  <figcaption>Quarterly sales data</figcaption>
-</figure>
-```
-<Callout type="error" title="Must-know">
-The `alt` attribute is **required** for accessibility. It describes the image for screen readers and shows if the image fails to load. Always include `alt` on every image.
-</Callout>
-
-<Quiz question={"Which tag is used to define a hyperlink in HTML?"} options={["`<link>`", "`<a>`", "`<href>`", "`<url>`"]} answerIndex={3}>
-`<a>` (anchor) creates clickable hyperlinks. `<link>` is for external resources in the \<head\> (like CSS). There is no `<href>` or `<url>` tag — `href` is an attribute, not a tag.
-</Quiz>
-<Quiz question={"What does the `alt` attribute in `<img>` provide?"} options={["A tooltip when hovering over the image", "Alternative text for screen readers and when the image fails to load", "The image title displayed below the image", "A link to an alternative image source"]} answerIndex={1}>
-`alt` provides alternative text — it's read by screen readers for accessibility and displayed when the image can't load. The `title` attribute (not alt) provides the hover tooltip. Don't confuse the two.
-</Quiz>
-### 6\. Tables
-
-Tables display data in rows and columns — like an Excel spreadsheet. But here's the important part: tables should ONLY be used for **tabular data** (student marks, price lists, schedules). In the early web, people used tables for page layout — that's now considered bad practice. Use CSS for layout.
-
-<Callout type="warn" title="Table structure analogy">
-Think of a table like a bookshelf:  
-`<table>` = the whole bookshelf  
-`<tr>` (table row) = one shelf  
-`<td>` (table data) = one book on that shelf  
-`<th>` (table header) = a label at the front of a shelf telling you what's on it  
-`<thead>`, `<tbody>`, `<tfoot>` = sections of the bookshelf (top labels, main books, bottom summary)
-</Callout>
-
-```java
-<table border="1">
-  <caption>Student Marks</caption>
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Subject</th>
-      <th>Marks</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td rowspan="2">Darshan</td>
-      <td>Math</td>
-      <td>95</td>
-    </tr>
-    <tr>
-      <td>Science</td>
-      <td>90</td>
-    </tr>
-    <tr>
-      <td>Ravi</td>
-      <td colspan="2">Absent</td>
-    </tr>
-  </tbody>
-  <tfoot>
-    <tr>
-      <td colspan="3">End of results</td>
-    </tr>
-  </tfoot>
-</table>
+```html
+<!-- Accessible Button with Icon -->
+<button aria-label="Close dialog" onclick="closeModal()">
+  <span class="icon-close" aria-hidden="true">×</span>
+</button>
 ```
 
-| Tag | Purpose |
-| --- | --- |
-| `<table>` | Creates a table |
-| `<caption>` | Table title (first child of `<table>`) |
-| `<thead>` | Table header group |
-| `<tbody>` | Table body group |
-| `<tfoot>` | Table footer group |
-| `<tr>` | Table row |
-| `<th>` | Header cell (bold + centered by default) |
-| `<td>` | Data cell |
+---
 
-#### colspan and rowspan — Merging cells
+### 3. Forms, Input Validation & Properties
 
-Sometimes one cell needs to stretch across multiple columns or rows. Think of it like merging cells in Excel:
+#### Form Controls: Club Gate Security Guards
+*   `readonly`: A VIP guest who is not allowed to edit their ID card, but the gate security guard still checks their card and lets them in (submitted with the form).
+*   `disabled`: A guest who has their ticket confiscated and is turned away; their data is completely ignored by the guard (not submitted with the form).
 
-*   `colspan="3"` = this cell stretches across 3 columns horizontally (like merging cells left-to-right)
-*   `rowspan="2"` = this cell stretches down across 2 rows vertically (like merging cells top-to-bottom)
-
-| Attribute | Used On | Purpose |
-| --- | --- | --- |
-| `colspan="2"` | `<td>` / `<th>` | Cell spans 2 columns |
-| `rowspan="3"` | `<td>` / `<th>` | Cell spans 3 rows |
-| `border` | `<table>` | Border width (deprecated — use CSS) |
-| `cellpadding` | `<table>` | Space inside cells (deprecated — use CSS) |
-| `cellspacing` | `<table>` | Space between cells (deprecated — use CSS) |
-
-<Callout type="info" title="colspan vs rowspan">
-`colspan` = merge cells horizontally (across columns).  
-`rowspan` = merge cells vertically (across rows).  
-To merge 3 columns: use `colspan="3"`.
-</Callout>
-
-<Quiz question={"What does `colspan=\"3\"` do in a table cell?"} options={["Creates 3 new columns in the table", "Merges 3 cells vertically", "Merges 3 cells horizontally across columns", "Adds a 3-pixel border to the cell"]} answerIndex={2}>
-`colspan="3"` makes a single cell stretch across 3 columns horizontally. Think "col" = column, "span" = stretch. `rowspan` does the same thing vertically. It doesn't create new columns — it merges existing ones.
-</Quiz>
-<Quiz question={"Which tag creates a header cell in a table?"} options={["`<td>`", "`<th>`", "`<thead>`", "`<header>`"]} answerIndex={3}>
-`<th>` creates a header cell (bold and centered by default). `<td>` is for data cells. `<thead>` is a grouping element that wraps header rows — it's not a cell. `<header>` is a semantic page element, not related to tables.
-</Quiz>
-### 7\. Forms & Input Elements
-
-Forms are how users **talk back** to a website. Every login page, search bar, registration form, and payment checkout is an HTML form. Without forms, the web would be read-only — like a newspaper you can never write a letter to.
-
-Forms are the most important HTML topic in practice — you will encounter them in every real project. Know every input type and attribute.
-
-<Callout type="warn" title="How forms work">
-Think of a form like a paper application:  
-1\. `<form>` = the application form itself  
-2\. `<input>`, `<select>`, `<textarea>` = the blank fields you fill in  
-3\. `<label>` = the text next to each field saying what to write  
-4\. `action` = the address where you mail the form  
-5\. `method` = how you send it (GET = postcard everyone can read, POST = sealed envelope)
-</Callout>
-
-```java
-<form action="/submit" method="POST" enctype="multipart/form-data">
-
-  <!-- Text input -->
-  <label for="name">Name:</label>
-  <input type="text" id="name" name="name" placeholder="Enter name"
-         required maxlength="50" autofocus>
-
-  <!-- Password -->
-  <input type="password" name="pwd" minlength="8">
-
-  <!-- Email (HTML5 — has built-in validation) -->
-  <input type="email" name="email" required>
-
-  <!-- Number -->
-  <input type="number" name="age" min="18" max="60" step="1">
-
-  <!-- Date (HTML5) -->
-  <input type="date" name="dob">
-
-  <!-- Radio buttons (same name = one selection) -->
-  <input type="radio" name="gender" value="male" id="m">
-  <label for="m">Male</label>
-  <input type="radio" name="gender" value="female" id="f">
-  <label for="f">Female</label>
-
-  <!-- Checkboxes (multiple selections) -->
-  <input type="checkbox" name="lang" value="java" id="j">
-  <label for="j">Java</label>
-  <input type="checkbox" name="lang" value="python" id="p">
-  <label for="p">Python</label>
-
-  <!-- Dropdown -->
-  <select name="city">
-    <option value="" disabled selected>Choose city</option>
-    <option value="mumbai">Mumbai</option>
-    <option value="delhi">Delhi</option>
-    <optgroup label="South">
-      <option value="chennai">Chennai</option>
-      <option value="bangalore">Bangalore</option>
-    </optgroup>
-  </select>
-
-  <!-- Textarea -->
-  <textarea name="msg" rows="5" cols="40" placeholder="Message..."></textarea>
-
-  <!-- File upload -->
-  <input type="file" name="resume" accept=".pdf,.doc">
-
-  <!-- Hidden field -->
-  <input type="hidden" name="token" value="abc123">
-
-  <!-- Range slider (HTML5) -->
-  <input type="range" name="vol" min="0" max="100">
-
-  <!-- Color picker (HTML5) -->
-  <input type="color" name="favcolor">
-
-  <!-- Datalist (autocomplete suggestions — HTML5) -->
-  <input list="browsers" name="browser">
-  <datalist id="browsers">
-    <option value="Chrome">
-    <option value="Firefox">
-    <option value="Edge">
-  </datalist>
-
-  <!-- Submit and Reset -->
+```html
+<!-- Form with Constraint Validation -->
+<form action="/register" method="POST">
+  <label for="username">Username (5-10 chars):</label>
+  <input type="text" id="username" name="username" minlength="5" maxlength="10" required>
+  
+  <label for="zipcode">Zip Code (5 digits):</label>
+  <input type="text" id="zipcode" name="zipcode" pattern="[0-9]{5}" required>
+  
   <button type="submit">Submit</button>
-  <button type="reset">Reset</button>
-
 </form>
 ```
 
-#### Radio vs Checkbox — When to use which?
+---
 
-This confuses many beginners:
+### 4. Browser Data Storage & Cookies
 
-*   **Radio buttons** = pick ONE from a group (like choosing your gender — you can't be both). All radios in a group must have the **same `name`** attribute.
-*   **Checkboxes** = pick MULTIPLE (like selecting languages you know — you might know Java AND Python). They can share a name but each selection is independent.
+Websites store data in the user's browser using different storage APIs:
+*   **Cookies**: *Analogy: A small luggage tag on your briefcase.* Every time you cross a border (send an HTTP request), the customs agent reads the tag automatically. Small size (~4KB) but automatic.
+*   **LocalStorage**: *Analogy: A personal safe box in your hotel room.* It stays there forever unless you manually empty it.
+*   **SessionStorage**: *Analogy: A temporary locker.* Cleared the second you check out of the room (close the browser tab).
+*   **IndexedDB**: *Analogy: A massive storage warehouse with an indexing system.* Used for large objects, catalogs, and file caching.
 
-#### All Input Types (Complete List)
+| Feature | Cookie | LocalStorage | SessionStorage | IndexedDB |
+| --- | --- | --- | --- | --- |
+| **Capacity** | ~4 KB | ~5 MB | ~5 MB | Unlimited (depends on disk space) |
+| **Lifetime** | Expiry set by developer | Permanent until deleted | Cleared on tab close | Permanent until deleted |
+| **Transfer** | Sent to server automatically with **every** request | Client-only; never sent to server | Client-only; never sent to server | Client-only; never sent to server |
 
-| Type | Purpose | HTML5? |
-| --- | --- | --- |
-| `text` | Single-line text | No |
-| `password` | Masked text | No |
-| `radio` | Single selection from a group | No |
-| `checkbox` | Multiple selections | No |
-| `submit` | Submit the form | No |
-| `reset` | Reset all fields | No |
-| `button` | Generic clickable button | No |
-| `file` | File upload | No |
-| `hidden` | Hidden data sent with form | No |
-| `image` | Image as submit button | No |
-| `email` | Email with validation | Yes |
-| `url` | URL with validation | Yes |
-| `tel` | Phone number | Yes |
-| `number` | Numeric input with spinner | Yes |
-| `range` | Slider | Yes |
-| `date` | Date picker | Yes |
-| `time` | Time picker | Yes |
-| `datetime-local` | Date + time picker | Yes |
-| `month` | Month + year picker | Yes |
-| `week` | Week picker | Yes |
-| `color` | Color picker | Yes |
-| `search` | Search field | Yes |
+---
 
-#### Key Form Attributes
+### 5. Media & iframe Sandboxing
 
-| Attribute | Used On | Purpose |
-| --- | --- | --- |
-| `action` | `<form>` | URL where form data is sent |
-| `method` | `<form>` | `GET` (URL params) or `POST` (body) |
-| `enctype` | `<form>` | Encoding type. Use `multipart/form-data` for file uploads. |
-| `name` | any input | Key used when data is submitted |
-| `value` | any input | Default/submitted value |
-| `placeholder` | text/email/etc. | Hint text shown when empty |
-| `required` | any input | Field must be filled (HTML5 validation) |
-| `disabled` | any input | Greyed out, NOT submitted with form |
-| `readonly` | text/textarea | Cannot edit, but IS submitted |
-| `autofocus` | any input | Auto-focus on page load |
-| `autocomplete` | form/input | `on` / `off` — browser auto-fill |
-| `pattern` | text/email/etc. | Regex validation pattern (HTML5) |
-| `min` / `max` | number/date/range | Minimum/maximum value |
-| `step` | number/range | Increment step |
-| `maxlength` | text/textarea | Maximum characters allowed |
-| `multiple` | file/email/select | Allow multiple values |
-| `accept` | file | Allowed file types |
+To secure an embedded iframe, use the `sandbox` attribute. This applies strict security restrictions (blocking scripts, forms, popups, and top-level navigation) by default. You can selectively allow specific features:
 
-<Callout type="error" title="disabled vs readonly — Critical Distinction">
-Both prevent the user from changing a field. But there's a critical difference:  
-  
-`disabled`: field is greyed out AND its value is **NOT sent** to the server when you submit. It's like a locked room with no mailbox — nothing comes out.  
-`readonly`: field is visible and its value **IS sent** to the server. It's like a display case — you can see it and the data gets submitted, but you can't change it.
-</Callout>
-
-<Callout type="info" title="GET vs POST">
-`GET`: data visible in URL (`?name=value`), cached, bookmarkable, length limit. Use for search/filter.  
-`POST`: data in request body, not visible in URL, no length limit. Use for login/signup/file upload.
-</Callout>
-
-<Quiz question={"Which is NOT a valid HTML5 input type?"} options={["`email`", "`date`", "`phone`", "`color`"]} answerIndex={3}>
-There is no `type="phone"`. The correct type for phone numbers is `tel`. This is a commonly misunderstood detail — `email`, `date`, and `color` are all valid HTML5 input types.
-</Quiz>
-<Quiz question={"What happens when a `disabled` input field is inside a submitted form?"} options={["Its value is sent to the server as empty", "Its value is sent to the server normally", "Its value is NOT sent to the server at all", "The form submission is blocked"]} answerIndex={0}>
-A `disabled` field's value is completely excluded from the form submission — the server never receives it. If you want a field the user can't edit but whose value IS sent, use `readonly` instead.
-</Quiz>
-<Quiz question={"Which tag creates a dropdown list?"} options={["`<input type=\"dropdown\">`", "`<list>`", "`<select>`", "`<dropdown>`"]} answerIndex={3}>
-`<select>` with `<option>` children creates a dropdown. There is no `type="dropdown"`, no `<list>` tag, and no `<dropdown>` tag in HTML.
-</Quiz>
-### 8\. Semantic HTML5
-
-In the early days of HTML, developers built every layout with `<div>` tags. A page might have `<div id="header">`, `<div id="nav">`, `<div id="footer">`. The problem? A `<div>` means NOTHING. The browser, search engines, and screen readers have no idea whether a div is a navigation menu, a sidebar, or the main content.
-
-HTML5 introduced **semantic elements** — tags that describe their content's **meaning**, not just appearance.
-
-<Callout type="warn" title="Analogy">
-Imagine you're organizing a library. You could put ALL books in boxes labeled "Box 1," "Box 2," "Box 3" (that's `<div>`). Or you could label them "Fiction," "Science," "History" (that's semantic HTML). The books inside might be the same, but labeled boxes are infinitely easier to find things in — for you, for librarians (search engines), and for someone asking for help (screen readers).
-</Callout>
-
-```java
-<header>    <!-- Page or section header (logo, nav) -->
-<nav>       <!-- Navigation links -->
-<main>      <!-- Main content (only ONE per page) -->
-<article>   <!-- Self-contained content (blog post, news article) -->
-<section>   <!-- Thematic grouping of content -->
-<aside>     <!-- Sidebar / tangentially related content -->
-<footer>    <!-- Page or section footer -->
-<figure>    <!-- Image/diagram with caption -->
-<figcaption> <!-- Caption for figure -->
-<details>   <!-- Collapsible content -->
-<summary>   <!-- Visible heading for details -->
-<time>      <!-- Date/time (machine-readable) -->
-<mark>      <!-- Highlighted text -->
-<progress>  <!-- Progress bar -->
-<meter>     <!-- Scalar measurement (e.g., disk usage) -->
-<dialog>    <!-- Dialog box / modal -->
-<output>    <!-- Result of calculation -->
-```
-
-| Non-semantic | Semantic replacement |
-| --- | --- |
-| `<div id="header">` | `<header>` |
-| `<div id="nav">` | `<nav>` |
-| `<div id="footer">` | `<footer>` |
-| `<div id="sidebar">` | `<aside>` |
-| `<div class="article">` | `<article>` |
-
-<Callout type="info" title="Must Know">
-"Which HTML5 element is used for navigation?" — `<nav>`  
-"Which element represents self-contained content?" — `<article>`  
-"Which element is for tangentially related content?" — `<aside>`  
-"How many `<main>` elements per page?" — **Only ONE**
-</Callout>
-
-<Quiz question={"Which HTML5 element should contain navigation links?"} options={["`<navigation>`", "`<nav>`", "`<menu>`", "`<links>`"]} answerIndex={3}>
-`<nav>` is the semantic HTML5 element specifically designed for navigation links. There is no `<navigation>` or `<links>` tag. `<menu>` exists but is for context menus, not site navigation.
-</Quiz>
-<Quiz question={"What is the main benefit of using semantic HTML elements over `<div>`?"} options={["They load faster than `<div>` elements", "They have built-in CSS styling that `<div>` lacks", "They give meaning to content, improving accessibility and SEO", "They are required by HTML5 \u2014 pages won't render without them"]} answerIndex={0}>
-Semantic elements describe the PURPOSE of their content. Screen readers can tell users "this is the navigation" instead of "this is div number 7." Search engines can understand your page structure. They don't load faster or have special CSS — it's all about meaning and accessibility.
-</Quiz>
-### 9\. Audio, Video & Embeds
-
-Before HTML5, playing audio or video on a web page required third-party plugins like Adobe Flash. HTML5 changed that by adding native `<audio>` and `<video>` tags — no plugins needed.
-
-Why the `<source>` tag inside? Different browsers support different file formats. By providing multiple sources, the browser picks the first one it can play — like carrying both a USB-C and micro-USB cable so you can charge any phone.
-
-```java
-<!-- Video -->
-<video src="video.mp4" controls autoplay muted loop width="600">
-  <source src="video.mp4" type="video/mp4">
-  <source src="video.webm" type="video/webm">
-  Your browser does not support the video tag.
-</video>
-
-<!-- Audio -->
-<audio controls>
-  <source src="song.mp3" type="audio/mpeg">
-  <source src="song.ogg" type="audio/ogg">
-  Your browser does not support audio.
-</audio>
-
-<!-- Embed (generic external content) -->
-<embed src="file.pdf" type="application/pdf" width="600" height="400">
-
-<!-- Object (similar to embed, older) -->
-<object data="file.pdf" type="application/pdf" width="600" height="400">
-  <p>Fallback: <a href="file.pdf">Download PDF</a></p>
-</object>
-```
-
-| Attribute | Purpose |
-| --- | --- |
-| `controls` | Show play/pause/volume controls |
-| `autoplay` | Start playing automatically |
-| `muted` | Start muted (required for autoplay in Chrome) |
-| `loop` | Loop playback |
-| `poster` | Image shown before video plays (video only) |
-| `preload` | `auto` / `metadata` / `none` |
-
-<Callout type="info" title="Autoplay gotcha">
-Most browsers block autoplay unless the video is `muted`. This is to prevent annoying auto-playing videos with sound. To autoplay a video in Chrome you need BOTH `autoplay` AND `muted`.
-</Callout>
-
-<Quiz question={"Which attribute must be added along with `autoplay` for a video to auto-play in most modern browsers?"} options={["`controls`", "`loop`", "`muted`", "`preload=\"auto\"`"]} answerIndex={2}>
-Modern browsers (Chrome, Firefox, Safari) block autoplay unless the video is `muted`. This is a user experience policy to prevent annoying auto-playing audio. So you need `<video autoplay muted>` for it to actually work.
-</Quiz>
-### 10\. Meta Tags & Head
-
-The `<head>` section is like the backstage of a theatre — the audience (user) never sees it directly, but it controls everything: the page title in the browser tab, how the page looks on mobile, what search engines show in results, and which CSS/JS files to load.
-
-`<meta>` tags provide metadata — data ABOUT the data. They tell the browser "this page uses UTF-8 characters," "this page should be responsive on mobile," "the author is Darshan," etc.
-
-```java
-<head>
-  <meta charset="UTF-8">                          <!-- Character encoding -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">  <!-- Responsive -->
-  <meta name="description" content="Web Development Study Guide">     <!-- SEO -->
-  <meta name="keywords" content="HTML, web development, reference">       <!-- SEO (less important now) -->
-  <meta name="author" content="Darshan">
-  <meta http-equiv="refresh" content="30">         <!-- Auto-refresh after 30 seconds -->
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">       <!-- IE compatibility -->
-
-  <title>Page Title</title>                       <!-- Browser tab title -->
-  <link rel="stylesheet" href="style.css">         <!-- External CSS -->
-  <link rel="icon" href="favicon.ico">             <!-- Favicon -->
-  <style> body { color: red; } </style>            <!-- Internal CSS -->
-  <script src="app.js" defer></script>             <!-- External JS -->
-</head>
-```
-<Callout type="info" title="The 2 meta tags you MUST know">
-**1\. `<meta charset="UTF-8">`** — Without this, special characters (Hindi text, emojis, accented letters) might display as garbled symbols.  
-**2\. `<meta name="viewport"...>`** — Without this, your page won't be responsive on mobile. The browser will render it at desktop width and force users to pinch-zoom.
-</Callout>
-
-<Callout type="info" title="Tip">
-"Which meta tag makes a page responsive?" — `<meta name="viewport" content="width=device-width, initial-scale=1.0">`  
-"Which meta tag sets character encoding?" — `<meta charset="UTF-8">`
-</Callout>
-
-<Quiz question={"Which meta tag is essential for making a website responsive on mobile devices?"} options={["`<meta charset=\"UTF-8\">`", "`<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">`", "`<meta name=\"description\" content=\"...\">`", "`<meta http-equiv=\"refresh\" content=\"30\">`"]} answerIndex={1}>
-The viewport meta tag tells the browser to match the screen's width and not zoom out to desktop size. Without it, mobile browsers render the page at ~980px wide and let users pinch-zoom — making the site unusable on phones.
-</Quiz>
-### 11\. HTML Entities
-
-Here's a problem: what if you want to display the text `<p>` on your web page? If you type `<p>` in your HTML, the browser will think it's a paragraph tag, not text to display. HTML entities solve this — they're special codes that represent characters which would otherwise be interpreted as HTML.
-
-<Callout type="warn" title="Think of it this way">
-It's like escaping in real life. If you want to say the word "fire" in a crowded theatre without causing panic, you'd say "the word F-I-R-E." HTML entities are the same concept — they let you "spell out" characters that would otherwise trigger browser behavior.
-</Callout>
-
-| Character | Entity Name | Entity Number |
-| --- | --- | --- |
-| \< | `&lt;` | `&#60;` |
-| \\> | `&gt;` | `&#62;` |
-| & | `&amp;` | `&#38;` |
-| " | `&quot;` | `&#34;` |
-| ' | `&apos;` | `&#39;` |
-|   (non-breaking space) | `&nbsp;` | `&#160;` |
-| © | `&copy;` | `&#169;` |
-| ® | `&reg;` | `&#174;` |
-| ™ | `&trade;` | `&#8482;` |
-| € | `&euro;` | `&#8364;` |
-| &rupee; (₹) | `&#8377;` | `&#8377;` |
-
-<Callout type="error" title="Key point">
-`&nbsp;` is the most asked entity. It creates a non-breaking space — the browser won't collapse it like regular spaces, and it prevents line breaks between two words. Normal HTML collapses "Hello     World" into "Hello World" — but `&nbsp;` preserves each space.
-</Callout>
-
-<Quiz question={"How do you display the less-than symbol (`<`) as text on a web page?"} options={["Just type `<` directly", "Use `&lt;`", "Use `&less;`", "Wrap it in `<code>` tags"]} answerIndex={2}>
-You must use the HTML entity `&lt;` (less than). Typing `<` directly would make the browser think it's the start of an HTML tag. There is no `&less;` entity, and `<code>` changes the font but doesn't prevent HTML interpretation.
-</Quiz>
-### 12\. Global Attributes
-
-Most HTML attributes are tag-specific — `href` only works on `<a>`, `src` only works on `<img>`. But **global attributes** work on ANY HTML element. They're like universal settings — you can attach them to a `<div>`, a `<p>`, a `<span>`, anything.
-
-| Attribute | Purpose |
-| --- | --- |
-| `id` | Unique identifier (one per page) |
-| `class` | One or more class names (for CSS/JS grouping) |
-| `style` | Inline CSS |
-| `title` | Tooltip text on hover |
-| `hidden` | Hides the element |
-| `tabindex` | Tab order for keyboard navigation |
-| `contenteditable` | Makes element editable by user (HTML5) |
-| `draggable` | Makes element draggable (HTML5) |
-| `spellcheck` | Enable/disable spellcheck |
-| `lang` | Language of the element's content |
-| `dir` | Text direction: `ltr`, `rtl`, `auto` |
-| `data-*` | Custom data attributes (HTML5). Example: `data-user-id="42"` |
-| `accesskey` | Keyboard shortcut to activate/focus |
-
-<Callout type="info" title="id vs class — The most important distinction">
-`id` = like your Aadhaar number — **unique to one element** on the entire page. Used for `#id` CSS selector and `getElementById()` in JS.  
-`class` = like your school uniform — **many elements can share** the same class. Used for `.class` CSS selector.  
-  
-You can give one element multiple classes (`class="box red big"`) but only one id.
-</Callout>
-
-<Quiz question={"Which statement about `id` and `class` is TRUE?"} options={["Multiple elements can share the same `id`", "`id` must be unique per page; `class` can be reused", "`class` must be unique per page; `id` can be reused", "Both `id` and `class` must be unique per page"]} answerIndex={3}>
-`id` MUST be unique — only one element per page can have a given id. `class` is reusable — hundreds of elements can share the same class. This is fundamental to CSS and JavaScript.
-</Quiz>
-### 13\. Block vs Inline Elements
-
-Every HTML element is either **block-level** or **inline**. This determines how the element behaves in the page flow.
-
-<Callout type="warn" title="Analogy">
-**Block elements** are like paragraphs in a book — each one starts on a new line and takes up the full width of the page, even if the text is short. Stack them vertically.  
-  
-**Inline elements** are like words within a sentence — they sit next to each other on the same line and only take as much space as their content needs. They flow horizontally.
-</Callout>
-
-| Block Elements | Inline Elements |
-| --- | --- |
-| Start on a new line | Stay on the same line |
-| Take full width available | Take only as much width as needed |
-| Can contain block + inline | Can only contain inline + text |
-| `<div>`, `<p>`, `<h1-h6>`, `<ul>`, `<ol>`, `<li>`, `<table>`, `<form>`, `<section>`, `<header>`, `<footer>`, `<main>`, `<article>`, `<aside>`, `<nav>`, `<blockquote>`, `<pre>`, `<hr>` | `<span>`, `<a>`, `<img>`, `<strong>`, `<em>`, `<b>`, `<i>`, `<u>`, `<br>`, `<code>`, `<sub>`, `<sup>`, `<mark>`, `<small>`, `<abbr>`, `<input>`, `<label>`, `<select>`, `<textarea>`, `<button>` |
-
-<Callout type="info" title="div vs span">
-`<div>` = generic **block** container (takes full width, starts new line).  
-`<span>` = generic **inline** container (stays in flow, only as wide as content).  
-Neither has semantic meaning — use them for styling/grouping only when no semantic element fits.
-</Callout>
-
-<Quiz question={"What's the difference between `<div>` and `<span>`?"} options={["`<div>` is inline, `<span>` is block", "`<div>` is block, `<span>` is inline", "Both are block-level elements", "Both are inline elements"]} answerIndex={1}>
-`<div>` is a block-level container — it starts on a new line and takes full width. `<span>` is an inline container — it stays in the flow of text and only takes the width of its content. Both are non-semantic (no meaning) and used purely for grouping/styling.
-</Quiz>
-### 14\. iframes
-
-An `<iframe>` (inline frame) embeds another HTML page INSIDE your page. Think of it as a window within your window — you're looking at your page, and inside it there's a smaller window showing a completely different website or page.
-
-Common uses: embedding YouTube videos, Google Maps, payment forms, or code editors (like CodePen). The embedded page runs independently — it has its own HTML, CSS, and JS.
-
-```java
-<iframe src="https://example.com" width="600" height="400"
-        title="Example" sandbox allowfullscreen>
-  Your browser does not support iframes.
+```html
+<iframe src="https://thirdparty.com/widget" 
+        sandbox="allow-scripts allow-forms" 
+        title="Interactive Widget">
 </iframe>
 ```
 
-| Attribute | Purpose |
-| --- | --- |
-| `src` | URL of the page to embed |
-| `width` / `height` | Dimensions |
-| `title` | Accessible description |
-| `sandbox` | Restricts actions inside iframe (security) — blocks scripts, forms, popups by default |
-| `allowfullscreen` | Allows fullscreen mode |
-| `loading="lazy"` | Lazy load (HTML5 — performance optimization) |
-| `name` | Target name for links (`target="iframe-name"`) |
+*   `allow-scripts`: Allows the iframe to run JavaScript.
+*   `allow-forms`: Allows the iframe to submit forms.
+*   `allow-same-origin`: Allows the iframe to access cookies and LocalStorage belonging to its domain.
+*   `allow-top-navigation`: Allows the iframe to redirect the parent page's URL.
 
-<Callout type="error" title="Security note">
-The `sandbox` attribute is critical for security. Without it, an embedded page could run scripts, submit forms, or redirect your entire page. With `sandbox`, everything is restricted by default. You can selectively allow features: `sandbox="allow-scripts allow-forms"`.
-</Callout>
+---
 
-<Quiz question={"What does the `sandbox` attribute do on an `<iframe>`?"} options={["It adds a visible border around the iframe", "It restricts the embedded page's actions for security", "It enables fullscreen mode for the iframe", "It makes the iframe load lazily"]} answerIndex={1}>
-The `sandbox` attribute applies security restrictions to the embedded content — by default it blocks scripts, form submissions, popups, and navigation. This prevents a malicious embedded page from hijacking your site.
+### 6. Conceptual Quizzes
+
+<Quiz question="What is the difference between the DOM tree and the Render tree?" options={["The DOM tree contains only CSS styles, while the Render tree contains only HTML content.","The DOM tree contains all nodes from the HTML document (including head and hidden elements), while the Render tree contains only the visible nodes needed to draw the page.","The Render tree is created before the DOM tree.","They are the same thing."]} answerIndex={1}>
+The DOM tree represents the full structural document (including `<head>`, `<meta>`, and elements with `display: none`). The Render tree is the combination of DOM and CSSOM, containing only nodes that actually occupy space on the screen.
 </Quiz>
-### 15\. HTML5 APIs (Conceptual)
 
-HTML5 didn't just add new tags — it introduced powerful JavaScript APIs that let web pages do things that previously required plugins or native apps. Knowing what each API does and when to use it is valuable for any web project.
-
-| API | Purpose | Real-world example |
-| --- | --- | --- |
-| **localStorage** | Store key-value data in browser. Persists after closing browser. ~5MB limit. | Remembering dark mode preference |
-| **sessionStorage** | Same as localStorage but cleared when tab closes. | Storing a temporary shopping cart |
-| **Geolocation** | Get user's GPS coordinates. Requires permission. | "Find restaurants near me" |
-| **Canvas** | Draw 2D graphics using JavaScript (`<canvas>` element). | Browser games, charts |
-| **SVG** | Scalable Vector Graphics — XML-based vector images in HTML. | Logos that stay sharp at any zoom |
-| **Drag and Drop** | Native drag-and-drop with `draggable="true"`. | Reordering tasks in a todo app |
-| **Web Workers** | Run JavaScript in background threads (no UI blocking). | Heavy calculations without freezing the page |
-| **WebSocket** | Full-duplex communication between browser and server. | Live chat, real-time notifications |
-
-<Callout type="info" title="localStorage vs sessionStorage vs cookies">
-**localStorage:** ~5MB, persists forever (until manually cleared), JS only, NOT sent to server.  
-**sessionStorage:** ~5MB, cleared on tab close, JS only, NOT sent to server.  
-**Cookies:** ~4KB, sent with EVERY HTTP request (adds overhead), can set expiry, accessible by server.  
-  
-Key distinction: "Which storage is sent to the server with every request?" — **Only cookies.**
-</Callout>
-
-<Quiz question={"What is the key difference between `localStorage` and `sessionStorage`?"} options={["`localStorage` has a smaller size limit", "`sessionStorage` persists after the browser is closed", "`localStorage` data persists after closing the browser; `sessionStorage` is cleared when the tab closes", "`localStorage` is sent to the server; `sessionStorage` is not"]} answerIndex={3}>
-Both have ~5MB storage and are JS-only (not sent to server). The difference is persistence: `localStorage` stays until you manually clear it, even after closing and reopening the browser. `sessionStorage` is wiped the moment the tab closes. Neither is sent to the server — only cookies do that.
+<Quiz question="Which browser storage mechanism is automatically sent to the server with every HTTP request?" options={["LocalStorage","IndexedDB","Cookie","SessionStorage"]} answerIndex={2}>
+Cookies are designed to be sent to the server automatically with every HTTP request, allowing the server to recognize the user's session. LocalStorage, SessionStorage, and IndexedDB are client-side only and must be read manually using JavaScript.
 </Quiz>
-### 16\. Common Mistakes & Tips
 
-<Callout type="error" title="Common Mistakes">
+---
 
+### 7. Practice Problems
 
-1.  **"HTML is a programming language"** — FALSE. It's a markup language.
-2.  **"\<!DOCTYPE html\> is an HTML tag"** — FALSE. It's a declaration.
-3.  **"\<br\> has a closing tag"** — FALSE. It's a void element.
-4.  **"\<strong\> and \<b\> are identical"** — FALSE. `<strong>` is semantic (important), `<b>` is just visual.
-5.  **"disabled and readonly are the same"** — FALSE. `disabled` value is NOT sent; `readonly` value IS sent.
-6.  **"id can be reused"** — FALSE. Only `class` can be reused.
-7.  **"GET is used for sensitive data"** — FALSE. Use `POST` for passwords/sensitive data.
-8.  **"\<div\> is semantic"** — FALSE. Use `<section>`, `<article>`, `<nav>` instead.
-9.  **"Multiple \<main\> elements"** — FALSE. Only ONE `<main>` per page.
-10.  **"cellpadding is CSS"** — FALSE. It's an HTML attribute (deprecated in HTML5).
+<Problem title="Problem 1: Form Validation & File Submission">
+<ProblemDescription>
+Create an HTML5 form for user registration that:
+1. Submits via POST using the correct encoding for handling file uploads.
+2. Contains a profile image input that only accepts PNG and JPEG files.
+3. Contains an email input that must be filled.
+</ProblemDescription>
+<ProblemSolution>
+This form configuration uses standard validation attributes and multipart encoding:
 
+```html
+<form action="/upload-profile" method="POST" enctype="multipart/form-data">
+  <label for="email">Email Address:</label>
+  <input type="email" id="email" name="email" required>
 
-</Callout>
+  <label for="profile_pic">Profile Picture (PNG/JPG only):</label>
+  <input type="file" id="profile_pic" name="profile_pic" accept=".png, .jpg, .jpeg" required>
 
-<Callout type="info" title="Quick revision checklist">
-
-
-*   Know ALL void/self-closing elements
-*   Know ALL input types (especially HTML5 ones: email, date, range, color)
-*   Know form attributes: action, method, enctype, required, disabled, readonly, placeholder
-*   Know table attributes: colspan, rowspan, caption
-*   Know semantic vs non-semantic elements
-*   Know block vs inline elements
-*   Know \<a\> tag attributes: href, target, download
-*   Know HTML entities: &nbsp; &lt; &gt; &amp;
-*   Know localStorage vs sessionStorage vs cookies
-*   Know the difference between \<link\> and \<a\>
-
-
-</Callout>
-
-### 17\. Practice MCQs
-
-<Quiz question={"Which attribute specifies the URL in an anchor tag?"} options={["`src`", "`link`", "`href`", "`url`"]} answerIndex={3}>
-`href` (Hypertext REFerence) specifies the URL in an anchor tag. `src` is used for `<img>`, `<script>`, and `<video>`. There is no `link` or `url` attribute.
-</Quiz>
-<Quiz question={"Which attribute makes an input field mandatory before form submission?"} options={["`mandatory`", "`validate`", "`required`", "`necessary`"]} answerIndex={3}>
-`required` is the HTML5 attribute that prevents form submission until the field is filled. There is no `mandatory`, `validate`, or `necessary` attribute in HTML.
-</Quiz>
-<Quiz question={"Which input type hides the entered characters?"} options={["`hidden`", "`secret`", "`password`", "`masked`"]} answerIndex={3}>
-`type="password"` shows dots or asterisks instead of the actual characters typed. `type="hidden"` hides the ENTIRE field from view (used for tokens/IDs). There is no `secret` or `masked` type.
-</Quiz>
-<Quiz question={"Which of the following is a block-level element?"} options={["`<span>`", "`<a>`", "`<div>`", "`<strong>`"]} answerIndex={3}>
-`<div>` is a block-level element — it starts on a new line and takes full width. `<span>`, `<a>`, and `<strong>` are all inline elements that stay in the flow of text.
-</Quiz>
-<Quiz question={"Which HTML entity represents a non-breaking space?"} options={["`&space;`", "`&nbsp;`", "`&sp;`", "`&blank;`"]} answerIndex={1}>
-`&nbsp;` (non-breaking space) creates a space that the browser won't collapse and won't break a line at. Regular spaces get collapsed — typing 5 spaces shows as 1 space. `&nbsp;` preserves every space.
-</Quiz>
-<Quiz question={"How many `<main>` elements are allowed per HTML page?"} options={["As many as needed", "Only one", "One per section", "None \u2014 `<main>` is not a valid HTML5 tag"]} answerIndex={1}>
-Only ONE `<main>` element is allowed per page. It represents the dominant content of the `<body>`. Having multiple would confuse screen readers and search engines about which content is primary.
-</Quiz>
+  <button type="submit">Upload Profile</button>
+</form>
+```
+</ProblemSolution>
+</Problem>

@@ -1,1055 +1,215 @@
 ---
-title: SQL — Structured Query Language
-description: SQL is a structured query language used to manage and manipulate relational databases.
+title: Structured Query Language (SQL)
+description: An analogy-driven, professional-grade guide to relational database design, SQL querying, analytic window functions, query performance tuning, normalizations, and transaction management.
 ---
 
-### 1\. SQL Basics & Terminology
+### 1. SQL Architecture & Command Categories
 
-Imagine you have thousands of customer records. You _could_ store them in a giant Excel file — but what happens when 50 people need to read and update that file at the same time? Chaos. Data gets overwritten, duplicated, corrupted.
+Imagine a busy international airport terminal.
+*   **The Parser**: The check-in desk checking if your passport is valid and your ticket is formatted correctly.
+*   **The Query Optimizer**: The flight dispatcher calculating 5 different routes to the destination (indexes, nested loops, hash joins) and choosing the one with the lowest cost.
+*   **The Execution Engine**: The actual pilot flying the plane and accessing the physical cargo bays.
 
-That is exactly why **databases** exist. A database is like a super-powered Excel that can handle millions of rows, lets hundreds of people access it simultaneously, and ensures data never gets corrupted. **SQL** (Structured Query Language) is the language you use to talk to this database — to ask questions, insert data, update records, or delete rows.
+```mermaid
+graph TD
+    Client[Client App / Query Editor] --> parser[1. SQL Parser & Lexer]
+    parser --> optimizer[2. Query Optimizer / Cost Estimator]
+    optimizer --> exec[3. Execution Engine]
+    exec --> storage[4. Storage Manager / Buffer Pool]
+    storage --> disk[(Physical Data Blocks / Index Files)]
+    
+    style Client fill:#4f46e5,stroke:#312e81,stroke-width:2px,color:#fff
+    style parser fill:#0891b2,stroke:#155e75,stroke-width:2px,color:#fff
+    style optimizer fill:#ea580c,stroke:#9a3412,stroke-width:2px,color:#fff
+    style exec fill:#dc2626,stroke:#991b1b,stroke-width:2px,color:#fff
+    style storage fill:#0d9488,stroke:#115e59,stroke-width:2px,color:#fff
+    style disk fill:#4b5563,stroke:#1f2937,stroke-width:2px,color:#fff
+```
 
-<Callout type="info" title="Think of it this way">
-A database is a warehouse full of organized filing cabinets. SQL is the language you use to tell the warehouse manager: "Get me all customer files from Mumbai" or "Add this new employee file." You never touch the cabinets yourself — you give SQL instructions and the database engine does the work.
-</Callout>
+#### SQL Command Categories: Foundations vs. Furniture
+SQL commands are divided into distinct categories based on their operational domain:
+*   **DDL (Data Definition Language)**: *Analogy: Designing and building the physical house.* Pouring the concrete foundations and building walls. DDL commands auto-commit instantly; you can't undo (rollback) concrete once it's dry. Commands: `CREATE`, `ALTER`, `DROP`, `TRUNCATE`.
+*   **DML (Data Manipulation Language)**: *Analogy: Moving furniture inside the rooms.* Moving chairs and tables. You can change your mind and reset the arrangement (`ROLLBACK`) until you finalize the layout (`COMMIT`). Commands: `SELECT`, `INSERT`, `UPDATE`, `DELETE`.
+*   **DCL (Data Control Language)**: Managing permissions. Commands: `GRANT`, `REVOKE`.
+*   **TCL (Transaction Control Language)**: Managing DML transactional states. Commands: `COMMIT`, `ROLLBACK`, `SAVEPOINT`.
 
-| Term | Meaning | Real-World Analogy |
-| --- | --- | --- |
-| **Database** | Organized collection of structured data | The entire warehouse of filing cabinets |
-| **Table** | Collection of rows and columns (like a spreadsheet) | One spreadsheet/filing cabinet for "employees" |
-| **Row (Record/Tuple)** | A single entry in a table | One employee's complete file |
-| **Column (Field/Attribute)** | A property of the data | One piece of info — name, salary, department |
-| **Schema** | Structure/blueprint of the database | The blueprint that says "employees table has columns: id, name, salary" |
-| **Primary Key** | Uniquely identifies each row | Like an Aadhaar number — no two people share one |
-| **Foreign Key** | Links one table to another | Your department ID on your employee file — it points to the departments table |
-| **RDBMS** | Relational Database Management System (Oracle, MySQL, PostgreSQL) | The warehouse manager software that runs everything |
+---
 
-#### SQL Command Categories
+### 2. Schema Design, Constraints & Data Types
 
-SQL commands are grouped by what they do. Understanding this grouping is fundamental to working with SQL effectively.
+#### Integrity Constraints
+Constraints are rules enforced on columns by the RDBMS engine at the schema level to maintain data integrity:
+*   **PRIMARY KEY**: Uniquely identifies each row. Enforces `UNIQUE` and `NOT NULL` implicitly. Only one primary key is allowed per table. Automatically creates a clustered (or primary) index.
+*   **FOREIGN KEY**: Establishes a parent-child relationship. Enforces referential integrity by ensuring the value in the child column matches a primary key in the parent table.
+    *   `ON DELETE CASCADE`: Deleting the parent row automatically deletes all matching child rows.
+    *   `ON DELETE SET NULL`: Deleting the parent row sets the child's foreign key column to `NULL`.
+    *   `ON DELETE RESTRICT` (Default): Blocks the parent row deletion if child records exist.
+*   **UNIQUE**: Ensures all values in a column are distinct. Allows multiple `NULL` values (since `NULL != NULL` in SQL).
+*   **NOT NULL**: Prevents storing empty or unknown (`NULL`) values in a column.
+*   **CHECK**: Validates that all values in a column satisfy a boolean condition (e.g., `CHECK (salary > 0)`).
+*   **DEFAULT**: Inserts a predefined value if no value is explicitly supplied during an `INSERT` statement.
 
-| Category | Commands | Purpose | Memory Trick |
-| --- | --- | --- | --- |
-| **DDL** (Data Definition) | CREATE, ALTER, DROP, TRUNCATE | Define/modify table structure | "Building the filing cabinet itself" |
-| **DML** (Data Manipulation) | INSERT, UPDATE, DELETE, SELECT | Manipulate data in tables | "Working with the files inside the cabinet" |
-| **DCL** (Data Control) | GRANT, REVOKE | Control access/permissions | "Giving/taking away keys to the cabinet" |
-| **TCL** (Transaction Control) | COMMIT, ROLLBACK, SAVEPOINT | Manage transactions | "Save game / load last checkpoint" |
+---
 
-<Callout type="info" title="Key Concept">
-"Which category does X command belong to?" — This is a commonly misunderstood area. Memorize the table above. Remember: TRUNCATE is DDL (not DML!), and SELECT is DML.
-</Callout>
+### 3. Querying, Filtering & The Null Trap
 
-<Quiz question={"Which SQL command category does TRUNCATE belong to?"} options={["DML", "DDL", "DCL", "TCL"]} answerIndex={1}>
-TRUNCATE is DDL (Data Definition Language), not DML. This is a common exam trap because TRUNCATE removes data like DELETE, but it operates on the table structure level. Key difference: DDL commands auto-commit and cannot be rolled back.
+#### The Null Trap: Mystery Boxes
+In SQL, `NULL` represents the absence of a value (unknown). It is not equal to zero, a blank string, or even another `NULL`.
+*   **Analogy**: A sealed box containing unknown contents. Comparing `box == 10` returns `UNKNOWN`. Comparing `boxA == boxB` is also `UNKNOWN` (you don't know if the boxes have the same thing). Thus, to check if a box is empty/unknown, you must scan the box directly (`IS NULL`).
+
+```sql
+-- WRONG: Will return 0 rows because nothing equals NULL
+SELECT * FROM employees WHERE manager_id = NULL;
+
+-- CORRECT: Replaces comparison with IS NULL operator
+SELECT * FROM employees WHERE manager_id IS NULL;
+```
+
+---
+
+### 4. Grouping & SQL Execution Order
+
+#### SQL Execution Order: Preparing a Party List
+Even though you write `SELECT` first, the database engine processes queries in a completely different sequence:
+
+```
+Written Order       Evaluation Order (Logical Execution)
+1. SELECT        ►   1. FROM (Choose tables & join streams)
+2. FROM          ►   2. WHERE (Filter individual rows)
+3. WHERE         ►   3. GROUP BY (Group rows into piles)
+4. GROUP BY      ►   4. HAVING (Filter groups / aggregates)
+5. HAVING        ►   5. SELECT (Produce final columns & evaluate aliases)
+6. ORDER BY      ►   6. DISTINCT (De-duplicate rows)
+7. LIMIT/OFFSET  ►   7. ORDER BY (Sort final output rows)
+                 ►   8. LIMIT / FETCH (Limit output count)
+```
+
+> [!IMPORTANT]
+> Because `WHERE` (step 2) runs before `SELECT` (step 5), you **cannot** reference a column alias defined in the `SELECT` clause within the `WHERE` clause.
+> E.g., `SELECT salary * 12 AS annual_sal FROM employees WHERE annual_sal > 50000` will fail.
+
+<Quiz question="Why does the query `SELECT dept_id, AVG(salary) AS avg_sal FROM employees WHERE avg_sal > 50000 GROUP BY dept_id` fail?" options={["You cannot group by dept_id without indexing it.","WHERE is evaluated before SELECT, so the alias 'avg_sal' does not yet exist when WHERE is executed. Also, WHERE cannot filter on aggregates.","HAVING must be written before GROUP BY.","SELECT must contain only aggregates."]} answerIndex={1}>
+According to SQL's logical execution order, `WHERE` is processed at step 2, while the `SELECT` clause (which defines the alias `avg_sal`) is not processed until step 5. Consequently, the alias is unknown to the `WHERE` clause. Additionally, aggregate functions (like `AVG`) cannot be used in a `WHERE` clause; they must be filtered in the `HAVING` clause.
 </Quiz>
-### 2\. Data Types
 
-Before you store data, the database needs to know _what kind_ of data each column will hold. You would not store someone's name in a number field, right? Data types are like labels on filing cabinet drawers — "this drawer only holds numbers," "this one holds text up to 50 characters."
+---
 
-| Data Type | Description | Example |
-| --- | --- | --- |
-| `NUMBER(p,s)` | Numeric — p = precision (total digits), s = scale (decimal digits) | `NUMBER(8,2)` → 123456.78 |
-| `VARCHAR2(n)` | Variable-length string (Oracle) | `VARCHAR2(50)` |
-| `VARCHAR(n)` | Variable-length string (MySQL) | `VARCHAR(100)` |
-| `CHAR(n)` | Fixed-length string, padded with spaces | `CHAR(10)` |
-| `DATE` | Date value | `'2026-03-22'` |
-| `INT / INTEGER` | Whole number | `42` |
-| `FLOAT` | Floating-point number | `3.14` |
-| `CLOB` | Large text (Character Large Object) | Long articles |
-| `BLOB` | Binary data (Binary Large Object) | Images, files |
+### 5. JOINs & Subqueries
 
-<Callout type="info" title="VARCHAR vs CHAR — When to use which?">
-Imagine you have a column for Indian state codes (always 2 characters: "MH", "KA", "TN"). Use `CHAR(2)` — it is always exactly 2 characters, so fixed-length is perfect and slightly faster.  
-  
-Now imagine a column for employee names — "Raj" is 3 characters, "Darshanakrishnamurthy" is 21 characters. Use `VARCHAR(50)` — it only stores what you give it. `CHAR(50)` would waste space by padding "Raj" with 47 spaces.
-</Callout>
+#### Join Algorithms: Speed Dating
+*   **Nested Loops Join**: For each row in the outer table, scan the inner table. *Analogy: For every guest in row A, walk down row B looking for matches.* Efficient only if row A is tiny.
+*   **Hash Join**: Build a hash table in memory from the smaller input, then scan the larger input to find matches. *Analogy: Take all guests in row A and group them into color-coded rooms based on their hobbies. Then, have guests in row B walk straight to the matching color room.* Extremely fast for large, unindexed datasets.
+*   **Sort-Merge Join**: Sort both datasets on the join keys, then scan them in parallel. *Analogy: Line up both rows by height first, then walk down both rows in parallel, matching pairs of equal height.*
 
-<Quiz question={"If you define a column as `CHAR(10)` and store the value `'Hi'`, how many bytes does it occupy?"} options={["2 bytes", "10 bytes", "8 bytes", "Depends on the database"]} answerIndex={2}>
-CHAR(10) always stores exactly 10 bytes. The value 'Hi' gets padded with 8 spaces to fill the remaining space. This is why VARCHAR is preferred for variable-length data — it only uses the bytes it needs.
-</Quiz>
-### 3\. DDL — CREATE, ALTER, DROP
-
-DDL is about building and modifying the _structure_ — the table itself, not the data inside it. Think of it as construction work: you are building the filing cabinet (CREATE), adding a new drawer to it (ALTER), or demolishing the entire cabinet (DROP).
-
-#### CREATE TABLE
-
-```java
-CREATE TABLE employees (
-    emp_id    NUMBER(6)     PRIMARY KEY,
-    emp_name  VARCHAR2(50) NOT NULL,
-    salary    NUMBER(10,2) DEFAULT 0,
-    dept_id   NUMBER(4),
-    hire_date DATE,
-    FOREIGN KEY (dept_id) REFERENCES departments(dept_id)
-);
+```
+       INNER JOIN                      LEFT JOIN                     RIGHT JOIN
+   ┌───────┬───────┐               ┌───────┬───────┐              ┌───────┬───────┐
+   │       │███████│               │███████│███████│              │       │███████│
+   │ Table │███████│ Table         │███████│███████│ Table        │ Table │███████│ Table
+   │   A   │███████│   B           │███████│███████│   B          │   A   │███████│   B
+   │       │███████│               │███████│       │              │       │███████│
+   └───────┴───────┘               └───────┴───────┘              └───────┴───────┘
+     Only Overlap                    All A + Overlap                All B + Overlap
 ```
 
-#### ALTER TABLE
+---
 
-Your table is already live with data in it, but you realize you forgot to add an email column. You cannot DROP and recreate — you'd lose all data. ALTER lets you modify a live table.
+### 6. Window Functions & Analytical SQL
 
-```java
--- Add a column
-ALTER TABLE employees ADD email VARCHAR2(100);
+Window functions perform calculations across a set of table rows that are related to the current row. Unlike `GROUP BY`, which collapses rows, window functions preserve the original row structure.
+*   **Analogy**: A moving camera lens. The lens focuses on a specific slice of the table (the partition) and performs calculations, but leaves the entire table detail visible.
 
--- Modify a column
-ALTER TABLE employees MODIFY emp_name VARCHAR2(100);
-
--- Drop a column
-ALTER TABLE employees DROP COLUMN email;
-
--- Rename a column (Oracle)
-ALTER TABLE employees RENAME COLUMN emp_name TO full_name;
-
--- Add a constraint
-ALTER TABLE employees ADD CONSTRAINT chk_sal CHECK (salary > 0);
-```
-
-#### DROP & TRUNCATE
-
-```java
--- Drop table entirely (structure + data gone)
-DROP TABLE employees;
-
--- Remove all rows but keep structure (cannot rollback)
-TRUNCATE TABLE employees;
-```
-<Callout type="error" title="DROP vs TRUNCATE vs DELETE — Know the difference cold">
-**DROP** = demolish the entire filing cabinet. Structure + data gone. Cannot be undone.  
-**TRUNCATE** = empty every file from the cabinet, but the cabinet itself stays. Cannot be rolled back because it is DDL.  
-**DELETE** = remove specific files (or all files) from the cabinet. Can be rolled back because it is DML. Can use WHERE to pick which rows to remove.  
-  
-**Speed:** TRUNCATE is much faster than DELETE for large tables because it does not log individual row deletions.
-</Callout>
-
-<Quiz question={"You accidentally ran `TRUNCATE TABLE employees;` on production. Can you ROLLBACK to undo it?"} options={["Yes, ROLLBACK undoes any data changes", "No, TRUNCATE is DDL and auto-commits \u2014 it cannot be rolled back", "Yes, but only if you use SAVEPOINT first", "No, but DELETE FROM employees can also not be rolled back"]} answerIndex={1}>
-TRUNCATE is a DDL command. In Oracle, all DDL commands issue an automatic COMMIT. Once committed, there is no going back with ROLLBACK. This is why TRUNCATE is dangerous on production. DELETE (DML) can be rolled back because it does not auto-commit.
-</Quiz>
-### 4\. DML — INSERT, UPDATE, DELETE
-
-If DDL builds the cabinet, DML is what you do with the files inside it every day — adding new files (INSERT), updating information on existing files (UPDATE), and removing files you no longer need (DELETE).
-
-#### INSERT
-
-```java
--- Insert single row
-INSERT INTO employees (emp_id, emp_name, salary, dept_id)
-VALUES (101, 'Darshan', 50000, 10);
-
--- Insert multiple rows (MySQL)
-INSERT INTO employees (emp_id, emp_name, salary)
-VALUES (102, 'Ankit', 45000),
-       (103, 'Priya', 55000);
-
--- Insert from another table
-INSERT INTO emp_backup
-SELECT * FROM employees WHERE dept_id = 10;
-```
-
-#### UPDATE
-
-```java
--- Update specific rows
-UPDATE employees
-SET salary = salary * 1.10
-WHERE dept_id = 10;
-
--- Update multiple columns
-UPDATE employees
-SET salary = 60000, dept_id = 20
-WHERE emp_id = 101;
-```
-<Callout type="error" title="Dangerous: UPDATE without WHERE">
-`UPDATE employees SET salary = 0;` — This updates EVERY row in the table. Always double-check your WHERE clause before running UPDATE or DELETE.
-</Callout>
-
-#### DELETE
-
-```java
--- Delete specific rows
-DELETE FROM employees WHERE emp_id = 103;
-
--- Delete all rows (can be rolled back)
-DELETE FROM employees;
-```
-
-<Quiz question={"What happens if you run `UPDATE employees SET salary = salary * 2;` without a WHERE clause?"} options={["Error \u2014 WHERE is required for UPDATE", "Only the first row gets updated", "Every employee's salary gets doubled", "Nothing happens without COMMIT"]} answerIndex={2}>
-Without a WHERE clause, UPDATE affects ALL rows in the table. Every employee's salary gets doubled. This is why WHERE is critical — always specify which rows you want to change. The good news: since UPDATE is DML, you can ROLLBACK if you catch the mistake before COMMIT.
-</Quiz>
-### 5\. SELECT & Filtering
-
-SELECT is the most important SQL command — it is how you **ask questions** to your database. Think of it like Google Search for your data. Want to know which employees earn more than 50,000? SELECT. Want a list of all departments? SELECT. You will use this in literally every project.
-
-<Callout type="info" title="The mental model">
-Reading a SELECT statement in English: `SELECT emp_name, salary FROM employees WHERE dept_id = 10` reads as: "Get me the name and salary FROM the employees table WHERE the department is 10." SQL reads almost like English — that was the whole point when it was designed.
-</Callout>
-
-#### Basic SELECT
-
-```java
--- Select all columns (the * means "everything")
-SELECT * FROM employees;
-
--- Select specific columns (always better — don't fetch what you don't need)
-SELECT emp_name, salary FROM employees;
-
--- Alias — give a column a friendly display name
-SELECT emp_name AS "Employee Name", salary * 12 AS annual_salary
-FROM employees;
-
--- DISTINCT — remove duplicates
-SELECT DISTINCT dept_id FROM employees;
-```
-
-#### WHERE Clause — Filtering Rows
-
-Without WHERE, SELECT returns _every_ row. WHERE is your filter — like telling Excel "show me only rows where salary \> 50000." The database scans through all rows and only returns the ones that match your condition.
-
-```java
-SELECT * FROM employees WHERE salary > 50000;
-SELECT * FROM employees WHERE dept_id = 10 AND salary >= 40000;
-SELECT * FROM employees WHERE dept_id = 10 OR dept_id = 20;
-SELECT * FROM employees WHERE NOT dept_id = 30;
-```
-
-#### ORDER BY
-
-By default, SQL does not guarantee any order of results. If you want sorted results — highest salary first, alphabetical names, etc. — you must explicitly ask with ORDER BY.
-
-```java
--- Ascending (default) — lowest to highest
-SELECT * FROM employees ORDER BY salary ASC;
-
--- Descending — highest to lowest
-SELECT * FROM employees ORDER BY salary DESC;
-
--- Multiple columns: first sort by dept, then within each dept sort by salary descending
-SELECT * FROM employees ORDER BY dept_id ASC, salary DESC;
-```
-
-#### LIMIT / ROWNUM / FETCH
-
-```java
--- MySQL: LIMIT
-SELECT * FROM employees ORDER BY salary DESC LIMIT 5;
-
--- Oracle: ROWNUM (old style)
-SELECT * FROM employees WHERE ROWNUM <= 5;
-
--- Oracle 12c+: FETCH
-SELECT * FROM employees ORDER BY salary DESC
-FETCH FIRST 5 ROWS ONLY;
-```
-
-<Quiz question={"What does `SELECT DISTINCT dept_id FROM employees;` return?"} options={["All dept\\_id values including duplicates", "Only unique dept\\_id values (no repeats)", "The first dept\\_id value only", "Error \u2014 DISTINCT cannot be used with SELECT"]} answerIndex={1}>
-DISTINCT removes duplicate values from the result. If employees table has dept\_ids: 10, 10, 20, 20, 30, the result will be just: 10, 20, 30. Useful when you want to know "which departments exist" without seeing repeats.
-</Quiz>
-<Quiz question={"Which query correctly finds employees whose name starts with 'D' and salary is above 40000?"} options={["`SELECT * FROM employees WHERE name LIKE 'D%' OR salary > 40000;`", "`SELECT * FROM employees WHERE name LIKE 'D%' AND salary > 40000;`", "`SELECT * FROM employees WHERE name = 'D%' AND salary > 40000;`", "`SELECT * FROM employees WHERE name LIKE '%D' AND salary > 40000;`"]} answerIndex={1}>
-B is correct. AND means BOTH conditions must be true. OR would return employees whose name starts with D OR salary \> 40000 (too many results). Option C uses = instead of LIKE — the = operator does not support wildcards. Option D uses '%D' which means "ends with D", not "starts with D".
-</Quiz>
-### 6\. Operators & Conditions
-
-Operators are the building blocks of your WHERE clause. They let you express conditions like "between these dates," "in this list," or "matching this pattern." Master these and you can filter anything.
-
-| Operator | Usage | Example |
-| --- | --- | --- |
-| `=` | Equal to | `WHERE dept_id = 10` |
-| `!=` or `<>` | Not equal | `WHERE dept_id != 10` |
-| `>, <, >=, <=` | Comparison | `WHERE salary > 50000` |
-| `BETWEEN` | Range (inclusive on BOTH ends) | `WHERE salary BETWEEN 30000 AND 60000` |
-| `IN` | Match any in list | `WHERE dept_id IN (10, 20, 30)` |
-| `NOT IN` | Not in list | `WHERE dept_id NOT IN (40, 50)` |
-| `LIKE` | Pattern matching | `WHERE name LIKE 'D%'` |
-| `IS NULL` | Check for NULL | `WHERE email IS NULL` |
-| `IS NOT NULL` | Check not NULL | `WHERE email IS NOT NULL` |
-
-<Callout type="warn" title="BETWEEN is inclusive">
-`WHERE salary BETWEEN 30000 AND 60000` is the same as `WHERE salary >= 30000 AND salary <= 60000`. Both endpoints are included. This is a commonly misunderstood behaviour — BETWEEN always includes the boundary values. Answer: YES.
-</Callout>
-
-#### LIKE Wildcards
-
-LIKE is SQL's version of "search with wildcards." Two special characters: `%` means "any number of characters" (including zero), and `_` means "exactly one character."
-
-| Pattern | Meaning | Matches |
-| --- | --- | --- |
-| `'D%'` | Starts with D | Darshan, Deepak, Dhruv |
-| `'%an'` | Ends with "an" | Darshan, Rohan |
-| `'%ar%'` | Contains "ar" | Darshan, Karan |
-| `'_a%'` | Second letter is "a" | Darshan, Karan |
-| `'___'` | Exactly 3 characters | Raj, Ram |
-
-<Callout type="info" title="Common Mistake — NULL comparisons">
-NULL is not a value — it means "unknown." You **cannot** compare it with `=` or `!=`. Think of it this way: is an unknown value equal to 10? We don't know! So the comparison returns neither true nor false — it returns UNKNOWN, and the row is excluded.  
-  
-`WHERE salary = NULL` → always returns nothing (WRONG).  
-`WHERE salary IS NULL` → correct way to check for NULL.
-</Callout>
-<Quiz question={"`SELECT * FROM employees WHERE salary BETWEEN 30000 AND 50000;` \u2014 Does this include employees with salary exactly 30000 and exactly 50000?"} options={["No, BETWEEN excludes both boundaries", "Yes, BETWEEN is inclusive on both ends", "It includes 30000 but excludes 50000", "It excludes 30000 but includes 50000"]} answerIndex={1}>
-BETWEEN is inclusive on BOTH ends. `BETWEEN 30000 AND 50000` is equivalent to `>= 30000 AND <= 50000`. Employees earning exactly 30000 or exactly 50000 will be included.
-</Quiz>
-### 7\. SQL Functions
-
-Functions in SQL are pre-built tools that transform data. Instead of doing calculations in your application code, SQL lets you do it right inside the query. There are two types:
-
-*   **Single-row functions** — work on each row individually (like applying a formula to each cell in Excel)
-*   **Aggregate functions** — work on a group of rows and return one result (like SUM or AVERAGE in Excel)
-
-#### Single-Row Functions (work on each row)
-
-**String Functions:**
-
-| Function | Result |
-| --- | --- |
-| `UPPER('hello')` | `'HELLO'` |
-| `LOWER('HELLO')` | `'hello'` |
-| `INITCAP('hello world')` | `'Hello World'` |
-| `LENGTH('Darshan')` | `7` |
-| `SUBSTR('Darshan', 1, 3)` | `'Dar'` |
-| `CONCAT('Hello', ' World')` | `'Hello World'` |
-| `REPLACE('Hello', 'l', 'r')` | `'Herro'` |
-| `TRIM(' hi ')` | `'hi'` |
-| `LPAD('42', 5, '0')` | `'00042'` |
-| `RPAD('Hi', 5, '*')` | `'Hi***'` |
-| `INSTR('Darshan', 'sh')` | `4` |
-
-**Number Functions:**
-
-| Function | Result |
-| --- | --- |
-| `ROUND(15.678, 2)` | `15.68` |
-| `ROUND(15.678, 0)` | `16` |
-| `TRUNC(15.678, 2)` | `15.67` |
-| `CEIL(15.1)` | `16` |
-| `FLOOR(15.9)` | `15` |
-| `MOD(10, 3)` | `1` |
-| `ABS(-42)` | `42` |
-| `POWER(2, 3)` | `8` |
-| `SQRT(144)` | `12` |
-
-<Callout type="info" title="ROUND vs TRUNC — they look similar but behave differently">
-`ROUND(15.678, 2)` = 15.68 (rounds UP the last digit)  
-`TRUNC(15.678, 2)` = 15.67 (just CHOPS off — no rounding)  
-Think of TRUNC as cutting with scissors — it does not care what comes after.
-</Callout>
-
-**Date Functions (Oracle):**
-
-```java
-SELECT SYSDATE FROM dual;                     -- Current date
-SELECT MONTHS_BETWEEN('01-MAR-26', '01-JAN-26') FROM dual;  -- 2
-SELECT ADD_MONTHS(SYSDATE, 3) FROM dual;       -- 3 months later
-SELECT NEXT_DAY(SYSDATE, 'FRIDAY') FROM dual;  -- Next Friday
-SELECT LAST_DAY(SYSDATE) FROM dual;            -- Last day of month
-SELECT EXTRACT(YEAR FROM SYSDATE) FROM dual;  -- 2026
-```
-
-**Conversion Functions:**
-
-```java
-TO_CHAR(SYSDATE, 'DD-MON-YYYY')   -- '22-MAR-2026'
-TO_CHAR(salary, '$99,999.00')     -- '$50,000.00'
-TO_DATE('22-03-2026', 'DD-MM-YYYY') -- date value
-TO_NUMBER('12345')                 -- 12345
-```
-
-**NULL-handling Functions:**
-
-NULL is the trickiest part of SQL. Any operation with NULL returns NULL: `5 + NULL = NULL`, `'hello' || NULL = NULL`. These functions help you handle NULLs gracefully.
-
-```java
-NVL(commission, 0)          -- If NULL, return 0
-NVL2(comm, 'Has', 'None')  -- If NOT NULL → 'Has', else 'None'
-NULLIF(10, 10)              -- Returns NULL (both equal)
-COALESCE(a, b, c, 0)       -- First non-NULL value
-```
-<Callout type="info" title="COALESCE vs NVL">
-`NVL(a, b)` takes exactly 2 args. `COALESCE(a, b, c, ...)` takes any number — returns first non-NULL. COALESCE is ANSI standard (works everywhere), NVL is Oracle-only.
-</Callout>
-
-#### Aggregate Functions (work on groups of rows)
-
-Aggregate functions crunch multiple rows into a single result. Think of them like Excel's SUM, AVERAGE, COUNT functions at the bottom of a column.
-
-| Function | Description | Example |
-| --- | --- | --- |
-| `COUNT(*)` | Count all rows | `SELECT COUNT(*) FROM employees` |
-| `COUNT(col)` | Count non-NULL values | `SELECT COUNT(email) FROM employees` |
-| `SUM(col)` | Total | `SELECT SUM(salary) FROM employees` |
-| `AVG(col)` | Average | `SELECT AVG(salary) FROM employees` |
-| `MIN(col)` | Minimum value | `SELECT MIN(salary) FROM employees` |
-| `MAX(col)` | Maximum value | `SELECT MAX(salary) FROM employees` |
-
-<Callout type="error" title="Common Mistake — COUNT(*) vs COUNT(col)">
-`COUNT(*)` counts ALL rows including those with NULLs.  
-`COUNT(column_name)` counts only NON-NULL values in that column.  
-  
-If you have 10 employees but 3 have NULL email, `COUNT(*)` = 10 but `COUNT(email)` = 7.
-</Callout>
-
-<Quiz question={"Table has 10 rows. Column \"commission\" has NULL in 4 rows. What does `SELECT COUNT(commission) FROM employees;` return?"} options={["10", "4", "6", "NULL"]} answerIndex={3}>
-COUNT(column\_name) counts only NON-NULL values. Out of 10 rows, 4 have NULL commission, so 6 rows have non-NULL values. COUNT(commission) = 6. If you wanted all 10, use COUNT(*).
-</Quiz>
-### 8\. GROUP BY & HAVING
-
-**Why does GROUP BY exist?** Imagine your manager asks: "What is the average salary _in each department_?" You cannot just run `AVG(salary)` — that gives you ONE number for the entire company. You need to first **group** employees by department, and THEN calculate the average within each group.
-
-<Callout type="info" title="The Excel analogy">
-GROUP BY is like creating a Pivot Table in Excel. You drag "Department" into the Row area and "Salary" into the Values area with "Average." Excel groups all rows by department and calculates the average for each group. That is exactly what GROUP BY does in SQL.
-</Callout>
-
-```java
--- Count employees per department
-SELECT dept_id, COUNT(*) AS emp_count
-FROM employees
-GROUP BY dept_id;
-
--- Average salary per department
-SELECT dept_id, AVG(salary) AS avg_sal
-FROM employees
-GROUP BY dept_id
-ORDER BY avg_sal DESC;
-```
-<Callout type="error" title="The Golden Rule of GROUP BY">
-Every column in your SELECT must either be (a) in the GROUP BY clause, or (b) inside an aggregate function. You cannot SELECT emp\_name if you are grouping by dept\_id — which employee name would SQL show for a group of 50 people?  
-  
-**Wrong:** `SELECT dept_id, emp_name, AVG(salary) FROM employees GROUP BY dept_id;`  
-**Right:** `SELECT dept_id, AVG(salary) FROM employees GROUP BY dept_id;`
-</Callout>
-
-#### HAVING (filter groups)
-
-**Why can't we just use WHERE?** Because WHERE runs _before_ grouping happens. If you want to say "show me only departments that have more than 5 employees," you need a filter that runs _after_ the groups are formed. That is what HAVING does.
-
-```java
--- Departments with more than 5 employees
-SELECT dept_id, COUNT(*) AS emp_count
-FROM employees
-GROUP BY dept_id
-HAVING COUNT(*) > 5;
-
--- Departments where average salary exceeds 50000
-SELECT dept_id, AVG(salary) AS avg_sal
-FROM employees
-WHERE salary > 10000
-GROUP BY dept_id
-HAVING AVG(salary) > 50000;
-```
-<Callout type="info" title="WHERE vs HAVING — Critical Distinction">
-**WHERE** filters _individual rows_ BEFORE grouping. Like removing bad apples before putting them into baskets.  
-**HAVING** filters _groups_ AFTER grouping. Like removing baskets that have fewer than 5 apples.  
-You **cannot** use aggregate functions in WHERE. `WHERE COUNT(*) > 5` is an error. Use HAVING instead.
-</Callout>
-
-#### SQL Execution Order
-
-SQL does NOT execute in the order you write it. Understanding this order is the key to understanding why WHERE cannot use aliases and HAVING can use aggregates.
-
-| Order | Clause | Purpose | Analogy |
-| --- | --- | --- | --- |
-| 1 | `FROM` | Choose table | Open the filing cabinet |
-| 2 | `WHERE` | Filter rows | Remove files that don't match |
-| 3 | `GROUP BY` | Group rows | Sort remaining files into piles by department |
-| 4 | `HAVING` | Filter groups | Remove piles that are too small |
-| 5 | `SELECT` | Choose columns | Pick which info to read from each pile |
-| 6 | `ORDER BY` | Sort results | Arrange the final output |
-
-<Quiz question={"Which query correctly finds departments where the average salary exceeds 60000?"} options={["`SELECT dept_id, AVG(salary) FROM employees WHERE AVG(salary) > 60000 GROUP BY dept_id;`", "`SELECT dept_id, AVG(salary) FROM employees GROUP BY dept_id HAVING AVG(salary) > 60000;`", "`SELECT dept_id, AVG(salary) FROM employees GROUP BY dept_id WHERE AVG(salary) > 60000;`", "`SELECT dept_id FROM employees HAVING AVG(salary) > 60000;`"]} answerIndex={1}>
-B is correct. Aggregate conditions (like AVG(salary) \> 60000) must go in HAVING, not WHERE. WHERE runs before grouping, so it has no idea what the average is yet. Option A puts the aggregate in WHERE (error). Option C has WHERE after GROUP BY (wrong syntax order). Option D is missing GROUP BY entirely.
-</Quiz>
-<Quiz question={"In the SQL execution order, which runs first \u2014 SELECT or WHERE?"} options={["SELECT, because it's written first", "WHERE, because it runs at step 2 while SELECT runs at step 5", "They run simultaneously", "It depends on the database engine"]} answerIndex={1}>
-WHERE runs at step 2, long before SELECT at step 5. This is why you cannot use column aliases (defined in SELECT) in your WHERE clause — WHERE has already finished running by the time SELECT defines the alias. The execution order is: FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY.
-</Quiz>
-### 9\. JOINs
-
-**Why do JOINs exist?** In a well-designed database, data is split across multiple tables to avoid repetition. Employees are in one table, departments in another. But when your manager asks "show me each employee with their department name," that data lives in TWO tables. A JOIN combines them.
-
-<Callout type="info" title="The Excel analogy">
-Imagine you have two Excel sheets. Sheet 1 has employee data with a "dept\_id" column. Sheet 2 has department data with "dept\_id" and "dept\_name." A JOIN is like using VLOOKUP to pull the department name into the employee sheet by matching on dept\_id. That is ALL a JOIN does — it matches rows from two tables using a common column.
-</Callout>
-
-| JOIN Type | Returns | When to use |
-| --- | --- | --- |
-| **INNER JOIN** | Only matching rows from both tables | You want only employees who HAVE a department |
-| **LEFT JOIN** (LEFT OUTER) | All rows from left table + matching from right | You want ALL employees, even those without a department |
-| **RIGHT JOIN** (RIGHT OUTER) | All rows from right table + matching from left | You want ALL departments, even empty ones |
-| **FULL OUTER JOIN** | All rows from both tables | You want everything — unmatched rows from both sides |
-| **CROSS JOIN** | Cartesian product (every row x every row) | Rarely used. 10 employees x 5 depts = 50 rows |
-| **SELF JOIN** | Table joined with itself | Finding relationships within the same table (e.g., employee → manager) |
-
-#### INNER JOIN
-
-Only returns rows where there is a match in BOTH tables. If an employee has no department (dept\_id is NULL), that employee is excluded from the results.
-
-```java
-SELECT e.emp_name, d.dept_name
-FROM employees e
-INNER JOIN departments d ON e.dept_id = d.dept_id;
-```
-<Callout type="warn" title="INNER JOIN step by step">
-**employees table:** Darshan (dept 10), Priya (dept 20), Raj (dept NULL)  
-**departments table:** 10=Finance, 20=IT, 30=HR  
-  
-**INNER JOIN result:** Darshan-Finance, Priya-IT  
-Raj is excluded (no matching dept). HR is excluded (no employees). Only the overlap survives.
-</Callout>
-
-#### LEFT JOIN
-
-Returns ALL rows from the left table (employees), even if there is no match in the right table (departments). Unmatched right-side columns show NULL.
-
-```java
--- All employees, even those without a department
-SELECT e.emp_name, d.dept_name
-FROM employees e
-LEFT JOIN departments d ON e.dept_id = d.dept_id;
-```
-<Callout type="warn" title="LEFT JOIN result (same data as above)">
-Darshan-Finance, Priya-IT, **Raj-NULL**  
-Raj appears now! His dept\_name is NULL because he has no department. The LEFT table (employees) keeps ALL its rows.
-</Callout>
-
-#### RIGHT JOIN
-
-The mirror of LEFT JOIN. Returns ALL rows from the right table, even if there is no match in the left table.
-
-```java
--- All departments, even those with no employees
-SELECT e.emp_name, d.dept_name
-FROM employees e
-RIGHT JOIN departments d ON e.dept_id = d.dept_id;
-```
-<Callout type="warn" title="RIGHT JOIN result (same data)">
-Darshan-Finance, Priya-IT, **NULL-HR**  
-HR appears now! No employee is in HR, so emp\_name is NULL. The RIGHT table (departments) keeps ALL its rows.
-</Callout>
-
-#### FULL OUTER JOIN
-
-Returns EVERYTHING from both tables. No row is left behind — unmatched rows from both sides appear with NULLs.
-
-```java
-SELECT e.emp_name, d.dept_name
-FROM employees e
-FULL OUTER JOIN departments d ON e.dept_id = d.dept_id;
-```
-<Callout type="warn" title="FULL OUTER JOIN result (same data)">
-Darshan-Finance, Priya-IT, **Raj-NULL**, **NULL-HR**  
-Everyone shows up — even Raj (no dept) and HR (no employees).
-</Callout>
-
-#### CROSS JOIN
-
-```java
--- Every employee × every department (rarely useful)
-SELECT e.emp_name, d.dept_name
-FROM employees e
-CROSS JOIN departments d;
-```
-<Callout type="error" title="CROSS JOIN = explosion of rows">
-If employees has 100 rows and departments has 10 rows, CROSS JOIN produces 100 x 10 = 1,000 rows. Every possible combination. This is called a **Cartesian Product**. Almost never what you want — usually the result of accidentally forgetting the ON clause.
-</Callout>
-
-#### SELF JOIN
-
-A table joined with itself. The classic use case: an employees table where each employee has a manager\_id that points to another employee in the SAME table.
-
-```java
--- Find each employee's manager
-SELECT e.emp_name AS employee, m.emp_name AS manager
-FROM employees e
-LEFT JOIN employees m ON e.manager_id = m.emp_id;
-```
-<Callout type="info" title="JOIN diagram trick">
-Think of it as Venn diagrams:  
-**INNER** = only the overlap  
-**LEFT** = entire left circle + overlap  
-**RIGHT** = entire right circle + overlap  
-**FULL OUTER** = both entire circles
-</Callout>
-
-<Callout type="warn" title="Key Pattern">
-"Which JOIN returns all rows from the left table?" → LEFT JOIN  
-"What is a Cartesian product?" → CROSS JOIN (no ON condition)
-</Callout>
-
-<Quiz question={"Employees table has 10 rows, Departments table has 5 rows. How many rows does `SELECT * FROM employees CROSS JOIN departments;` produce?"} options={["15", "10", "50", "5"]} answerIndex={3}>
-CROSS JOIN produces the Cartesian product — every row from the first table combined with every row from the second table. 10 x 5 = 50 rows. This is why CROSS JOIN is rarely used intentionally and why you should always specify an ON condition with other JOINs.
-</Quiz>
-<Quiz question={"You want ALL employees listed, including those not assigned to any department. Their department name should show NULL. Which JOIN do you use?"} options={["INNER JOIN", "LEFT JOIN (employees LEFT JOIN departments)", "RIGHT JOIN (employees RIGHT JOIN departments)", "CROSS JOIN"]} answerIndex={2}>
-LEFT JOIN keeps ALL rows from the left table (employees) and fills in NULL for unmatched rows from the right table (departments). INNER JOIN would exclude employees without a department. RIGHT JOIN would keep all departments, not all employees.
-</Quiz>
-### 10\. Subqueries
-
-**Why do subqueries exist?** Sometimes the answer to your question depends on another question. Example: "Show me employees who earn more than the average salary." You cannot write `WHERE salary > AVG(salary)` — that is illegal in SQL (aggregate functions are not allowed in WHERE). So you need a subquery to first calculate the average, and then the outer query uses that result.
-
-<Callout type="info" title="Think of it like this">
-A subquery is a question inside a question. Like asking: "Who scored higher than the class average?" You first need to calculate the average (inner query), and then check who is above it (outer query). The database runs the inner query first, gets a result, and plugs that result into the outer query.
-</Callout>
-
-#### Single-Row Subquery
-
-The inner query returns exactly ONE value. You can use =, \>, \<, \>=, \<= with it.
-
-```java
--- Employees earning more than the average salary
-SELECT emp_name, salary
-FROM employees
-WHERE salary > (SELECT AVG(salary) FROM employees);
-```
-<Callout type="warn" title="How this runs step by step">
-1\. Inner query runs: `SELECT AVG(salary) FROM employees` → returns 52000  
-2\. Outer query becomes: `SELECT emp_name, salary FROM employees WHERE salary > 52000`  
-3\. Result: all employees earning more than 52000
-</Callout>
-
-#### Multi-Row Subquery (use IN, ANY, ALL)
-
-When the inner query returns MULTIPLE values, you cannot use =. You need IN (matches any value in the list), ANY, or ALL.
-
-```java
--- Employees in departments located in Mumbai
-SELECT emp_name
-FROM employees
-WHERE dept_id IN (SELECT dept_id FROM departments WHERE location = 'Mumbai');
-
--- Salary greater than ALL in dept 20 (greater than the maximum)
-SELECT emp_name, salary
-FROM employees
-WHERE salary > ALL (SELECT salary FROM employees WHERE dept_id = 20);
-
--- Salary greater than ANY in dept 20 (greater than the minimum)
-SELECT emp_name, salary
-FROM employees
-WHERE salary > ANY (SELECT salary FROM employees WHERE dept_id = 20);
-```
-
-#### Correlated Subquery
-
-In a normal subquery, the inner query runs once and its result is reused. In a **correlated subquery**, the inner query runs once for EACH row of the outer query — because it references a value from the outer query. This is slower but more powerful.
-
-```java
--- Employees earning more than the average of THEIR OWN department
-SELECT emp_name, salary, dept_id
-FROM employees e
-WHERE salary > (SELECT AVG(salary) FROM employees WHERE dept_id = e.dept_id);
-```
-<Callout type="warn" title="How a correlated subquery differs">
-For Darshan (dept 10): inner query calculates AVG salary of dept 10 → checks if Darshan's salary exceeds it.  
-For Priya (dept 20): inner query calculates AVG salary of dept 20 → checks if Priya's salary exceeds it.  
-The inner query re-runs for every row with a different dept\_id reference. That is what "correlated" means — the inner query is linked to the outer query.
-</Callout>
-
-#### EXISTS
-
-EXISTS checks if the subquery returns ANY rows at all. It does not care about the actual values — just whether rows exist. It is often faster than IN for large datasets.
-
-```java
--- Departments that have at least one employee
-SELECT dept_name
-FROM departments d
-WHERE EXISTS (SELECT 1 FROM employees WHERE dept_id = d.dept_id);
-```
-<Callout type="info" title="ANY vs ALL — Memorize this">
-`> ALL (subquery)` = greater than the **maximum** value returned. You must beat EVERYONE.  
-`> ANY (subquery)` = greater than the **minimum** value returned. You just need to beat ONE person.  
-`< ALL` = less than the minimum. `< ANY` = less than the maximum.
-</Callout>
-
-<Quiz question={"Dept 20 has salaries: 40000, 50000, 60000. Which employees are returned by `WHERE salary > ALL (SELECT salary FROM employees WHERE dept_id = 20)`?"} options={["Employees earning more than 40000", "Employees earning more than 50000", "Employees earning more than 60000", "All employees in dept 20"]} answerIndex={3}>
-\\> ALL means "greater than the MAXIMUM value in the list." The maximum salary in dept 20 is 60000, so only employees earning more than 60000 are returned. Think of ALL as "you must beat ALL of them" — which means beating the highest one.
-</Quiz>
-<Quiz question={"What is the key difference between a regular subquery and a correlated subquery?"} options={["A correlated subquery can return multiple rows; a regular subquery cannot", "A regular subquery runs once; a correlated subquery re-runs for each outer row", "A correlated subquery uses JOIN; a regular subquery uses WHERE", "There is no difference \u2014 they are the same thing"]} answerIndex={0}>
-A regular subquery is independent — it runs once, produces a result, and the outer query uses that result. A correlated subquery references a column from the outer query (like `e.dept_id`), so it must re-execute for each row of the outer query. This makes correlated subqueries slower but capable of row-specific comparisons.
-</Quiz>
-### 11\. Set Operations
-
-Set operations let you combine the results of two separate SELECT queries. Think of them like math operations on sets: union (combine), intersection (overlap), and difference (subtract).
-
-| Operation | Description | Analogy |
-| --- | --- | --- |
-| `UNION` | Combine results, remove duplicates | Merge two guest lists, removing duplicate names |
-| `UNION ALL` | Combine results, keep duplicates | Just staple the two lists together |
-| `INTERSECT` | Only rows in BOTH queries | People who appear on BOTH guest lists |
-| `MINUS` (Oracle) / `EXCEPT` (MySQL) | Rows in first query but NOT in second | People on list A who are NOT on list B |
-
-```java
--- All cities where we have employees or departments
-SELECT city FROM employees
-UNION
-SELECT city FROM departments;
-
--- Employees who are also managers
-SELECT emp_id FROM employees
-INTERSECT
-SELECT manager_id FROM employees;
-```
-<Callout type="error" title="Set Operation Rules">
-Both queries must have the **same number of columns** and **compatible data types**. You cannot UNION a query with 3 columns and another with 5 columns — SQL won't know how to combine them.
-</Callout>
-
-<Quiz question={"What is the difference between UNION and UNION ALL?"} options={["UNION sorts results; UNION ALL does not", "UNION removes duplicates; UNION ALL keeps all rows including duplicates", "UNION ALL is faster because it removes duplicates", "There is no difference"]} answerIndex={2}>
-UNION removes duplicate rows from the combined result (which requires extra work to check for duplicates). UNION ALL keeps everything as-is, including duplicates. UNION ALL is actually faster because it skips the deduplication step. Use UNION ALL when you know there won't be duplicates or when you want to keep them.
-</Quiz>
-### 12\. Constraints & Keys
-
-**Why do constraints exist?** Without constraints, anyone could insert garbage data: an employee with a negative salary, two employees with the same ID, an employee assigned to a department that does not exist. Constraints are the database's bouncers — they enforce rules so your data stays clean and consistent.
-
-<Callout type="info" title="Real-world analogy">
-Think of constraints like rules on a form. PRIMARY KEY = "this field is mandatory and must be unique" (like Aadhaar number). NOT NULL = "you must fill this in." CHECK = "age must be 18 or above." FOREIGN KEY = "the department you list here must actually exist in the departments table." If you violate any rule, the form (INSERT/UPDATE) gets rejected.
-</Callout>
-
-| Constraint | Description | What it prevents |
-| --- | --- | --- |
-| `PRIMARY KEY` | Unique + NOT NULL. Only one per table. | Duplicate or empty IDs |
-| `FOREIGN KEY` | References PRIMARY KEY of another table | Orphan records (referencing non-existent data) |
-| `UNIQUE` | All values must be different (allows one NULL) | Duplicate emails, duplicate phone numbers |
-| `NOT NULL` | Column cannot have NULL value | Missing required fields |
-| `CHECK` | Values must satisfy a condition | Invalid data (negative salary, age below 0) |
-| `DEFAULT` | Default value if none provided | Nothing — just fills in a value automatically |
-
-```java
-CREATE TABLE students (
-    student_id NUMBER PRIMARY KEY,
-    name       VARCHAR2(50) NOT NULL,
-    email      VARCHAR2(100) UNIQUE,
-    age        NUMBER CHECK (age >= 18),
-    status     VARCHAR2(10) DEFAULT 'active',
-    dept_id    NUMBER REFERENCES departments(dept_id)
-);
-```
-
-#### Composite Primary Key
-
-Sometimes a single column cannot uniquely identify a row. In an "enrollments" table, neither student\_id alone nor course\_id alone is unique (a student can enroll in many courses, a course can have many students). But the COMBINATION of both is unique — a student can enroll in a specific course only once.
-
-```java
-CREATE TABLE enrollments (
-    student_id NUMBER,
-    course_id  NUMBER,
-    grade      CHAR(2),
-    PRIMARY KEY (student_id, course_id)
-);
-```
-<Callout type="info" title="PRIMARY KEY vs UNIQUE — Know the difference">
-**PRIMARY KEY** = UNIQUE + NOT NULL. Only ONE per table. It is the main identifier for each row.  
-**UNIQUE** = values must be different, but allows ONE NULL. Multiple UNIQUE constraints per table allowed.  
-  
-Example: A student has one student\_id (PRIMARY KEY) but also a unique email and unique phone number (both UNIQUE constraints on the same table).
-</Callout>
-
-#### ON DELETE actions (Foreign Key)
-
-What happens when you delete a department that still has employees assigned to it? The ON DELETE action decides.
-
-| Action | What happens when parent row is deleted | Example |
-| --- | --- | --- |
-| `ON DELETE CASCADE` | Delete child rows too | Delete department 10 → all employees in dept 10 are also deleted |
-| `ON DELETE SET NULL` | Set foreign key to NULL in child rows | Delete department 10 → employees in dept 10 get dept\_id = NULL |
-| `ON DELETE RESTRICT` | Prevent deletion if child rows exist (default) | Cannot delete department 10 while it has employees — error is thrown |
-
-<Quiz question={"A table has a PRIMARY KEY and three UNIQUE constraints. How many total unique identifier columns does it have?"} options={["1 \u2014 only PRIMARY KEY provides uniqueness", "3 \u2014 only UNIQUE constraints count", "4 \u2014 PRIMARY KEY is also a unique identifier", "Error \u2014 a table cannot have both PRIMARY KEY and UNIQUE"]} answerIndex={2}>
-The table has 4 unique identifier columns: 1 PRIMARY KEY + 3 UNIQUE constraints. PRIMARY KEY itself enforces uniqueness (it is UNIQUE + NOT NULL). A table can absolutely have both — one PRIMARY KEY and multiple UNIQUE constraints. Example: student\_id (PK), email (UNIQUE), phone (UNIQUE), aadhaar (UNIQUE).
-</Quiz>
-<Quiz question={"If a FOREIGN KEY is defined with `ON DELETE CASCADE`, what happens when the parent row is deleted?"} options={["Nothing \u2014 the child rows remain unchanged", "The child rows' foreign key column is set to NULL", "All child rows referencing that parent are also deleted", "The deletion is blocked with an error"]} answerIndex={1}>
-CASCADE means the delete "cascades" down to child rows. If you delete department 10, all employees with dept\_id = 10 are automatically deleted too. This is powerful but dangerous — use with caution. SET NULL would just set their dept\_id to NULL. RESTRICT (default) would block the deletion entirely.
-</Quiz>
-### 13\. Normalization
-
-**Why does normalization matter?** Imagine a table where every employee row stores the department name, department location, and department manager. Now the HR department moves to a new office. You have to update the location in 200 employee rows. Miss even one? Your data is now inconsistent — some rows say "Mumbai," others say "Pune" for the same department.
-
-Normalization is the process of organizing your tables so that each piece of information is stored in exactly ONE place. Update it once, and it is correct everywhere. It eliminates redundancy and prevents the kind of update anomalies described above.
-
-<Callout type="info" title="The analogy">
-Unnormalized data is like writing your home address on every form at school — attendance register, library card, exam form, fee receipt. If you move, you have to update ALL of them. Normalized data stores your address in ONE place (student record), and every other form just references your student ID.
-</Callout>
-
-| Normal Form | Rule | In Simple Terms | Example Violation |
-| --- | --- | --- | --- |
-| **1NF** | Atomic values, no repeating groups | Each cell has ONE value. No comma-separated lists. | courses = "Math, Physics, Chemistry" in one cell |
-| **2NF** | 1NF + no partial dependency | Every non-key column depends on the WHOLE primary key (not just part of it). | In (student\_id, course\_id) → student\_name depends only on student\_id, not on the full key |
-| **3NF** | 2NF + no transitive dependency | Non-key columns depend ONLY on the primary key, not on other non-key columns. | emp table has dept\_id AND dept\_name — dept\_name depends on dept\_id, not on emp\_id |
-| **BCNF** | 3NF + every determinant is a candidate key | Stricter version of 3NF. | Rare edge cases where 3NF still has redundancy |
-
-<Callout type="warn" title="Step-by-step normalization">
-**Unnormalized:** Student(id, name, courses: "Math, Physics, Chem") — courses is a comma-separated mess  
-  
-**1NF:** Split into separate rows — one row per student-course combination. Now each cell has ONE atomic value.  
-  
-**2NF:** If the primary key is (student\_id, course\_id), then student\_name depends only on student\_id (partial dependency). Fix: move student info to a separate Students table.  
-  
-**3NF:** If the Students table has dept\_id AND dept\_name, the dept\_name depends on dept\_id (not on student\_id). This is a transitive dependency. Fix: move dept\_name to a separate Departments table.
-</Callout>
-
-<Callout type="warn" title="Key Pattern">
-"A table with no repeating groups is in which normal form?" → 1NF  
-"Removing transitive dependency achieves?" → 3NF  
-"Removing partial dependency achieves?" → 2NF
-</Callout>
-
-<Quiz question={"A table has columns: (student\\_id PK, student\\_name, dept\\_id, dept\\_name). Which normal form is violated and why?"} options={["1NF \u2014 because values are not atomic", "2NF \u2014 because of partial dependency", "3NF \u2014 because dept\\_name depends on dept\\_id, not on the primary key", "No violation \u2014 the table is fully normalized"]} answerIndex={2}>
-This violates 3NF. The dept\_name column depends on dept\_id (a non-key column), not directly on student\_id (the primary key). This is called a transitive dependency: student\_id → dept\_id → dept\_name. Fix: move dept\_name to a separate departments table with dept\_id as the primary key.
-</Quiz>
-<Quiz question={"A cell in a table contains \"Java, Python, SQL\" as a single value. Which normal form rule is violated?"} options={["1NF \u2014 values must be atomic (one value per cell)", "2NF \u2014 partial dependency", "3NF \u2014 transitive dependency", "BCNF \u2014 determinant is not a candidate key"]} answerIndex={0}>
-1NF requires atomic values — each cell must contain exactly ONE value. A comma-separated list like "Java, Python, SQL" violates 1NF. The fix: create a separate skills table with one row per skill (student\_id, skill).
-</Quiz>
-### 14\. Views
-
-**Why do views exist?** Imagine you have a complex query with 5 JOINs that you run 10 times a day. Instead of writing that monster query every time, you save it as a **view** — a virtual table that runs the query behind the scenes whenever you access it. Views also let you control what data different users can see.
-
-<Callout type="info" title="Think of it this way">
-A view is like a saved filter in a spreadsheet. The underlying data does not change — the view just shows you a specific slice of it. Every time you open the view, it re-runs the query and shows you the latest data.
-</Callout>
-
-```java
--- Create a view
-CREATE VIEW high_earners AS
-SELECT emp_name, salary, dept_id
-FROM employees
-WHERE salary > 50000;
-
--- Use the view like a table
-SELECT * FROM high_earners;
-
--- Replace a view
-CREATE OR REPLACE VIEW high_earners AS
-SELECT emp_name, salary FROM employees WHERE salary > 60000;
-
--- Drop a view
-DROP VIEW high_earners;
-```
-<Callout type="info" title="Why use Views?">
-
-
-*   **Security:** Give interns access to a view that only shows name and department — not salary. They never see the base table.
-*   **Simplicity:** A 50-line JOIN query becomes `SELECT * FROM quarterly_report`.
-*   **Consistency:** Everyone uses the same view definition — no one writes a slightly different version of the query.
-
-
-</Callout>
-
-<Quiz question={"Does a view store data physically in the database?"} options={["Yes \u2014 it creates a copy of the data", "No \u2014 it stores only the query definition and runs it each time", "Yes \u2014 but only for the first access, then it caches", "It depends on the database engine"]} answerIndex={0}>
-A regular view does NOT store data — it stores only the SELECT query definition. Every time you query the view, it re-executes the underlying query against the base tables. This means the view always shows the latest data. (Note: Materialized Views DO store data physically, but they are a separate concept.)
-</Quiz>
-### 15\. Indexes
-
-**Why do indexes exist?** Without an index, searching for an employee named "Darshan" in a table of 1 million rows means the database scans every single row — like reading a 500-page book from page 1 to find one topic. An index is like the book's index at the back — you look up "Darshan," find it points to row 47892, and jump straight there.
-
-<Callout type="info" title="The book index analogy">
-A book without an index: to find "polymorphism," you flip through every page (full table scan).  
-A book with an index: you check the back, see "polymorphism — page 234," and jump directly there.  
-  
-A database index works the same way. It creates a sorted lookup structure (usually a B-tree) that lets the database find your data in milliseconds instead of scanning millions of rows.
-</Callout>
-
-```java
--- Create an index
-CREATE INDEX idx_emp_name ON employees(emp_name);
-
--- Create a unique index
-CREATE UNIQUE INDEX idx_emp_email ON employees(email);
-
--- Composite index (useful when you often search by both columns together)
-CREATE INDEX idx_dept_sal ON employees(dept_id, salary);
-
--- Drop an index
-DROP INDEX idx_emp_name;
-```
-<Callout type="error" title="Index Trade-offs">
-Indexes **speed up SELECT** (reads) but **slow down INSERT/UPDATE/DELETE** (writes). Why? Every time you add, change, or remove a row, the database must also update all relevant indexes. It is like maintaining a book index — every time you add a new chapter, you have to update the index at the back.  
-  
-**Rule of thumb:** Index columns that appear frequently in WHERE, JOIN, and ORDER BY. Do NOT index every column — the maintenance overhead is not worth it for rarely-searched columns.
-</Callout>
-
-<Callout type="info" title="Automatic Indexes">
-The database automatically creates an index on PRIMARY KEY and UNIQUE columns. You never need to manually index these.
-</Callout>
-
-<Quiz question={"Which statement about indexes is FALSE?"} options={["Indexes speed up SELECT queries", "Indexes slow down INSERT, UPDATE, DELETE operations", "You should create indexes on every column for maximum performance", "PRIMARY KEY columns are automatically indexed"]} answerIndex={1}>
-Indexing every column is a terrible idea. Each index must be maintained on every INSERT/UPDATE/DELETE, which adds overhead. Only index columns that are frequently used in WHERE, JOIN, or ORDER BY clauses. Over-indexing can actually make your database SLOWER overall because writes become expensive.
-</Quiz>
-<Quiz question={"You have a table with 10 million rows. Queries filtering by `WHERE city = 'Mumbai'` are slow. What is the best solution?"} options={["Add more RAM to the server", "Create an index on the city column", "Use TRUNCATE to remove unnecessary rows", "Change the column data type to CHAR"]} answerIndex={1}>
-Creating an index on the city column lets the database quickly locate all rows with city = 'Mumbai' without scanning all 10 million rows. This is the textbook use case for indexes — a column frequently used in WHERE conditions on a large table.
-</Quiz>
-### 16\. Transactions & TCL
-
-**Why do transactions exist?** Imagine transferring Rs. 1000 from your account to a friend's account. This involves TWO operations: (1) subtract 1000 from your balance, (2) add 1000 to friend's balance. What if the system crashes after step 1 but before step 2? Your money vanishes into thin air. Transactions prevent this by treating both operations as ONE atomic unit — either BOTH succeed, or BOTH are undone.
-
-<Callout type="info" title="The video game analogy">
-A transaction is like a checkpoint in a video game. You make a bunch of moves, and if things go wrong, you can "load last checkpoint" (ROLLBACK). If everything goes well, you "save game" (COMMIT). SAVEPOINT is like creating a manual save in the middle of a level.
-</Callout>
-
-#### ACID Properties
-
-Every transaction follows four rules, remembered as ACID.
-
-| Property | Meaning | Real-World Example |
-| --- | --- | --- |
-| **Atomicity** | All or nothing — entire transaction succeeds or fails | Bank transfer: both debit AND credit happen, or neither does |
-| **Consistency** | Database moves from one valid state to another | Total money in the system remains the same after transfer |
-| **Isolation** | Concurrent transactions don't interfere | Two people transferring money simultaneously don't see each other's half-done work |
-| **Durability** | Once committed, changes survive crashes | After bank confirms transfer, even if the server crashes, your money is safe |
-
-```java
--- Bank transfer: a classic transaction example
-UPDATE accounts SET balance = balance - 1000 WHERE acc_id = 1;
-UPDATE accounts SET balance = balance + 1000 WHERE acc_id = 2;
-COMMIT;  -- Save changes permanently — cannot be undone after this
-
--- Something went wrong? Undo everything since last COMMIT
-ROLLBACK;
-
--- Savepoints — partial rollback
-SAVEPOINT sp1;
-UPDATE employees SET salary = 70000 WHERE emp_id = 101;
-SAVEPOINT sp2;
-DELETE FROM employees WHERE emp_id = 103;
-ROLLBACK TO sp2;  -- Undo DELETE but keep the UPDATE
-```
-<Callout type="info" title="DDL auto-commits">
-In Oracle, DDL statements (CREATE, ALTER, DROP, TRUNCATE) automatically issue a COMMIT. You **cannot rollback** a TRUNCATE or DROP. This also means if you had uncommitted DML changes, running a DDL statement will commit those too!
-</Callout>
-
-<Quiz question={"Which ACID property ensures that a bank transfer either fully completes or fully rolls back?"} options={["Consistency", "Isolation", "Durability", "Atomicity"]} answerIndex={3}>
-Atomicity means "all or nothing." Either the entire transaction (debit + credit) completes successfully, or the entire thing is rolled back. No half-done states. The word "atomic" comes from Greek "atomos" meaning "indivisible."
-</Quiz>
-<Quiz question={"You run an UPDATE, then a CREATE TABLE, then a ROLLBACK. What happens?"} options={["Both the UPDATE and CREATE TABLE are rolled back", "Only the CREATE TABLE is rolled back", "Nothing is rolled back \u2014 CREATE TABLE auto-committed everything", "Error \u2014 ROLLBACK cannot follow CREATE TABLE"]} answerIndex={2}>
-In Oracle, CREATE TABLE is DDL, which triggers an automatic COMMIT. This commits both the CREATE TABLE AND any uncommitted changes before it (including your UPDATE). When you then run ROLLBACK, there is nothing to roll back — everything was already committed by the DDL statement.
-</Quiz>
-### 17\. DCL — GRANT & REVOKE
-
-**Why does DCL exist?** In a company, not everyone should have the same access. An intern should not be able to DELETE employee records. The CEO's assistant might need to read salary data but never modify it. DCL controls who can do what.
-
-```java
--- Grant permissions
-GRANT SELECT, INSERT ON employees TO user1;
-GRANT ALL ON employees TO admin_user;
-
--- Revoke permissions
-REVOKE INSERT ON employees FROM user1;
-
--- Grant with pass-along ability
-GRANT SELECT ON employees TO user1 WITH GRANT OPTION;
-```
-<Callout type="info" title="WITH GRANT OPTION">
-This gives user1 the ability to grant the same permission to OTHER users. Like giving someone a master key AND the ability to make copies. Use carefully — it can lead to uncontrolled permission spreading.
-</Callout>
-
-<Quiz question={"What does `GRANT SELECT ON employees TO user1 WITH GRANT OPTION` do?"} options={["Gives user1 SELECT access only", "Gives user1 SELECT access and the ability to grant SELECT to others", "Gives user1 all permissions on employees", "Creates a view for user1"]} answerIndex={2}>
-WITH GRANT OPTION allows user1 to further grant the same privilege (SELECT on employees) to other users. Without this option, user1 can use SELECT but cannot pass the permission along.
-</Quiz>
-### 18\. Miscellaneous Concepts
-
-#### CASE Expression
-
-CASE is SQL's version of if-else. It lets you create calculated columns based on conditions — like adding a "level" label based on salary ranges.
-
-```java
-SELECT emp_name, salary,
-  CASE
-    WHEN salary > 80000 THEN 'Senior'
-    WHEN salary > 50000 THEN 'Mid'
-    ELSE 'Junior'
-  END AS level
+```sql
+-- Calculate employee salary rank within their department
+SELECT emp_name, dept_id, salary,
+       RANK() OVER (PARTITION BY dept_id ORDER BY salary DESC) AS sal_rank
 FROM employees;
 ```
 
-#### CREATE TABLE AS SELECT (CTAS)
+*   `PARTITION BY`: Divides the rows into groups (the window scope).
+*   `ORDER BY`: Sorts the rows inside each partition.
+*   `RANK()` vs. `DENSE_RANK()`:
+    *   `RANK()`: Leaves gaps on ties (e.g. `1, 2, 2, 4`).
+    *   `DENSE_RANK()`: No gaps on ties (e.g. `1, 2, 2, 3`).
 
-```java
--- Create a backup table from existing data
-CREATE TABLE emp_backup AS
-SELECT * FROM employees WHERE dept_id = 10;
+---
+
+### 7. Performance Optimization & Indexing
+
+#### Indexes: The Textbook Index
+*   **Clustered Index**: *Analogy: A phone book sorted alphabetically.* The physical data pages are sorted on disk based on the index key. There can be only one clustered index per table.
+*   **Non-Clustered Index**: *Analogy: The index at the back of a textbook.* A separate data structure containing keys and direct pointers (row IDs) to the actual page locations.
+
+#### Query execution plans
+Use `EXPLAIN PLAN` to see the optimizer's decisions:
+*   *Table Scan*: Scanning every single page of the table on disk. High cost.
+*   *Index Seek*: Navigating the index tree directly to locate matching keys. Low cost.
+
+---
+
+### 8. Database Normalization (1NF to BCNF)
+
+Normalization is the process of organizing database tables to reduce redundancy and dependency. *Analogy: Organizing your closet. Instead of putting all socks, shirts, and shoes in one massive pile, you put them in labeled drawers to avoid mess.*
+
+*   **1NF**: Atomic values only (no lists or comma-separated values in cells).
+*   **2NF**: In 1NF, and all non-key columns must depend on the *entire* primary key (removes partial dependencies).
+*   **3NF**: In 2NF, and all non-key columns must depend *only* on the primary key, not on other non-key columns (removes transitive dependencies).
+*   **BCNF (Boyce-Codd Normal Form)**: A stronger version of 3NF. For every functional dependency `A -> B`, `A` must be a superkey.
+
+---
+
+### 9. Transaction Management & Isolation Levels
+
+A transaction is a single unit of database work. It must satisfy **ACID** properties:
+*   **Atomicity**: All operations succeed, or all fail.
+*   **Consistency**: The database transitions from one valid state to another.
+*   **Isolation**: Transactions running concurrently do not interfere with each other.
+*   **Durability**: Committed data is saved permanently, even during crashes.
+
+#### Isolation Levels & Concurrency Anomalies
+*   *Dirty Read*: Reading uncommitted data from another transaction.
+*   *Non-Repeatable Read*: Reading the same row twice inside a transaction and getting different values because another transaction modified it.
+*   *Phantom Read*: Running the same query twice inside a transaction and getting a different number of rows because another transaction inserted new rows.
+
+| Isolation Level | Dirty Read | Non-Repeatable Read | Phantom Read |
+| --- | --- | --- | --- |
+| **Read Uncommitted** | Yes | Yes | Yes |
+| **Read Committed** | No | Yes | Yes |
+| **Repeatable Read** | No | No | Yes |
+| **Serializable** | No | No | No |
+
+---
+
+### 10. Conceptual Quizzes
+
+<Quiz question="What is the result of vertical margins on two adjacent block elements (top margin 30px and bottom margin 40px)?" options={["A combined gap of 70px.","A combined gap of 10px.","The margins collapse, resulting in a single gap of 40px (the larger value).","The elements overlap."]} answerIndex={2}>
+Vertical margins between adjacent block elements collapse. The browser uses only the larger margin value (40px in this case), rather than adding them together.
+</Quiz>
+
+<Quiz question="What happens if a set contains a NULL value during a `NOT IN` evaluation (e.g., `x NOT IN (1, 2, NULL)`)?" options={["It matches other values and ignores NULL.","It always evaluates to UNKNOWN, returning zero results.","It throws a compile error.","It behaves like an INNER JOIN."]} answerIndex={1}>
+In SQL, `x NOT IN (1, 2, NULL)` evaluates as `x != 1 AND x != 2 AND x != NULL`. Because any comparison against `NULL` yields `UNKNOWN`, the overall logical condition evaluates to `UNKNOWN`, returning zero matching rows.
+</Quiz>
+
+---
+
+### 11. Practice Problems
+
+<Problem title="Problem 1: Department Salary Ranks">
+<ProblemDescription>
+Given an `employees` table containing `emp_id`, `emp_name`, `dept_id`, and `salary`.
+Write a query to find the top 2 highest-paid employees in each department. If there are ties, there should be no gaps in the rankings.
+</ProblemDescription>
+<ProblemSolution>
+This query uses the `DENSE_RANK()` window function:
+
+```sql
+SELECT emp_name, dept_id, salary
+FROM (
+  SELECT emp_name, dept_id, salary,
+         DENSE_RANK() OVER (PARTITION BY dept_id ORDER BY salary DESC) AS rnk
+  FROM employees
+) ranked_emps
+WHERE rnk <= 2;
 ```
-
-#### RENAME & COMMENT
-
-```java
--- Rename a table
-RENAME employees TO staff;
-
--- Add a comment on table
-COMMENT ON TABLE employees IS 'Main employee table';
-```
-
-#### Pseudo-columns (Oracle)
-
-| Pseudo-column | Description |
-| --- | --- |
-| `ROWNUM` | Row number in result set |
-| `ROWID` | Physical address of the row |
-| `SYSDATE` | Current date and time |
-| `USER` | Current logged-in user |
-
-#### DECODE (Oracle-specific IF-THEN)
-
-```java
-SELECT emp_name,
-  DECODE(dept_id,
-    10, 'Finance',
-    20, 'IT',
-    30, 'HR',
-    'Other') AS dept_name
-FROM employees;
-```
-<Callout type="info" title="DECODE vs CASE">
-`DECODE` is Oracle-only, works for simple equality checks only.  
-`CASE` is ANSI standard, works everywhere, supports complex conditions (ranges, LIKE, IS NULL). Prefer CASE.
-</Callout>
-
-#### Sequences (Oracle — auto-increment)
-
-```java
--- Create a sequence
-CREATE SEQUENCE emp_seq START WITH 1 INCREMENT BY 1;
-
--- Use in INSERT
-INSERT INTO employees (emp_id, emp_name)
-VALUES (emp_seq.NEXTVAL, 'Darshan');
-
--- Get current value
-SELECT emp_seq.CURRVAL FROM dual;
-```
-
-#### Synonyms (Oracle)
-
-```java
--- Create a synonym (alias for a table)
-CREATE SYNONYM emp FOR hr.employees;
-
--- Now use the short name
-SELECT * FROM emp;
-```
-
-### 19\. Practice Questions
-
-<Quiz question={"Which SQL command is used to remove all rows from a table without logging individual row deletions?"} options={["DELETE", "DROP", "TRUNCATE", "REMOVE"]} answerIndex={2}>
-C) TRUNCATE — removes all rows, keeps table structure, cannot be rolled back (DDL). DELETE logs each row and can be rolled back (DML).
-</Quiz>
-<Quiz question={"What is the output of: `SELECT COUNT(*) FROM employees WHERE commission IS NULL;` if 3 out of 10 employees have NULL commission?"} options={["7", "3", "10", "0"]} answerIndex={1}>
-B) 3 — COUNT(*) counts all rows that match the WHERE condition. 3 employees have NULL commission.
-</Quiz>
-<Quiz question={"Which JOIN returns all rows from both tables, including unmatched rows?"} options={["INNER JOIN", "LEFT JOIN", "FULL OUTER JOIN", "CROSS JOIN"]} answerIndex={2}>
-C) FULL OUTER JOIN — returns all rows from both tables. Unmatched rows get NULL for the other table's columns.
-</Quiz>
-<Quiz question={"Which clause is used to filter groups after GROUP BY?"} options={["WHERE", "HAVING", "FILTER", "GROUP FILTER"]} answerIndex={1}>
-B) HAVING — filters groups after GROUP BY. WHERE filters individual rows before grouping.
-</Quiz>
-<Quiz question={"A table with no repeating groups and only atomic values in each cell satisfies which normal form?"} options={["2NF", "BCNF", "1NF", "3NF"]} answerIndex={2}>
-C) 1NF (First Normal Form) — requires atomic values (no repeating groups, no comma-separated lists).
-</Quiz>
-<Quiz question={"What does `GRANT SELECT ON employees TO user1 WITH GRANT OPTION` do?"} options={["Gives user1 SELECT access only", "Gives user1 SELECT access and the ability to grant SELECT to others", "Gives user1 all permissions on employees", "Creates a view for user1"]} answerIndex={1}>
-B) WITH GRANT OPTION allows user1 to further grant the same privilege to other users.
-</Quiz>
-<Quiz question={"Which function returns the first non-NULL value from a list?"} options={["NVL", "IFNULL", "COALESCE", "NULLIF"]} answerIndex={2}>
-C) COALESCE — returns the first non-NULL value from any number of arguments. NVL only takes 2 arguments (Oracle-specific).
-</Quiz>
-<Quiz question={"What does `SELECT emp_name FROM employees WHERE salary > ALL (SELECT salary FROM employees WHERE dept_id = 20);` return?"} options={["Employees earning more than any employee in dept 20", "Employees earning more than every employee in dept 20", "Employees earning less than all in dept 20", "Error \u2014 ALL cannot be used with subqueries"]} answerIndex={1}>
-B) \> ALL means greater than the MAXIMUM value returned by the subquery. So it returns employees earning more than every employee in dept 20.
-</Quiz>
-<Quiz question={"The ACID property that ensures a transaction is \"all or nothing\" is:"} options={["Consistency", "Isolation", "Durability", "Atomicity"]} answerIndex={3}>
-D) Atomicity — the transaction either completes entirely or not at all. If any part fails, the entire transaction is rolled back.
-</Quiz>
-<Quiz question={"What is the difference between `DELETE FROM employees;` and `TRUNCATE TABLE employees;`?"} options={["No difference \u2014 both do the same thing", "DELETE is DDL, TRUNCATE is DML", "DELETE can be rolled back, TRUNCATE cannot", "TRUNCATE can use WHERE clause, DELETE cannot"]} answerIndex={2}>
-C) DELETE is DML (can be rolled back, logs each row deletion, can use WHERE). TRUNCATE is DDL (cannot be rolled back, removes all rows instantly, no WHERE clause).
-</Quiz>
+</ProblemSolution>
+</Problem>

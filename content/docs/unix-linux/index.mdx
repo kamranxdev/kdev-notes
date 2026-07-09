@@ -1,948 +1,257 @@
 ---
 title: Unix / Linux
-description: Unix and Linux are the backbone of every server and cloud instance
+description: An analogy-driven, professional-grade guide to Unix and Linux systems from architecture and file systems to shell scripting, text processing, process control, and system administration.
 ---
 
-### 1\. What is Unix/Linux?
+### 1. Introduction to Unix/Linux Architecture
 
-**Why should you care?** Every server you'll ever work with at organizations runs Linux. Every cloud instance (AWS, Azure, GCP) runs Linux. Every Android phone runs a Linux kernel. When you deploy your Java web app at work, it's going to a Linux server. You won't be clicking icons — you'll be typing commands in a terminal. That's Unix.
+Imagine a high-security research facility.
+*   **The Hardware**: The physical server facility (CPU, RAM, Disks).
+*   **The Kernel**: The facility manager who has direct, absolute access to the vault keys, hardware switches, and control panels.
+*   **The Shell**: The receptionist sitting at the entrance desk. You (the user) cannot walk in and flip hardware switches yourself; you must tell the receptionist what you want, and they translate your command into a formal request for the manager.
 
-Think of it like this: **Windows is a car with automatic transmission** — you click buttons, drag things around, the OS handles the details. **Unix/Linux is a manual transmission** — you tell it exactly what to do, command by command. More effort to learn, but total control once you know it.
+```mermaid
+graph TD
+    User([User / Application]) --> Shell[Shell: bash, zsh, sh]
+    User --> LibC[System Libraries: glibc]
+    Shell --> LibC
+    Shell --> SysCall[System Call Interface]
+    LibC --> SysCall
+    SysCall --> Kernel[Kernel: CPU, Memory, Device Drivers]
+    Kernel --> Hardware[Hardware: CPU, RAM, Disk, Network]
+    
+    style User fill:#4f46e5,stroke:#312e81,stroke-width:2px,color:#fff
+    style Shell fill:#0891b2,stroke:#155e75,stroke-width:2px,color:#fff
+    style LibC fill:#0d9488,stroke:#115e59,stroke-width:2px,color:#fff
+    style SysCall fill:#ea580c,stroke:#9a3412,stroke-width:2px,color:#fff
+    style Kernel fill:#dc2626,stroke:#991b1b,stroke-width:2px,color:#fff
+    style Hardware fill:#4b5563,stroke:#1f2937,stroke-width:2px,color:#fff
+```
 
-Unix was built at Bell Labs in 1969. Linux is a free, open-source recreation of Unix by Linus Torvalds (1991). For exam purposes, treat them as the same thing.
+#### User Space vs. Kernel Space
+To prevent a bug in a user application from accidentally wiping out the entire system, CPU architectures enforce strict boundaries:
+1.  **Kernel Space (Ring 0)**: The inner laboratory vault. The Kernel runs here with unrestricted access to physical hardware, memory blocks, and privileged CPU instructions.
+2.  **User Space (Ring 3)**: The public lobby. All user programs, database servers, web browsers, and shells run here. They have no direct access to hardware and must request resources from the Kernel.
 
-<Callout type="info" title="Three rules of Unix">
+#### System Calls vs. Library Calls
+If a program in User Space wants to read a file from the disk drive:
+*   **System Call (Syscall)**: The program writes a formal request ticket and slides it through a slot in the security glass window. The CPU pauses execution, switches from User Space (Ring 3) to privileged Kernel Space (Ring 0), performs the disk read, and returns the data back to User Space. Examples: `read()`, `write()`, `fork()`, `open()`.
+*   **Library Call**: A pre-packaged utility function inside a standard library (like C's `glibc`). Calling `printf()` is a library call; it formats your text in User Space, and then internally slides a `write()` system call ticket through the window to print the pixels to the screen.
 
+#### Monolithic vs. Microkernels
+*   **Monolithic Kernel (e.g., Linux)**: The facility manager puts all department leads (device drivers, file systems, memory schedulers) inside the inner vault (Kernel Space). This is fast because they can talk directly to one another without paperwork, but if a single driver crashes, the whole facility goes down.
+*   **Microkernel (e.g., macOS's Mach core)**: Only the core manager sits in the vault. The driver, file system, and network teams are moved to user-space offices. If the network driver crashes, it doesn't crash the manager; you just reboot that single office. However, constant message-passing between offices creates performance overhead.
 
-1.  **Everything is a file.** Your text documents, your keyboard, your network connection — Unix treats them ALL as files. This is why commands like `cat` work on almost anything.
-2.  **Case-sensitive. Always.** `File.txt` and `file.txt` are two completely different files. Forget this and you'll waste hours debugging.
-3.  **Small tools, chained together.** Instead of one giant program that does everything, Unix gives you tiny tools (grep, sort, cut, awk) that you connect with pipes. Like LEGO blocks.
-
-
-</Callout>
-
-<Quiz question={"In Unix, `Report.txt` and `report.txt` are:"} options={["The same file", "Two different files", "An error \u2014 you can't have both", "Depends on the directory"]} answerIndex={1}>
-Unix is case-sensitive. `Report.txt` and `report.txt` are two completely separate files. This is different from Windows where they'd be the same file.
+<Quiz question="What is the primary difference between a system call and a library call?" options={["System calls run in user space, while library calls run in kernel space","System calls require switching CPU execution modes from User Space (Ring 3) to Kernel Space (Ring 0); library calls are standard user-space functions","Library calls are open-source, whereas system calls are proprietary","System calls do not consume CPU cycles, while library calls do"]} answerIndex={1}>
+System calls are the interface between user space and kernel space. They trigger a hardware interrupt or exception that switches the CPU to privileged mode (Ring 0). Library calls (like `malloc` or `printf`) run in user space and may or may not invoke system calls internally.
 </Quiz>
-### 2\. File System Hierarchy
 
-**Why does this matter?** In Windows, you dump everything into C:\\Users or wherever you want. Unix is organized like a well-planned office building — every department has its floor, and if you need something, you know exactly which floor to go to.
+---
 
-The entire Unix file system is one giant tree starting from `/` (root). There are no drive letters like C: or D:. Everything lives under `/`.
+### 2. The Linux File System & Inodes
 
-Think of it as **an apartment building**:
+The golden rule of Unix is: **"Everything is a file."** Hardware drives, network interfaces, directories, and running processes are all exposed as files within a single hierarchical tree structure starting at `/` (root).
 
-| Directory | Purpose | Apartment Building Analogy |
+#### Virtual File System (VFS)
+*   **VFS**: The hotel's central reservation desk. You ask for a room check-in using standard words ("open room", "lock door"), and the desk handles whether it's a log cabin, a tent, or a concrete suite (ext4, FAT32, NFS) behind the scenes.
+
+#### Anatomy of a File: Inodes
+To understand files, we must separate a file's **metadata** from its **content** and its **name**.
+An **Inode (Index Node)** is a data structure on disk that represents a file system object. Each file has exactly one inode, identified by a unique **inode number** on its partition.
+*   **Analogy**: The landlord's master property ledger card.
+
+```
+        Directory Data Block (e.g. /home/user)
+        ┌───────────────────────────────┐
+        │ Filename      │ Inode Number  │
+        ├───────────────┼───────────────┤
+        │ notes.txt     │ 140234        ├────────┐
+        │ script.sh     │ 140235        │        │
+        └───────────────┴───────────────┘        │
+                                                 ▼
+        Inode Table (Entry 140234)               │
+        ┌──────────────────────────────────────┐ │
+        │ Metadata:                            │ │
+        │ - Owner: UID 1000                    │◀┘
+        │ - Permissions: rw-r----              │
+        │ - Size: 4096 bytes                   │
+        │ - Links count: 1                     │
+        │ - Pointers to Data Blocks            ├────────┐
+        └──────────────────────────────────────┘        │
+                                                        ▼
+        Data Blocks on Disk                             │
+        ┌─────────────────────────────────────────────┐ │
+        │ [ Actual text content of the file... ]      │◀┘
+        └─────────────────────────────────────────────┘
+```
+
+*   **What is stored in an Inode?** File type, size, owner (UID/GID), permissions, timestamps (`atime`, `mtime`, `ctime`), and pointers to the physical data blocks on disk where the actual content is stored.
+*   **What is NOT stored in an Inode?** The file name! File names are stored in directory files. A directory is just a file whose content is a list of filename-to-inode-number mappings.
+
+#### Hard Links vs. Soft (Symbolic) Links
+*   **Hard Link**: Creating a second directory plaque in another hallway that lists the exact same ledger card (inode) number. The room is only cleaned out if you take down *both* plaques.
+*   **Symbolic Link (Symlink)**: A post-it note pointing to the first directory plaque path. If you tear down the original plaque, the post-it note points to nothing (a broken or dangling link).
+
+| Feature | Hard Link | Symbolic Link (Symlink) |
 | --- | --- | --- |
-| `/` | Root — top of the entire tree | The building itself — everything is inside it |
-| `/home` | User home directories | Residential floors — each tenant has their own flat |
-| `/etc` | System configuration files | Building manager's office — all the rules and settings |
-| `/bin` | Essential user binaries (ls, cp, mv) | The toolbox — basic tools everyone needs |
-| `/tmp` | Temporary files — cleared on reboot | The lobby whiteboard — wiped clean every morning |
-| `/var` | Variable data — logs, mail | The mailroom — always changing, logs of who came/went |
-| `/root` | Home directory of root (admin) user | The building owner's penthouse — separate from tenants |
+| **Creation** | `ln target linkname` | `ln -s target linkname` |
+| **Inode** | Shares the **same** inode as the target file. | Has a **new, unique** inode. |
+| **Target Content** | Points directly to the data blocks. | Points to the path string of the target. |
+| **Across File Systems** | No (cannot span different partitions). | Yes (can span partitions). |
+| **For Directories** | No (restricted to prevent loops). | Yes. |
+| **If Target Deleted** | Link remains active; data is preserved. | Link becomes **broken (dangling)**. |
 
-<Callout type="info" title="💡 Key directories">
-/etc = config, /tmp = temporary (wiped on reboot), /var = logs. These three come up most. Remember: **E**tc = **E**very **T**hing **C**onfigured. **T**mp = **T**e**M**porary. **V**ar = **V**aries (changes constantly).
-</Callout>
+---
 
-<Quiz question={"A system administrator wants to check the configuration of a service. Which directory should they look in?"} options={["/home", "/tmp", "/etc", "/bin"]} answerIndex={2}>
-`/etc` stores all system configuration files. Think "Every Thing Configured." If you need to change how a service behaves, its config file is in /etc.
+### 3. Shell Environments & Startup Configurations
+
+#### Startup Files Evaluation Lifecycle: The Club Member Routine
+*   **Interactive Login Shell (e.g., SSH, or `bash --login`)**: Entering the main club entrance with registration check. The club manager reads the global guest guidelines (`/etc/profile`) and then checks your personal locker configuration (first of `~/.bash_profile`, `~/.bash_login`, or `~/.profile`).
+*   **Interactive Non-login Shell (e.g., opening a new terminal window)**: Walking into an inner room of the club you're already in. You skip the main gate registration and just load the quick-reference rules on the table (`~/.bashrc`).
+
+```
+Interactive Login Shell (e.g., SSH, or bash --login)
+  │
+  ├─► Reads /etc/profile
+  │
+  └─► Looks for first of:
+        1. ~/.bash_profile
+        2. ~/.bash_login
+        3. ~/.profile
+      (Executes ONLY the first one found, ignores others)
+
+Interactive Non-login Shell (e.g., New Terminal Window, or subshell)
+  │
+  └─► Reads ~/.bashrc
+```
+
+---
+
+### 4. Advanced Input/Output Redirection & File Descriptors
+
+#### File Descriptors: Plumbing and Pipes
+In Unix, every running process has three default plumbing connectors:
+*   **Standard Input (FD 0 - cold water pipe)**: Usually reads from your keyboard.
+*   **Standard Output (FD 1 - hot water tap)**: Usually writes text to your screen.
+*   **Standard Error (FD 2 - drain pipe)**: Usually writes error reports to your screen.
+
+```
+       [ Keyboard ] ────► FD 0 (STDIN) ────► [ Running Process ] ────► FD 1 (STDOUT) ────► [ Screen ]
+                                                                 └──► FD 2 (STDERR) ────► [ Screen ]
+```
+
+*   `>` (Redirect Output): Fitting a coupler onto the hot water tap (FD 1) and piping the water into a bucket file (`stdout.log`).
+*   `2>` (Redirect Error): Redirecting the drain pipe (FD 2) into an error log file (`stderr.log`).
+*   `2>&1` (Merge Streams): Routing the drain pipe (FD 2) directly into the hot water stream (FD 1).
+*   `/dev/null`: A black hole drain pipe. Anything piped here is permanently discarded.
+    ```bash
+    # Run a command, sending successful output to a file and discarding errors
+    $ my_script.sh > output.log 2> /dev/null
+    ```
+
+---
+
+### 5. Process Management & Job Control
+
+#### Process States: The Office Department
+*   **Process**: A hired worker.
+*   **Parent/Child**: A manager hiring assistants.
+*   **Orphan**: A manager who leaves the company (parent exits), leaving the assistants working. The company owner (process ID 1 / `systemd`) automatically adopts them.
+*   **Zombie**: A worker who completes their task and stands in the hallway holding a report sheet, waiting for the manager to look at it. If the manager ignores them (doesn't call `wait()`), they remain stuck as a zombie.
+
+```
+  [ Running/Runnable ] ──► (sleeps) ──► [ Sleeping (Interruptible) ]
+           │                                          │
+    (stops / Ctrl+Z)                           (wakes up/signal)
+           │                                          │
+           ▼                                          ▼
+     [ Stopped ] ───────► (termination) ───────► [ Zombie ]
+                                                      │
+                                             (parent reads code)
+                                                      │
+                                                      ▼
+                                                 [ Dead ]
+```
+
+*   `SIGINT` (Signal 2): `Ctrl+C`. A polite request for the worker to clean up their desk and go home.
+*   `SIGTERM` (Signal 15): The standard exit request. Can be caught and handled.
+*   `SIGKILL` (Signal 9): Security escorting the worker out immediately. Cannot be ignored or blocked.
+
+---
+
+### 6. Text Wrangling & Processing Power Tools
+
+#### Sed: The Conveyor Belt Rubber Stamp
+*   **Sed**: A conveyor belt passing rolls of paper where a machine dynamically replaces matches using a stamps template.
+    ```bash
+    # Replace the first occurrence of "A" with "B" on each line of a file
+    $ sed 's/A/B/' input.txt
+    ```
+
+#### Awk: The Spreadsheet Analyst
+*   **Awk**: A spreadsheet analyst who takes text line-by-line, cuts it into columns automatically (`$1`, `$2`), and sums up values in a mental ledger.
+    ```bash
+    # Print the second column of lines containing "SUCCESS"
+    $ awk '/SUCCESS/ { print $2 }' log.txt
+    ```
+
+---
+
+### 7. Conceptual Quizzes
+
+<Quiz question="If you delete the original target file, what happens to its hard link and symbolic link respectively?" options={["The hard link is broken, and the symbolic link remains valid.","Both links are immediately broken.","The hard link remains valid and can access the data, while the symbolic link becomes broken.","Both links remain valid and preserve the file data."]} answerIndex={2}>
+A hard link points directly to the file's inode number. Deleting the original file only decreases the link count in the inode. The data is not deleted until the link count reaches 0. Therefore, the hard link remains valid. A symbolic link, however, points to the target filename path; when the target is deleted, the path no longer exists, rendering the symbolic link broken.
 </Quiz>
-### 3\. Essential Commands — Quick Reference
 
-**Why learn these?** In Unix, there's no "right-click > New Folder" or "drag file to trash." Everything happens through commands. Think of each command as a verb — `ls` = "look", `cd` = "go to", `cp` = "copy", `rm` = "delete". Once you learn 20 verbs, you can do anything.
-
-Don't memorize this table. Read through it once, then use the practice questions to test what stuck. Come back to this table as a reference.
-
-| Command | What it does | Key flags |
-| --- | --- | --- |
-| `ls` | List directory | `-l` long, `-a` hidden, `-la` both, `-R` recursive |
-| `pwd` | Print current directory | — |
-| `cd` | Change directory | `cd ~` home, `cd ..` parent, `cd /` root |
-| `mkdir` | Make directory | `-p` creates parents too |
-| `rmdir` | Remove empty directory | Only works if empty |
-| `rm` | Remove files/dirs | `-r` recursive, `-f` force |
-| `cp` | Copy | `-r` for directories |
-| `mv` | Move or rename | `mv old.txt new.txt` renames |
-| `touch` | Create empty file | — |
-| `cat` | Display file contents | — |
-| `head` | First N lines | `-n 5` (default 10) |
-| `tail` | Last N lines | `-n 5` (default 10) |
-| `echo` | Print text | `echo $HOME` |
-| `wc` | Count words/lines/chars | `-w` words, `-l` lines, `-c` bytes |
-| `sort` | Sort lines | `-r` reverse, `-n` numeric, `-k 2` by field |
-| `cut` | Extract columns | `-d ':'` delimiter, `-f 1` field |
-| `grep` | Search patterns | `-i` ignore case, `-r` recursive, `-n` line nums, `-c` count, `-v` invert |
-| `find` | Search for files | `-name`, `-type f/d`, `-size +1M` |
-| `sed` | Stream editor | `sed 's/old/new/g' file` |
-| `awk` | Column processing | `awk '{print $1}' file` |
-| `ps` | Show processes | `ps aux` all processes |
-| `kill` | Signal process | `kill -9 PID` force kill |
-| `chmod` | Change permissions | `chmod 755 file` |
-| `chown` | Change owner | `chown user:group file` |
-| `tar` | Archive files | `-cvzf` create, `-xvzf` extract |
-| `gzip` | Compress | `gunzip` to decompress |
-| `du` | Disk usage | `-h` human-readable |
-| `df` | Disk free space | `-h` human-readable |
-
-### 4\. File Permissions
-
-**Why do permissions exist?** Imagine you work in an office building. Not everyone should have access to every room. The intern shouldn't be able to edit the CEO's files. The accountant shouldn't be able to delete the codebase. Unix permissions are like **security badges** — they control who can open which doors and what they can do once inside.
-
-Every single file and folder in Unix has a permission badge attached to it. This badge answers three questions for three groups of people:
-
-<Callout type="info" title="The three groups (WHO can access)">
-
-
-*   **Owner (u)** — the person who created the file. Like the author of a document.
-*   **Group (g)** — a team of users. Like "the marketing department" — everyone in the group gets the same access.
-*   **Others (o)** — everyone else on the system. Strangers.
-
-
-</Callout>
-
-For each group, Unix tracks three things (WHAT they can do):
-
-| Permission | Symbol | On a File | On a Directory |
-| --- | --- | --- | --- |
-| **Read** | r | Can see the contents | Can list files inside (ls) |
-| **Write** | w | Can modify/edit | Can create/delete files inside |
-| **Execute** | x | Can run it as a program | Can enter the directory (cd) |
-
-<Callout type="info" title="💡 Key insight">
-For directories, "execute" means "can enter." This confuses everyone at first. Think of it like: read = you can peek through the window and see what's inside. Execute = you can actually walk through the door. Without x on a directory, you can see file names but can't actually open any of them.
-</Callout>
-
-#### Reading Permission Strings
-
-When you run `ls -l`, you see something like this:
-
-```java
-# ls -l output:
--rwxr-xr--  1  darshan  staff  1234  Mar 18  script.sh
- ↑↑↑↑↑↑↑↑↑
- │└──┴──┴── owner(rwx) group(r-x) others(r--)
- └ file type: - = file, d = directory
-```
-
-Read it like a sentence: "This is a **file** (-). The **owner** (darshan) can read, write, and execute it (rwx). The **group** (staff) can read and execute but NOT write (r-x). **Everyone else** can only read (r--)."
-
-#### Numeric (Octal) Permissions — The Math
-
-**Why numbers?** Typing `chmod 755` is faster than typing `chmod u=rwx,g=rx,o=rx`. Each permission has a number value, and you just add them up per group.
-
-| Permission | Symbol | Value | Think of it as... |
-| --- | --- | --- | --- |
-| Read | r | 4 | 4 is the biggest — reading is the most basic access |
-| Write | w | 2 | 2 is in the middle |
-| Execute | x | 1 | 1 is the smallest |
-| No permission | \- | 0 | Zero = nothing |
-
-**How to calculate:** Add the values for each group separately. Three groups = three digits.
-
-<Callout type="warn" title="Walkthrough: What is 754?">
-
-
-**7** = 4+2+1 = r+w+x = rwx (owner can do everything)  
-**5** = 4+0+1 = r+-+x = r-x (group can read and execute, not write)  
-**4** = 4+0+0 = r+-+- = r-- (others can only read)
-
-Result: `rwxr-xr--`
-
-
-</Callout>
-
-```java
-chmod 755 file.sh   # rwxr-xr-x → owner:7(rwx), group:5(r-x), others:5(r-x)
-chmod 644 file.txt  # rw-r--r-- → owner:6(rw-), group:4(r--), others:4(r--)
-chmod 777 file      # rwxrwxrwx → everyone full access (DANGEROUS!)
-chmod 400 secret    # r-------- → owner read-only, nobody else can touch it
-```
-<Callout type="error" title="Never use 777 in real life">
-`chmod 777` = everyone can read, write, and execute. It's like leaving all doors unlocked with a "please come in and take whatever you want" sign. In real servers, this is a serious security risk — avoid it outside of isolated local testing.
-</Callout>
-
-#### Symbolic Permissions — The English Way
-
-Instead of math, you can use letters. The format is: **WHO (+/- WHAT)**
-
-```java
-chmod u+x file     # u(owner) +(add) x(execute) → "give owner execute permission"
-chmod g-w file     # g(group) -(remove) w(write) → "take write away from group"
-chmod o+r file     # o(others) +(add) r(read) → "let others read"
-chmod a+x file     # a(all) +(add) x(execute) → "everyone can execute"
-```
-<Callout type="info" title="💡 Common permission values">
-Memorise these three: `755` = rwxr-xr-x (typical script), `644` = rw-r--r-- (typical file), `777` = rwxrwxrwx (everything open). The math is always: r=4, w=2, x=1. Add per group.
-</Callout>
-
-<Quiz question={"A file has permissions `-rw-r-----`. What is the octal value?"} options={["644", "640", "740", "620"]} answerIndex={1}>
-Owner: rw- = 4+2+0 = **6**. Group: r-- = 4+0+0 = **4**. Others: --- = 0+0+0 = **0**. Answer: 640. The group can read but not write, and others have zero access.
+<Quiz question="Which command redirects Standard Error (FD 2) to standard output (FD 1)?" options={["`command > 2`","`command 2>&1`","`command 1>&2`","`command >> 2`"]} answerIndex={1}>
+`2>&1` routes file descriptor 2 (STDERR) to the destination of file descriptor 1 (STDOUT).
 </Quiz>
-<Quiz question={"You want to make a shell script executable by the owner, but keep it read-only for everyone else. Which command?"} options={["chmod 777 script.sh", "chmod 744 script.sh", "chmod 644 script.sh", "chmod 700 script.sh"]} answerIndex={1}>
-744 = Owner: rwx (7 = read+write+execute), Group: r-- (4 = read only), Others: r-- (4 = read only). The owner can execute it, everyone else can only read. Option D (700) would also make it executable for owner, but others can't even read it.
+
+<Quiz question="What is a zombie process in Unix?" options={["A process that consumes 100% CPU.","A process that has finished execution but still has an entry in the process table because its parent has not yet read its exit status.","A process running without a parent.","A background thread."]} answerIndex={1}>
+Zombie processes occupy no memory or CPU; they are simply inactive process table entries waiting for the parent process to fetch their exit code using the `wait()` system call.
 </Quiz>
-### 5\. grep — Pattern Searching
 
-**Why does grep exist?** Imagine you have a 10,000-line server log and something crashed at 3 AM. Are you going to read all 10,000 lines? No. You want to search for "error" or "failed" and see only those lines. That's grep — it's **Ctrl+F for the terminal**, but way more powerful.
+---
 
-The name `grep` stands for "Global Regular Expression Print" — but just think of it as "search."
+### 8. Real-world Practice Problems
 
-```java
-grep "error" log.txt          # find lines containing "error"
-grep -i "error" log.txt        # case-insensitive (catches Error, ERROR, error)
-grep -r "TODO" ./src/          # search ALL files inside src/ folder
-grep -n "main" app.py          # show which LINE NUMBER each match is on
-grep -c "error" log.txt        # just tell me HOW MANY lines matched
-grep -v "error" log.txt        # show lines that DON'T contain "error"
-```
-<Callout type="warn" title="Real scenario">
-
-
-Your app's log file has 5000 lines. You want to know how many times "NullPointerException" appeared, ignoring case:
-
-```java
-grep -ic "nullpointerexception" server.log
-```
-
-Flags combine: `-i` (ignore case) + `-c` (count) = case-insensitive count.
-
-
-</Callout>
-
-| Flag | Meaning | Memory hook |
-| --- | --- | --- |
-| `-i` | Case-insensitive | i = **I**gnore case |
-| `-r` | Recursive (search folders) | r = **R**ecurse into directories |
-| `-n` | Line numbers | n = **N**umbers |
-| `-c` | Count matches | c = **C**ount |
-| `-v` | Invert match | v = in**V**ert (show NON-matching lines) |
-
-<Quiz question={"You want to find all lines in `access.log` that do NOT contain \"200 OK\". Which command?"} options={["grep \"200 OK\" access.log", "grep -c \"200 OK\" access.log", "grep -v \"200 OK\" access.log", "grep -n \"200 OK\" access.log"]} answerIndex={2}>
-`-v` inverts the match — it shows every line that does NOT contain the pattern. This is useful for filtering out noise and finding errors (anything that isn't "200 OK" is probably a problem).
-</Quiz>
-### 6\. Pipes and Redirection
-
-**Why do pipes exist?** Remember the Unix philosophy — small tools chained together? Pipes are the chains. Each command does one thing well, and the pipe (`|`) connects them like LEGO bricks snapping together.
-
-Think of it like a **factory assembly line**. Worker 1 cuts the wood, passes it to Worker 2 who sands it, who passes it to Worker 3 who paints it. Each worker is a command. The conveyor belt between them is the pipe.
-
-#### Pipes (`|`) — The Assembly Line
-
-The pipe takes whatever a command prints to the screen and feeds it as input to the next command. The data flows left to right.
-
-```java
-ls -l | wc -l                  # ls lists files → wc counts the lines = number of files
-cat file.txt | grep "error"    # cat shows file → grep filters only "error" lines
-ps aux | grep "nginx"          # ps shows all processes → grep finds "nginx"
-cat names.txt | sort | uniq  # show → sort alphabetically → remove duplicates
-```
-<Callout type="warn" title="Reading a pipe chain">
-
-
-`cat access.log | grep "404" | wc -l`
-
-Read it like: "Show the log file, **then** keep only lines with '404', **then** count how many." Result: number of 404 errors.
-
-
-</Callout>
-
-#### Redirection — Saving Output to Files
-
-**Why?** By default, commands print output to your screen (called "stdout"). But what if you want to save it? Redirection lets you **reroute the output into a file** instead of the screen. Like redirecting a river into a canal.
-
-| Operator | What it does | Analogy | Example |
-| --- | --- | --- | --- |
-| `>` | Write to file (**overwrite**) | Erase the whiteboard and write new text | `ls > files.txt` |
-| `>>` | Write to file (**append**) | Add new text at the bottom of the whiteboard | `echo "line" >> log.txt` |
-| `<` | Read input from file | Read from a script instead of typing live | `sort < names.txt` |
-| `2>` | Redirect error messages | Send complaints to a separate box | `cmd 2> errors.txt` |
-
-<Callout type="error" title="The #1 common trap: > vs >>">
-`>` **DESTROYS** whatever was in the file and writes fresh. `>>` **ADDS** to the end without touching existing content. If you use `>` on an important file by mistake, the old data is gone forever. Always double-check which operator you need.
-</Callout>
-
-<Quiz question={"What does `cat file1.txt file2.txt | sort | uniq > result.txt` do?"} options={["Sorts file1 and saves to result.txt, ignoring file2", "Combines both files, sorts all lines, removes duplicates, saves to result.txt", "Counts unique lines in both files", "Compares file1 and file2 for differences"]} answerIndex={1}>
-`cat` concatenates both files into one stream. `sort` alphabetizes all lines. `uniq` removes consecutive duplicate lines. `>` saves the final result to result.txt (overwriting it if it existed). This is a classic Unix pipeline — four small tools doing one big job.
-</Quiz>
-<Quiz question={"You run `echo \"hello\" > greet.txt` three times. What does greet.txt contain?"} options={["hello hello hello", "hello (three lines)", "hello (one line)", "The file is empty"]} answerIndex={1}>
-`>` overwrites every time. Each run erases the file and writes "hello" fresh. After three runs, you still just have one "hello". If you wanted three lines, you'd use `>>` (append).
-</Quiz>
-### 7\. Process Management
-
-**Why learn this?** When your Java app hangs on a server, you can't just click the X button — there's no GUI. You need to find the frozen process and kill it from the terminal. Process management is how you become the Task Manager of a Linux server.
-
-Think of processes like **apps running on your phone**. You can see which ones are running (ps), watch them in real-time (top), close them nicely (kill), or force-close a frozen one (kill -9).
-
-**Every running program is a process.** Each process gets a unique number called a **PID** (Process ID) — like an employee ID badge. You use the PID to target a specific process.
-
-#### Viewing Processes
-
-```java
-ps               # show YOUR processes only
-ps aux           # show ALL processes, ALL users (the one you'll use most)
-top              # live dashboard — updates every second (press q to quit)
-```
-
-#### Killing Processes
-
-Unix uses "signals" to communicate with processes. Think of it as sending a message:
-
-```java
-kill 1234        # SIGTERM — "please shut down gracefully" (process CAN refuse)
-kill -9 1234     # SIGKILL — "you're done NOW" (process CANNOT refuse)
-```
-<Callout type="warn" title="Analogy: Asking someone to leave vs. calling security">
-
-
-`kill PID` = politely asking someone to leave. They can save their work and exit gracefully. They can also say "no."
-
-`kill -9 PID` = calling security to physically remove them. No negotiation. No saving work. Instant termination. Use this only when regular kill doesn't work.
-
-
-</Callout>
-
-#### Background and Foreground
-
-```java
-./script.sh &    # run in background — terminal stays free for other commands
-Ctrl+C           # terminate the currently running foreground process
-Ctrl+Z           # suspend (pause) the foreground process — it's still alive but frozen
-bg               # resume a suspended process in the background
-fg               # bring a background process to the foreground
-```
-<Callout type="info" title="💡 Key signals">
-`kill -9` = SIGKILL = force kill. This is the answer to "how do you force kill a process?" Also remember: `&` at the end = run in background.
-</Callout>
-
-<Quiz question={"A process with PID 5678 is frozen and not responding to `kill 5678`. What should you do?"} options={["kill -15 5678", "kill -9 5678", "stop 5678", "rm 5678"]} answerIndex={0}>
-`kill -9` sends SIGKILL, which the process cannot catch, ignore, or refuse. It's the "nuclear option" — the OS forcefully terminates the process. Regular `kill` sends SIGTERM (signal 15), which a frozen process might ignore.
-</Quiz>
-### 8\. tar and gzip
-
-**Why?** You know how you right-click a folder in Windows and "Send to > Compressed (zipped) folder"? Unix has two separate steps for this: **tar** bundles files together (like putting papers in a folder), and **gzip** compresses the bundle (like vacuum-sealing the folder to make it smaller). Usually you do both at once.
-
-**tar** = **T**ape **AR**chive. It was originally for saving files to tape drives. Today it bundles files into one archive.
-
-```java
-tar -cvf archive.tar dir/      # Bundle dir/ into archive.tar (no compression)
-tar -xvf archive.tar           # Unpack archive.tar
-tar -cvzf archive.tar.gz dir/  # Bundle AND compress (z = gzip)
-tar -xvzf archive.tar.gz       # Decompress AND unpack
-gzip file.txt                  # compress single file → file.txt.gz (original deleted!)
-gunzip file.txt.gz             # decompress → file.txt
-```
-<Callout type="info" title="tar flags — spell them out">
-**c** = **C**reate | **x** = e**X**tract | **v** = **V**erbose (show progress) | **f** = **F**ile (always last, followed by filename) | **z** = g**Z**ip compression
-</Callout>
-
-<Callout type="info" title="💡 Memory trick">
-Creating: **c**v**z**f = "Create, Verbose, Zip, File" → `tar -cvzf name.tar.gz folder/`  
-Extracting: **x**v**z**f = "eXtract, Verbose, unZip, File" → `tar -xvzf name.tar.gz`  
-The only letter that changes is c (create) vs x (extract). Everything else stays the same.
-</Callout>
-
-### 9\. sed — Stream Editor
-
-**Why does sed exist?** You need to replace "http" with "https" in 500 config files. Or delete all blank lines from a log. Or change every occurrence of a username. You're NOT going to open each file and Ctrl+H manually. **sed is the "Find and Replace" of the terminal** — it processes text automatically, line by line, at machine speed.
-
-Think of sed like a **factory worker on an assembly line**. Each line of the file rolls past on a conveyor belt. The worker applies one rule (replace this, delete that), and the modified line comes out the other end. The worker never sees the whole file at once — just one line at a time.
-
-#### Substitution — The Core Operation
-
-The most common sed command is `s/old/new/` — substitute "old" with "new":
-
-```java
-sed 's/old/new/' file.txt      # replace FIRST "old" on each line
-sed 's/old/new/g' file.txt     # replace ALL "old" on each line (g = global)
-sed -i 's/foo/bar/g' file.txt  # actually MODIFY the file (-i = in-place)
-```
-<Callout type="error" title="The /g flag — important distinction">
-
-
-Without `/g`: only the FIRST match on each line is replaced. If a line says "error error error", only the first "error" changes.
-
-With `/g`: ALL matches on the line are replaced. All three "error"s change.
-
-Also: without `-i`, sed just PRINTS the result — it does NOT modify the file. With `-i`, it edits the file directly.
-
-
-</Callout>
-
-#### Deleting and Printing Lines
-
-```java
-sed '3d' file.txt              # delete line 3
-sed '2,5d' file.txt            # delete lines 2 through 5
-sed '/pattern/d' file.txt     # delete lines containing "pattern"
-sed -n '3p' file.txt           # print ONLY line 3 (-n suppresses all other output)
-sed -n '2,4p' file.txt         # print only lines 2 to 4
-sed 's/[0-9]//g' file.txt     # remove all digits (replace each digit with nothing)
-```
-<Callout type="info" title="💡 Key sed operations">
-Three things to remember: `s/old/new/` = substitute. `d` = delete. `-n` with `p` = print only specific lines. Add `/g` for global (all matches). Add `-i` to edit the actual file.
-</Callout>
-
-<Quiz question={"What does `sed 's/error/warning/' log.txt` do if a line contains \"error: error occurred\"?"} options={["Replaces both \"error\" with \"warning\"", "Replaces only the first \"error\" with \"warning\"", "Deletes the line", "Does nothing \u2014 you need the -i flag"]} answerIndex={1}>
-Without `/g`, sed only replaces the FIRST match on each line. The result would be "warning: error occurred" — the second "error" is untouched. To replace both, you'd need `s/error/warning/g`.
-</Quiz>
-<Quiz question={"Which command deletes all lines containing \"DEBUG\" from a file and saves the change?"} options={["sed '/DEBUG/d' file.txt", "sed -i '/DEBUG/d' file.txt", "sed 's/DEBUG//g' file.txt", "grep -v \"DEBUG\" file.txt"]} answerIndex={1}>
-Option A prints the result but doesn't save it. Option B uses `-i` (in-place) to actually modify the file. Option C removes the word "DEBUG" but keeps the rest of the line. Option D also works for filtering but doesn't modify the original file.
-</Quiz>
-### 10\. awk — Powerful Column-Based Text Processing
-
-<Callout type="error" title="Real-world problems often require awk">
-**awk** is essential for working with tabular data. Typical tasks: "Given a table/file, find the max salary", "Print employees in a department", "Calculate total/average".
-</Callout>
-
-**Why does awk exist?** Imagine you have a CSV file with 10,000 employee records. You need to find everyone in the "Sales" department earning over 50,000 and calculate their average salary. In Java, that's 20+ lines of code (open file, read line by line, split by comma, check conditions...). In awk, it's ONE line. awk was built specifically for this kind of "look at data in columns, filter and calculate" work.
-
-Think of awk as a **spreadsheet that runs in the terminal**. It reads your file row by row, automatically splits each row into columns ($1, $2, $3...), and lets you filter rows, do math, and print results — all in a single command. It's grep (search) + cut (columns) + a calculator, all rolled into one.
-
-#### Basic Syntax
-
-```java
-# awk 'pattern {action}' file
-# If pattern matches → action runs. If no pattern → runs on every line.
-
-awk '{print}' file.txt            # print every line (like cat)
-awk '{print $0}' file.txt          # same — $0 = entire line
-awk '{print $1}' file.txt          # print 1st column only
-awk '{print $1, $3}' file.txt     # print 1st and 3rd columns
-awk '{print $NF}' file.txt         # print LAST column (NF = number of fields)
-```
-
-#### Field Variables — Memorize These
-
-| Variable | Meaning | Example |
-| --- | --- | --- |
-| `$0` | Entire line | `awk '{print $0}'` — prints full line |
-| `$1, $2, $3...` | 1st, 2nd, 3rd field (column) | `awk '{print $2}'` — prints 2nd column |
-| `$NF` | Last field | `awk '{print $NF}'` — prints last column |
-| `NF` | Number of fields in current line | `awk '{print NF}'` — how many columns |
-| `NR` | Current line number (record number) | `awk '{print NR, $0}'` — numbered lines |
-| `FS` | Field separator (default: space/tab) | `awk -F: '{print $1}'` — use : as separator |
-| `OFS` | Output field separator | `awk -v OFS="," '{print $1,$2}'` |
-| `RS` | Record separator (default: newline) | Each line is one record |
-
-<Callout type="info" title="Key — $NF vs NF">
-`NF` = the NUMBER of fields (e.g., 5). `$NF` = the VALUE of the last field. `$(NF-1)` = second-to-last field. This distinction gets asked.
-</Callout>
-
-#### Field Separator (-F flag)
-
-```java
-# Default separator is space/tab. Use -F to change it.
-
-awk -F':' '{print $1}' /etc/passwd   # colon-separated (like /etc/passwd)
-awk -F',' '{print $1,$2}' data.csv   # comma-separated (CSV file)
-awk -F'\t' '{print $2}' file.tsv    # tab-separated
-awk -F'|' '{print $3}' file.txt     # pipe-separated
-```
-
-#### Pattern Matching — Filter Lines
-
-```java
-# Only process lines that match a condition
-
-awk '/pattern/ {print}' file.txt        # lines containing "pattern"
-awk '$3 > 50000 {print $1, $3}' emp.txt # salary (col3) > 50000
-awk '$2 == "IT" {print $1}' emp.txt      # department (col2) is IT
-awk 'NR >= 2 {print}' file.txt           # skip header (line 1), print rest
-awk 'NR == 3 {print}' file.txt           # print only line 3
-awk '$1 != "Name" {print}' file.txt     # skip lines where col1 is "Name"
-awk '$3 > 30000 && $2 == "HR"' emp.txt  # multiple conditions with &&
-awk '$3 > 30000 || $2 == "HR"' emp.txt  # OR condition
-```
-
-#### BEGIN and END Blocks
-
-```java
-# BEGIN runs BEFORE processing any lines
-# END runs AFTER processing all lines
-
-awk 'BEGIN {print "=== Report ==="} {print $0} END {print "=== Done ==="}' file.txt
-
-# Calculate total salary
-awk 'BEGIN {total=0} {total += $3} END {print "Total:", total}' emp.txt
-
-# Count lines
-awk 'END {print NR, "lines"}' file.txt
-
-# Calculate average salary
-awk 'BEGIN {sum=0; count=0} {sum += $3; count++} END {print "Avg:", sum/count}' emp.txt
-```
-<Callout type="warn" title="Common Pattern — This Will Come Up">
-"Given a file with employee data, calculate the total/average salary" — use `BEGIN` to initialise variables, main block to accumulate, `END` to print result. This is the most common awk question pattern.
-</Callout>
-
-#### Common Pattern: Employee Table Questions
-
-Assume this file `emp.txt` (space-separated):
-
-```java
-Name    Dept    Salary
-Darshan IT      45000
-Rahul   HR      38000
-Priya   IT      52000
-Amit    Finance 41000
-Sneha   HR      47000
-Kiran   IT      55000
-```
-
-**Q1: Print all employee names and salaries**
-
-```java
-awk 'NR > 1 {print $1, $3}' emp.txt
-# NR > 1 skips the header row
-# Output: Darshan 45000, Rahul 38000, ...
-```
-
-**Q2: Print employees in IT department**
-
-```java
-awk '$2 == "IT" {print $1, $3}' emp.txt
-# Output: Darshan 45000, Priya 52000, Kiran 55000
-```
-
-**Q3: Find the maximum salary**
-
-```java
-awk 'NR > 1 {if ($3 > max) {max = $3; name = $1}} END {print name, max}' emp.txt
-# Output: Kiran 55000
-```
-
-**Q4: Find the minimum salary**
-
-```java
-awk 'NR == 2 {min = $3; name = $1} NR > 2 {if ($3 < min) {min = $3; name = $1}} END {print name, min}' emp.txt
-# Initialize min with first data row (NR==2), then compare rest
-# Output: Rahul 38000
-```
-
-**Q5: Calculate total salary**
-
-```java
-awk 'NR > 1 {total += $3} END {print "Total:", total}' emp.txt
-# Output: Total: 278000
-```
-
-**Q6: Calculate average salary**
-
-```java
-awk 'NR > 1 {sum += $3; count++} END {print "Average:", sum/count}' emp.txt
-# Output: Average: 46333.3
-```
-
-**Q7: Count employees per department**
-
-```java
-awk 'NR > 1 {dept[$2]++} END {for (d in dept) print d, dept[d]}' emp.txt
-# Output: IT 3, HR 2, Finance 1
-# dept[$2]++ creates an associative array (like a HashMap) counting by department
-```
-
-**Q8: Print employees with salary above average**
-
-```java
-# Two-pass approach: first calculate average, then filter
-awk 'NR > 1 {sum += $3; count++; names[NR]=$1; sals[NR]=$3} END {avg=sum/count; for (i in names) if (sals[i] > avg) print names[i], sals[i]}' emp.txt
-```
-
-**Q9: Print employees sorted by salary (with sort pipe)**
-
-```java
-awk 'NR > 1 {print $3, $1}' emp.txt | sort -n
-# Output: 38000 Rahul, 41000 Amit, 45000 Darshan, ...
-```
-
-**Q10: Department-wise total salary**
-
-```java
-awk 'NR > 1 {dept[$2] += $3} END {for (d in dept) print d, dept[d]}' emp.txt
-# Output: IT 152000, HR 85000, Finance 41000
-```
-<Callout type="info" title="Key Patterns to Memorize">
-
-
-*   **Skip header:** `NR > 1`
-*   **Filter by column:** `$2 == "value"`
-*   **Sum a column:** `{total += $3} END {print total}`
-*   **Average:** `{sum += $3; count++} END {print sum/count}`
-*   **Max:** `{if ($3 > max) max = $3} END {print max}`
-*   **Count per group:** `{arr[$2]++} END {for (k in arr) print k, arr[k]}`
-*   **Sum per group:** `{arr[$2] += $3} END {for (k in arr) print k, arr[k]}`
-
-
-</Callout>
-
-#### awk with printf — Formatted Output
-
-```java
-# printf gives formatted output (like C's printf)
-awk 'NR > 1 {printf "%-10s %-8s %d\n", $1, $2, $3}' emp.txt
-# %-10s = left-aligned string, 10 chars wide
-# %d = integer, %f = float, %s = string
-# \n = newline (printf doesn't add one automatically)
-
-# Print salary with 2 decimal places
-awk 'NR > 1 {printf "%s: %.2f\n", $1, $3}' emp.txt
-```
-
-#### awk — if/else and Loops
-
-```java
-# if/else inside awk
-awk 'NR > 1 {if ($3 > 45000) print $1, "HIGH"; else print $1, "LOW"}' emp.txt
-
-# Ternary operator
-awk 'NR > 1 {print $1, ($3 > 45000 ? "HIGH" : "LOW")}' emp.txt
-
-# for loop — print each field on a line
-awk '{for (i = 1; i <= NF; i++) print $i}' file.txt
-```
-
-#### awk with Pipes — Combining Commands
-
-```java
-# awk works beautifully with pipes
-
-# Find top 3 salaries
-awk 'NR > 1 {print $3, $1}' emp.txt | sort -rn | head -3
-
-# Count unique departments
-awk 'NR > 1 {print $2}' emp.txt | sort -u | wc -l
-
-# grep + awk combo — find IT employees and their salaries
-grep "IT" emp.txt | awk '{print $1, $3}'
-
-# Process command output
-ls -l | awk '{print $9, $5}'  # filename and size from ls -l
-df -h | awk 'NR > 1 {print $1, $5}'  # disk usage %
-```
-<Callout type="warn" title="In Practice — How Questions Look">
-You are given a file content (like emp.txt above) and asked:  
-**"Write an awk command to find the employee with the highest salary"**  
-**"Write an awk command to calculate total salary of IT department"**  
-**"Write an awk command to print names of employees earning more than 40000"**  
-All of these follow the patterns above. Practice with the emp.txt examples until they're automatic.
-</Callout>
-
-#### Quick Reference — awk Cheat Sheet
-
-| Task | Command |
-| --- | --- |
-| Print column 1 | `awk '{print $1}' file` |
-| Print last column | `awk '{print $NF}' file` |
-| Custom separator | `awk -F',' '{print $1}' file` |
-| Filter rows | `awk '$3 > 100' file` |
-| String match | `awk '$2 == "IT"' file` |
-| Pattern match | `awk '/regex/' file` |
-| Skip header | `awk 'NR > 1' file` |
-| Line numbers | `awk '{print NR, $0}' file` |
-| Sum column | `awk '{s += $3} END {print s}' file` |
-| Average | `awk '{s+=$3;c++} END {print s/c}' file` |
-| Max value | `awk '{if($3>m)m=$3} END {print m}' file` |
-| Count per group | `awk '{a[$2]++} END {for(k in a) print k,a[k]}' file` |
-| Sum per group | `awk '{a[$2]+=$3} END {for(k in a) print k,a[k]}' file` |
-| Formatted output | `awk '{printf "%-10s %d\n",$1,$3}' file` |
-
-### 11\. Shell Scripting Basics
-
-**Why write shell scripts?** You've been typing commands one at a time. But what if you need to run the same 10 commands every morning? Or automate a backup every night? A shell script is just a **text file full of commands that run automatically**, one after another. It's like recording a macro in Excel — write the steps once, run them whenever you want.
-
-Think of a shell script as a **recipe card**. The recipe lists steps in order. When you "run" the recipe (execute the script), the kitchen (the shell) follows each step from top to bottom.
-
-#### The Shebang — Every Script Starts Here
-
-The very first line of every shell script must be:
-
-```java
-#!/bin/bash
-```
-
-This is called the **shebang** (or hashbang). It tells the OS: "Use the bash shell to run this script." Without it, the system might not know how to interpret your file. It's like writing "Language: English" at the top of a document — so the reader knows how to read it.
-
-#### Variables — Storing Values
-
-Variables in bash are simple but have one critical gotcha:
-
-```java
-# CORRECT — no spaces around =
-NAME="Darshan"
-echo "Hello $NAME"    # prints: Hello Darshan
-
-# WRONG — spaces around = causes an error!
-# NAME = "Darshan"     ← this FAILS. Bash thinks NAME is a command.
-```
-<Callout type="error" title="The #1 shell scripting mistake">
-`NAME="Darshan"` works. `NAME = "Darshan"` FAILS. No spaces around the `=` sign. This is the opposite of every other programming language and trips up everyone.
-</Callout>
-
-```java
-# Read user input
-read -p "Enter name: " USERNAME
-echo "You entered: $USERNAME"
-```
-
-#### if-then-else — Making Decisions
-
-Bash's if-else looks different from Java/Python. The structure is: `if [ condition ]; then ... elif ... else ... fi`. Note: **fi** is "if" spelled backwards — it closes the if block.
-
-```java
-if [ $AGE -gt 18 ]; then
-    echo "Adult"
-elif [ $AGE -eq 18 ]; then
-    echo "Just 18"
-else
-    echo "Minor"
-fi
-```
-<Callout type="info" title="Why -gt instead of > ?">
-In bash, `>` means "redirect to file" (remember the redirection section?). So bash uses word-based operators for number comparisons: `-gt` (greater than), `-lt` (less than), etc. Think of them as abbreviations: **g**reater **t**han, **l**ess **t**han, **eq**ual, **n**ot **e**qual, **g**reater-or-**e**qual, **l**ess-or-**e**qual.
-</Callout>
-
-#### Loops — Repeating Actions
-
-```java
-# for loop — iterate over a list
-for i in 1 2 3 4 5; do
-    echo "$i"
-done
-
-# while loop — repeat while condition is true
-COUNT=1
-while [ $COUNT -le 5 ]; do
-    echo "$COUNT"
-    COUNT=$((COUNT + 1))   # $(( )) does arithmetic in bash
-done
-```
-<Callout type="info" title="💡 Key syntax">
-`$(( ))` is how bash does math. `$((5 + 3))` = 8. Without it, bash treats numbers as text. Also: loops end with `done`, not a closing brace.
-</Callout>
-
-#### case Statement — The Switch of Bash
-
-Like Java's switch. Pattern matches a value and runs the matching block. `;;` is like `break`. `*)` is the default case.
-
-```java
-case $1 in
-    start)  echo "Starting..." ;;
-    stop)   echo "Stopping..." ;;
-    *)      echo "Usage: $0 {start|stop}" ;;
-esac
-```
-
-`esac` is "case" spelled backwards — it closes the case block. (`fi` closes `if`, `esac` closes `case`.)
-
-#### Comparison Operators
-
-Bash uses different operators for numbers vs. strings. This is a common exam trap.
-
-| Numbers | Meaning | Strings | Meaning |
-| --- | --- | --- | --- |
-| `-eq` | equal | `=` | equal |
-| `-ne` | not equal | `!=` | not equal |
-| `-gt` | greater than | `-z` | string is empty |
-| `-lt` | less than | `-n` | string is non-empty |
-| `-ge` | greater or equal |  |  |
-| `-le` | less or equal |  |  |
-
-<Callout type="warn" title="Why two systems?">
-
-
-For numbers: `[ 5 -gt 3 ]` means "is 5 greater than 3?" (yes)
-
-For strings: `[ "$NAME" = "Darshan" ]` means "is NAME exactly Darshan?" (yes)
-
-You can't use `=` for number comparison or `-eq` for string comparison. This is a commonly confused distinction — the type of value (number vs string) determines which operators to use.
-
-
-</Callout>
-
-#### File Test Operators
-
-These check properties of files. Incredibly useful in scripts — "does this file exist before I try to read it?"
-
-| Operator | True if... | Use case |
-| --- | --- | --- |
-| `-f file` | Regular file exists | Check before reading |
-| `-d file` | Directory exists | Check before cd-ing into it |
-| `-e file` | File exists (any type) | General existence check |
-| `-r file` | Readable | Check before cat/grep |
-| `-w file` | Writable | Check before writing to it |
-| `-x file` | Executable | Check before running a script |
-| `-s file` | Size > 0 (not empty) | Check if file has content |
-
-<Callout type="warn" title="Real example: Safe script">
-
-```java
-if [ -f "data.csv" ]; then
-    echo "Processing data..."
-    awk -F',' 'NR > 1 {sum += $3} END {print sum}' data.csv
-else
-    echo "Error: data.csv not found!"
-fi
-```
-
-Always check if a file exists before operating on it. This prevents ugly error messages.
-
-
-</Callout>
-
-<Quiz question={"What is wrong with this script? `NAME = \"Darshan\"; echo $NAME`"} options={["Missing shebang line", "Spaces around = in variable assignment", "Should use echo \"$NAME\" with quotes", "Nothing \u2014 it works fine"]} answerIndex={1}>
-Spaces around `=` in variable assignment cause an error. Bash interprets `NAME` as a command name, not a variable. The correct syntax is `NAME="Darshan"` with NO spaces. This is the single most common shell scripting mistake.
-</Quiz>
-<Quiz question={"Which operator checks if a number is greater than or equal to another in bash?"} options={["\\>=", "\\-ge", "\\-gte", "\\-greq"]} answerIndex={1}>
-`-ge` = **g**reater-or-**e**qual. Bash uses `-eq`, `-ne`, `-gt`, `-lt`, `-ge`, `-le` for numeric comparisons. The `>=` operator doesn't work in `[ ]` test brackets.
-</Quiz>
-### 12\. Special Path Symbols
-
-These are shortcuts for navigating the file system. Think of them as **bookmarks**:
-
-| Symbol | Meaning | Real-world analogy |
-| --- | --- | --- |
-| `~` | Home directory (`/home/darshan`) | Your house — `cd ~` always takes you home |
-| `.` | Current directory | "Right here" — where you're standing now |
-| `..` | Parent directory (one level up) | "Go upstairs" — the folder containing this one |
-| `/` | Root directory | The ground floor — the very top of the file tree |
-| `-` | Previous directory (where you just were) | "Go back" — like the back button in a browser |
-
-<Callout type="info" title="💡 Path shortcuts">
-`~` = home directory is the most commonly asked. Also remember: `cd ..` goes up one level, `cd ../..` goes up two levels.
-</Callout>
-
-### 13\. crontab — Scheduling
-
-**Why?** You wrote a backup script. Great. Now who runs it at 2 AM every night? You're not setting an alarm to wake up and type the command. **crontab is the alarm clock of Unix** — it runs commands automatically on a schedule, whether you're asleep, on vacation, or doing anything else.
-
-The format has 5 time fields followed by the command to run:
-
-```java
-# ┌───── minute (0-59)
-# │ ┌───── hour (0-23)
-# │ │ ┌───── day of month (1-31)
-# │ │ │ ┌───── month (1-12)
-# │ │ │ │ ┌───── day of week (0-6, 0=Sunday)
-# │ │ │ │ │
-# * * * * * command
-
-0 2 * * * /home/darshan/backup.sh    # 2:00 AM, every day
-*/5 * * * * /scripts/check.sh        # every 5 minutes
-0 9 * * 1 /scripts/weekly.sh         # 9:00 AM every Monday (1=Monday)
-30 18 1 * * /scripts/monthly.sh      # 6:30 PM on the 1st of every month
-```
-<Callout type="info" title="💡 Reading crontab">
-`*` = "every" (every minute, every hour, etc.). `*/5` = "every 5th." Read left to right: minute, hour, day, month, weekday. So `0 9 * * 1` = "at minute 0, hour 9, any day, any month, on Monday."
-</Callout>
-
-<Quiz question={"What does the cron expression `0 0 * * 0` mean?"} options={["Every minute on Sunday", "Midnight every day", "Midnight every Sunday", "Noon every Saturday"]} answerIndex={2}>
-Minute=0, Hour=0 (midnight), Day=* (any), Month=* (any), Weekday=0 (Sunday). So it runs at midnight every Sunday. Remember: 0 in the weekday field = Sunday.
-</Quiz>
-### 14\. Practice Questions — Unix
-
-<Quiz question={"Which command lists all files including hidden files?"} options={["ls -l", "ls -a", "ls -R", "ls -h"]} answerIndex={1}>
-✅ B) `ls -a` shows ALL files including hidden ones (starting with dot).
-</Quiz>
-<Quiz question={"What permissions does `chmod 755` assign?"} options={["rwxrwxrwx", "rw-r--r--", "rwxr-xr-x", "rwxrwxr-x"]} answerIndex={2}>
-✅ C) rwxr-xr-x. Owner=7(rwx), Group=5(r-x), Others=5(r-x).
-</Quiz>
-<Quiz question={"Which command counts words in a file?"} options={["wc -l file", "wc -c file", "wc -w file", "count file"]} answerIndex={2}>
-✅ C) `wc -w` counts words. -l = lines, -c = bytes.
-</Quiz>
-<Quiz question={"What does `~` represent?"} options={["Root directory", "Current directory", "Parent directory", "Home directory"]} answerIndex={3}>
-✅ D) Home directory of the current user. Root = /, Current = ., Parent = ..
-</Quiz>
-<Quiz question={"How to force kill process with PID 4521?"} options={["kill 4521", "kill -15 4521", "kill -9 4521", "stop 4521"]} answerIndex={2}>
-✅ C) `kill -9` sends SIGKILL — force kill, cannot be caught or ignored.
-</Quiz>
-<Quiz question={"What is the numeric value of `rw-r--r--`?"} options={["755", "644", "600", "666"]} answerIndex={1}>
-✅ B) 644. Owner: rw-=6, Group: r--=4, Others: r--=4.
-</Quiz>
-<Quiz question={"What does `ls | wc -l` do?"} options={["Lists files and counts characters", "Counts files in current directory", "Counts words in a file named ls", "Lists files sorted by count"]} answerIndex={1}>
-✅ B) ls outputs filenames, pipe sends to wc -l which counts lines = number of files.
-</Quiz>
-<Quiz question={"Which grep flag makes search case-insensitive?"} options={["grep -n", "grep -v", "grep -i", "grep -c"]} answerIndex={2}>
-✅ C) `-i` = ignore case.
-</Quiz>
-<Quiz question={"Difference between `>` and `>>`?"} options={["\\> appends; >> overwrites", "\\> reads; >> writes", "\\> overwrites; >> appends", "Both do the same"]} answerIndex={2}>
-✅ C) `>` overwrites the file. `>>` appends to the end.
-</Quiz>
-<Quiz question={"Output of: `x=5; if [ $x -gt 3 ]; then echo \"yes\"; else echo \"no\"; fi`"} options={["no", "yes", "5", "Error"]} answerIndex={1}>
-✅ B) yes. 5 > 3 is true, so "yes" is printed.
-</Quiz>
-<Quiz question={"Which searches recursively for \"password\" in /etc?"} options={["grep \"password\" /etc", "grep -r \"password\" /etc", "find /etc -name \"password\"", "grep -n \"password\" /etc"]} answerIndex={1}>
-✅ B) `grep -r` = recursive grep through all files in directory.
-</Quiz>
-<Quiz question={"Which directory stores temporary files cleared on reboot?"} options={["/var", "/etc", "/tmp", "/home"]} answerIndex={2}>
-✅ C) `/tmp` stores temporary files cleared on reboot.
-</Quiz>
-<Quiz question={"Output of: `for i in 1 2 3; do echo $i; done`"} options={["1 2 3 (one line)", "1, 2, 3 on separate lines", "i i i", "Error"]} answerIndex={1}>
-✅ B) Each echo prints on a new line: 1, 2, 3 on separate lines.
-</Quiz>
-<Quiz question={"Which creates a gzip-compressed tar archive of `project/`?"} options={["tar -xvf project.tar.gz project/", "tar -cvzf project.tar.gz project/", "gzip project/", "tar -tvf project.tar.gz"]} answerIndex={1}>
-✅ B) `tar -cvzf`: c=Create, v=Verbose, z=gzip, f=File.
-</Quiz>
-<Quiz question={"Permissions `-rwxr-x---` in octal?"} options={["777", "754", "750", "755"]} answerIndex={2}>
-✅ C) 750. Owner: rwx=7, Group: r-x=5, Others: ---=0.
-</Quiz>
-<Callout type="error" title="Common Gotchas">
-
-
-*   **Case-insensitive matching** — use `tolower()` in AWK or `IGNORECASE=1`. Almost every question needs this
-*   **Exact output format** — `"Total Salary = 135000"` must match character for character. Copy the format from the problem
-*   **"Not found" message** — if no rows match, you must print the fallback message (e.g., `"No Employee Found"`)
-*   **Command-line argument** — filename comes as `$1` when the script runs. Use it, don't hardcode a filename
-*   **Skip header row** — CSV files usually have a header. Use `NR > 1` in AWK to skip it
-
-
-</Callout>
-
-### 15\. Practice Walkthrough — Employee Salary Problem
-
-<Problem title="15\. Practice Walkthrough — Employee Salary Problem">
+<Problem title="Problem 1: Process and File Descriptor Redirect">
 <ProblemDescription>
-Below is a practice problem — read carefully and study the solution line by line.
-Employee data is in a CSV file: `EmpName,Role,Division,Salary`
-
-Calculate the total salary of employees in the "Sales" division (case-insensitive). Print `Total Salary = [sum]`. If no match, print `No Employee Found`.
-
-File name is passed as command-line argument `$1`.
+Write a bash script that runs a background task `backup_system.sh`, redirects all normal logs to `/var/log/backup.log`, redirects all error logs to `/var/log/backup_err.log`, and prints the background job process ID (PID) to the screen.
 </ProblemDescription>
 <ProblemSolution>
-**Solution:**
+This script uses standard file descriptor routing:
 
-```java
-awk -F"," '
-BEGIN { total = 0; found = 0 }
-NR > 1 && tolower($3) == "sales" {      # skip header, case-insensitive match
-    total += $4;                           # $4 = Salary column
-    found = 1
-}
-END {
-    if (found)
-        print "Total Salary = " total      # exact format from problem
-    else
-        print "No Employee Found"          # exact fallback message
-}
-' $1                                     # $1 = filename from command-line
+```bash
+#!/bin/bash
+
+# Start the script in the background, routing STDOUT to FD 1's file and STDERR to FD 2's file
+./backup_system.sh > /var/log/backup.log 2> /var/log/backup_err.log &
+
+# Fetch the PID of the last background process
+BACKUP_PID=$!
+
+echo "Backup job started in the background with PID: $BACKUP_PID"
 ```
-<Callout type="info" title="Key details in this solution">
+</ProblemSolution>
+</Problem>
 
+<Problem title="Problem 2: Text Wrangling with Awk and Sed">
+<ProblemDescription>
+Given a space-separated log file `transactions.log` where column 3 is the transaction status (e.g. `SUCCESS`, `FAILED`) and column 5 is the amount.
+Write a pipeline that:
+1. Filters for rows containing `SUCCESS`.
+2. Changes all currency symbols `$` to empty spaces.
+3. Sums up the total transaction amount.
+</ProblemDescription>
+<ProblemSolution>
+This pipeline combines text parsing and aggregation:
 
-*   **`-F","`** — sets comma as field separator for CSV
-*   **`NR > 1`** — skips the header row (line 1)
-*   **`tolower($3) == "sales"`** — case-insensitive comparison on Division column
-*   **`found` flag** — tracks whether any match was found, for the "No Employee Found" case
-*   **`$1` at the end** — reads the file whose name was passed as argument
-*   **Exact output strings** — copied from the problem statement, not typed from memory
-
-
-</Callout>
-
-<Callout type="warn" title="Practice">
-Practice writing code from scratch and explaining concepts. Work through similar problems using the emp.txt examples shown in the awk section above.
-</Callout>
+```bash
+# 1. Filter rows where col 3 is SUCCESS
+# 2. Use sed to strip out the dollar signs
+# 3. Sum column 5 values with awk
+awk '$3 == "SUCCESS"' transactions.log | sed 's/\$//g' | awk '{ sum += $5 } END { print "Total: " sum }'
+```
 </ProblemSolution>
 </Problem>

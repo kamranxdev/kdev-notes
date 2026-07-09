@@ -1,663 +1,170 @@
 ---
 title: Cascading Style Sheets (CSS)
+description: A detailed guide to CSS engine selectors, specificity math, box model configurations, Flexbox vs Grid layouts, and GPU-composited animations.
 ---
 
-Think of HTML as the skeleton of a house — walls, rooms, doors. CSS is the interior design — paint colors, furniture arrangement, spacing between objects. Without CSS, every webpage would look like a plain text document from 1995.
+### 1. Specificity & The Cascade
 
-CSS controls how HTML elements look — colors, spacing, layout, fonts, animations. There are three ways to add CSS to your page:
+When multiple CSS styles target the same HTML element, the browser runs a bidding scoring sheet to decide which style wins.
+*   **Analogy**: A points-based bidding auction.
 
-| Method | Syntax | Priority |
-| --- | --- | --- |
-| **Inline** | `<p style="color:red">` | Highest (1000) |
-| **Internal** | `<style>` in `<head>` | Normal |
-| **External** | `<link rel="stylesheet" href="style.css">` | Normal |
-
-<Callout type="info" title="Why external is best">
-Inline styles are like writing instructions on every single brick of a house — tedious and impossible to maintain. External CSS is like having a single blueprint that controls the entire building. Change one line in the blueprint, and every room updates. That is why real projects always use external stylesheets.
-</Callout>
-
-### 1\. CSS Selectors
-
-**Why do selectors exist?** Imagine you are a teacher in a classroom of 30 students. You need a way to say "Hey, YOU specifically" or "everyone in the back row" or "all students wearing blue shirts." CSS selectors are exactly that — they are how you _point at_ specific HTML elements and say "I want to style YOU."
-
-Without selectors, you would have to put inline styles on every single element. Selectors let you write one rule that applies to many elements at once, or target one very specific element.
-
-| Selector | Syntax | Selects |
-| --- | --- | --- |
-| Universal | `*` | All elements (like yelling "EVERYONE!") |
-| Element | `p` | All `<p>` tags (like saying "all paragraphs") |
-| Class | `.intro` | Elements with `class="intro"` (like a team jersey — many can wear it) |
-| ID | `#main` | Element with `id="main"` (like a roll number — unique to one person) |
-| Descendant | `div p` | All `<p>` inside `<div>` (children, grandchildren, great-grandchildren...) |
-| Child | `div > p` | Direct `<p>` children of `<div>` (only immediate children, not grandkids) |
-| Adjacent sibling | `h2 + p` | First `<p>` right after `<h2>` (the next-door neighbor) |
-| General sibling | `h2 ~ p` | All `<p>` siblings after `<h2>` (all neighbors on the same street) |
-| Attribute | `input[type="text"]` | Inputs with type text (selecting by a specific trait) |
-| Group | `h1, h2, h3` | All h1, h2, and h3 elements (applying one rule to multiple selectors) |
-
-<Callout type="warn" title="Descendant vs Child — the most confusing part">
-Think of a family tree. `div p` (descendant) selects ALL `<p>` elements anywhere inside `<div>` — children, grandchildren, great-grandchildren. `div > p` (child) only selects **direct children** — just the first generation, not nested ones.  
-  
-If a `<p>` is inside a `<span>` inside a `<div>`, then `div p` will select it, but `div > p` will NOT — because that `<p>` is a grandchild, not a direct child.
-</Callout>
-
-```java
-/* Element selector — targets ALL paragraphs */
-p { color: blue; }
-
-/* Class selector — targets anything with class="highlight" */
-.highlight { background: yellow; }
-
-/* ID selector — targets the ONE element with id="header" */
-#header { font-size: 24px; }
-
-/* Descendant vs Child — key distinction */
-div p   { color: red; }   /* ALL p inside div (any depth) */
-div > p { color: blue; }  /* only DIRECT p children of div */
-
-/* Attribute selector */
-a[target="_blank"] { color: red; }
 ```
-<Callout type="info" title="Key Concept">
-"What does `div > p` select?" — It selects only **direct child** `<p>` elements, not nested ones. Compare with `div p` which selects ALL descendants. Also watch for `p.intro` vs `.intro p` — totally different things! `p.intro` = a paragraph WITH class intro. `.intro p` = a paragraph INSIDE something with class intro.
-</Callout>
-
-<Quiz question={"Given this HTML: `<div><span><p>Hello</p></span></div>`, which selector will style the `<p>`?"} options={["`div > p`", "`div p`", "`span > div`", "`div + p`"]} answerIndex={1}>
-B) `div p` — the descendant selector matches `<p>` at any depth inside `<div>`. Option A fails because `<p>` is a grandchild (not direct child) of `<div>`. The child selector `>` only matches immediate children.
-</Quiz>
-<Quiz question={"What is the difference between `p.intro` and `.intro p`?"} options={["They are the same thing", "`p.intro` selects paragraphs with class \"intro\"; `.intro p` selects paragraphs inside elements with class \"intro\"", "`p.intro` selects elements with id \"intro\"; `.intro p` selects class \"intro\"", "`p.intro` is invalid CSS syntax"]} answerIndex={1}>
-B) `p.intro` means "a `<p>` element that HAS class intro" (no space = same element). `.intro p` means "any `<p>` that is INSIDE an element with class intro" (space = descendant relationship). Completely different selections.
-</Quiz>
-### 2\. Box Model
-
-**Why does the box model matter?** Here is the single most important thing to understand about CSS layout: _every single HTML element is a rectangular box_. Not some elements. Not just divs. EVERY element — paragraphs, headings, images, links — they are all invisible boxes sitting on the page.
-
-The box model describes the four layers that make up every one of these boxes. Think of it like a **picture in a frame**:
-
-*   **Content** — the picture itself (your text, image, or whatever the element displays)
-*   **Padding** — the matting around the picture (space between the picture and the frame). Same background color as the content.
-*   **Border** — the actual frame around the matting
-*   **Margin** — the wall space between this frame and the next frame hanging on the wall. Always transparent — you can never color a margin.
-
-```java
-/*
-┌──────────────── margin ────────────────┐
-│ ┌──────────── border ────────────────┐ │
-│ │ ┌────────── padding ────────────┐  │ │
-│ │ │ ┌──────── content ─────────┐  │  │ │
-│ │ │ │                          │  │  │ │
-│ │ │ └──────────────────────────┘  │  │ │
-│ │ └───────────────────────────────┘  │ │
-│ └────────────────────────────────────┘ │
-└────────────────────────────────────────┘
-*/
+                  CSS Specificity Score Sheet
+  ┌────────────────────────────────────────────────────────┐
+  │ Selection Type          │ Points   │ Selector Example  │
+  ├─────────────────────────┼──────────┼───────────────────┤
+  │ Inline Styles           │ 1000     │ style="..."       │
+  │ ID Selectors            │ 100      │ #header           │
+  │ Classes / Attributes    │ 10       │ .btn, [type=""]   │
+  │ Elements / Pseudo-elems │ 1        │ div, p, ::before  │
+  │ Universal Selector      │ 0        │ *                 │
+  └────────────────────────────────────────────────────────┘
 ```
 
-| Layer | What it does | Affected by background? |
-| --- | --- | --- |
-| **Content** | The actual text/image | Yes |
-| **Padding** | Space between content and border | Yes |
-| **Border** | Edge around padding | Has own color |
-| **Margin** | Space outside the border | No — always transparent |
+The selector with the highest score wins the auction and styles the element.
+*   If two selectors have the exact same score, the last bidder (the style declared lower down in the stylesheet) wins the auction.
+*   The `!important` rule is an immediate override card. It overrides standard specificity points, but should be used sparingly because it makes debugging cascade overrides difficult.
 
-<Callout type="error" title="Critical — total width calculation">
-This trips up everyone. When you say `width: 200px`, you might think the element takes 200px on screen. WRONG. By default, `width` only sets the **content** area. Padding and border are ADDED on top.  
-  
-**Default (content-box):** Total width = width + padding-left + padding-right + border-left + border-right  
-If `width: 200px; padding: 20px; border: 5px` → total = 200 + 40 + 10 = **250px**  
-  
-**With box-sizing: border-box:** Total width = width (padding and border included inside)  
-Same values → total = **200px** (content area shrinks to 150px to make room for padding and border)  
-  
-This is why every modern CSS reset starts with `* { box-sizing: border-box; }` — it makes `width` mean "total width" which is what your brain expects.
-</Callout>
+```css
+/* Specificity: 0-1-0-1 (101 points) */
+#menu a { color: blue; }
 
-```java
-.box {
-  width: 200px;
-  padding: 20px;
-  border: 5px solid black;
-  margin: 10px;
-}
-/* Total width on screen: 200 + 20*2 + 5*2 = 250px */
-/* Total space occupied: 250 + 10*2 = 270px */
+/* Specificity: 0-0-2-1 (21 points) */
+.nav-item.active a { color: red; }
 
-/* Fix: use border-box so width means total width */
-* { box-sizing: border-box; }
+/* In this battle, #menu a wins, and the links are colored blue! */
 ```
-<Callout type="info" title="Margin collapse — the weird CSS behavior">
-Imagine two magnets placed end to end — they don't stack their forces, the stronger one wins. Vertical margins work the same way. When element A has `margin-bottom: 30px` and element B has `margin-top: 20px`, the gap between them is **30px** (not 50px) — the larger margin absorbs the smaller one. This ONLY happens vertically. Horizontal margins never collapse.
-</Callout>
 
-<Quiz question={"What is the total width of an element with: `width: 300px; padding: 20px; border: 5px solid; margin: 10px;`?"} options={["300px", "350px", "370px", "350px content + 20px margin on each side"]} answerIndex={1}>
-B) 350px — width(300) + padding(20x2) + border(5x2) = 350px. Margin is not part of the element's width but adds to total space occupied (370px total space). Remember: by default, `width` only sets the content area.
-</Quiz>
-<Quiz question={"Two adjacent elements: first has `margin-bottom: 40px`, second has `margin-top: 25px`. What is the gap between them?"} options={["65px", "40px", "25px", "32.5px"]} answerIndex={1}>
-B) 40px — vertical margins collapse. The larger margin wins, so the gap is 40px, not 65px. This only happens with vertical margins (top/bottom), never horizontal (left/right).
-</Quiz>
-### 3\. Specificity & Cascade
+---
 
-**Why does specificity exist?** Imagine you have 3 bosses. Boss A says "paint the wall blue." Boss B says "paint the wall red." Boss C says "paint the wall green." Whose instruction do you follow? You need a pecking order — a way to decide who wins.
+### 2. The Box Model & Margin Collapsing
 
-That is exactly what specificity is. When multiple CSS rules target the same element with conflicting styles, the browser needs a tiebreaker. Specificity is a **scoring system** — each selector gets a score, and the highest score wins.
+Every HTML element is rendered as a rectangular box.
+*   **Analogy**: A packaged shipping box.
+    *   *Content*: The fragile item inside.
+    *   *Padding*: Bubble wrap inside the box protecting the item.
+    *   *Border*: The rigid cardboard walls of the box.
+    *   *Margin*: The empty buffer zone around the outside of the box so it doesn't bump into other boxes.
 
-Think of it as a 4-digit address system: **Inline, IDs, Classes, Elements** — each column is 10x more powerful than the one to its right. One ID beats a hundred classes. One inline style beats everything.
-
-| Selector type | Specificity value | Example | Think of it as... |
-| --- | --- | --- | --- |
-| Inline style | **1,0,0,0** | `style="color:red"` | The CEO's direct order |
-| ID | **0,1,0,0** | `#nav` | A department head |
-| Class / attribute / pseudo-class | **0,0,1,0** | `.menu`, `[type]`, `:hover` | A team lead |
-| Element / pseudo-element | **0,0,0,1** | `div`, `::before` | An intern |
-| Universal `*` | **0,0,0,0** | `*` | Background noise — no weight at all |
-
-<Callout type="warn" title="How to count specificity">
-For any selector, count: (# of IDs), (# of classes/attributes/pseudo-classes), (# of elements/pseudo-elements).  
-  
-`p` → 0,0,0,1 (one element)  
-`.intro` → 0,0,1,0 (one class)  
-`p.intro` → 0,0,1,1 (one class + one element)  
-`#main` → 0,1,0,0 (one ID)  
-`#main p.intro` → 0,1,1,1 (one ID + one class + one element p... wait, two elements? No — `#main` is an ID, not an element. Count carefully!)  
-  
-**The higher number ALWAYS wins.** 0,1,0,0 beats 0,0,99,99 — one ID outranks any number of classes.
-</Callout>
-
-```java
-/* Specificity examples — count IDs, classes, elements */
-p              { }  /* 0,0,0,1 */
-.intro         { }  /* 0,0,1,0 */
-p.intro        { }  /* 0,0,1,1 */
-#main          { }  /* 0,1,0,0 */
-#main p.intro  { }  /* 0,1,1,1 */
-
-/* #main p.intro WINS over .intro because 0,1,1,1 > 0,0,1,0 */
 ```
-<Callout type="info" title="Cascade order (when specificity is equal)">
-If two rules have the same specificity, the one that appears **later** in the CSS wins — like the last person to speak in an argument gets the final word. Also: `!important` overrides everything (but avoid using it — it is the nuclear option that makes code difficult to maintain and debug).
-</Callout>
+       ┌─────────────────────────────────────────────┐
+       │                   MARGIN                    │
+       │  ┌───────────────────────────────────────┐  │
+       │  │                BORDER                 │  │
+       │  │  ┌─────────────────────────────────┐  │  │
+       │  │  │             PADDING             │  │  │
+       │  │  │  ┌───────────────────────────┐  │  │  │
+       │  │  │  │          CONTENT          │  │  │  │
+       │  │  │  │                           │  │  │  │
+       │  │  │  └───────────────────────────┘  │  │  │
+       │  │  └─────────────────────────────────┘  │  │
+       │  └───────────────────────────────────────┘  │
+       └─────────────────────────────────────────────┘
+```
 
-<Quiz question={"Which selector has the highest specificity?"} options={["`#nav .menu li`", "`div#nav ul.menu li`", "`body div ul li`", "`.nav .menu .item`"]} answerIndex={1}>
-B) `div#nav ul.menu li` — specificity is 0,1,1,3 (1 ID + 1 class + 3 elements). A is 0,1,1,1. C is 0,0,0,4. D is 0,0,3,0. Remember: one ID (0,1,0,0) beats any number of classes or elements.
-</Quiz>
-<Quiz question={"Two rules target the same element: `.header { color: blue; }` appears on line 10, and `.header { color: red; }` appears on line 50. What color is the text?"} options={["Blue \u2014 first rule wins", "Red \u2014 last rule wins when specificity is equal", "Browser default color", "Depends on the HTML structure"]} answerIndex={1}>
-B) Red. When two selectors have the same specificity (both are `.header` = 0,0,1,0), the cascade rule kicks in: the one that appears LATER in the stylesheet wins. This is the "C" in CSS — Cascading.
-</Quiz>
-### 4\. Display & Position
+#### Box-Sizing: content-box vs. border-box
+*   `box-sizing: content-box` (Default): You buy a box for a 10-inch item. But after adding 2 inches of padding and 1 inch of border, the total box dimensions expand to 13 inches!
+    `Actual Width = Width + Padding + Border`
+*   `box-sizing: border-box` (Standard): You specify the box must be exactly 10 inches. The post office shrinks the bubble wrap inside so the outer dimensions are strictly 10 inches.
+    `Actual Width = Configured Width (Padding and Border are inside)`
 
-#### Display property
+#### Margin Collapsing: Personal Space Gaps
+When two block boxes sit stacked on top of each other, their vertical margins do not add up.
+*   **Analogy**: Two people standing next to each other. One wants 3 feet of personal space (margin-bottom), and the other wants 4 feet (margin-top). Instead of standing 7 feet apart, they stand 4 feet apart (the larger margin swallows the smaller one).
 
-**Why does `display` exist?** Every HTML element has a default way it behaves in the page flow. Some elements are like bricks in a wall — they stack vertically and take up the full width (block elements). Others are like words in a sentence — they sit next to each other and only take the space they need (inline elements). The `display` property lets you change this fundamental behavior.
+---
 
-<Callout type="warn" title="The brick vs word analogy">
-**Block elements** = bricks. A `<div>`, `<p>`, or `<h1>` is like a brick — it takes the entire row and the next element starts below it.  
-  
-**Inline elements** = words in a sentence. A `<span>`, `<a>`, or `<strong>` sits right next to its neighbors. But here is the catch — you CANNOT set width or height on inline elements, just like you cannot make a word in a sentence taller without changing the whole line.  
-  
-**Inline-block** = the best of both worlds. Sits next to its neighbors like an inline element, BUT you CAN set width and height. Think of it as a picture in a sentence — it flows with the text but has its own dimensions.
-</Callout>
+### 3. Layouts: Flexbox vs. Grid
 
-| Value | Behavior | Examples |
+*   **Flexbox (1-Dimensional)**: *Analogy: A flexible clothesline.* You hang shirts side-by-side. You can stretch the line, compress it, or wrap it, but it flows along a single main axis string.
+*   **Grid (2-Dimensional)**: *Analogy: A cabinet designer's blueprint drawing.* You define rows and columns first, and then slide drawers into precise X-Y coordinate slots.
+
+| Feature | Flexbox (1D) | Grid (2D) |
 | --- | --- | --- |
-| `block` | Takes full width, starts on new line | `div`, `p`, `h1`–`h6`, `section` |
-| `inline` | Only takes needed width, no line break. **Cannot set width/height** | `span`, `a`, `strong`, `em` |
-| `inline-block` | Inline flow but **can set width/height** | `img`, `button`, `input` |
-| `none` | Element is removed from flow entirely | Hidden elements |
-| `flex` | Flex container — children become flex items | Layouts |
-| `grid` | Grid container — 2D layouts | Complex layouts |
+| **Design Axis** | Rows OR Columns | Rows AND Columns simultaneously |
+| **Philosophy** | Content-first (item sizes dictate layout) | Grid-first (layout dictates item sizes) |
+| **Best For** | Navigation menus, custom toolbars | Complex page layouts, image galleries |
 
-<Callout type="error" title="Common Mistake — display:none vs visibility:hidden">
-This is like the difference between someone **leaving the room** vs someone putting on an **invisibility cloak**.  
-  
-`display: none` — the element LEAVES the room. It is completely gone from the layout. Other elements move up to fill its space.  
-`visibility: hidden` — the element puts on an invisibility cloak. You cannot see it, but it is still standing there taking up space. Other elements do NOT move.
-</Callout>
-
-#### Position property
-
-**Why does `position` exist?** Normal HTML flows like a Word document — elements stack top to bottom, left to right. But what if you want a chat button floating in the bottom-right corner? Or a navbar that stays at the top when you scroll? Or a tooltip that appears right next to the element you hover? Normal flow cannot do that. The `position` property lets you break out of normal flow and place elements exactly where you want.
-
-<Callout type="warn" title="Position types — think of a classroom">
-**static** = students sitting in their assigned seats. Normal order. You cannot tell them "move 20px left" — they just sit where they sit.  
-  
-**relative** = a student who leans 20px to the left from their assigned seat. Their seat (original space) is still reserved — nobody else can sit there. They just appear shifted.  
-  
-**absolute** = a student who stands up and goes to stand at a specific spot in the room. Their seat is now empty (other students can fill in). Where they stand depends on the room boundaries (or the nearest "positioned" parent).  
-  
-**fixed** = a security camera mounted on the wall. No matter how everyone moves around (scrolls), the camera stays in the exact same spot on screen.  
-  
-**sticky** = a student who sits normally until the teacher scrolls past them, then they stick to the top of the whiteboard. Section headers on long pages use this.
-</Callout>
-
-| Value | Behavior | Relative to |
-| --- | --- | --- |
-| `static` | Default. Normal document flow | N/A (ignores top/left/right/bottom) |
-| `relative` | Offset from its normal position. **Still takes original space** | Itself |
-| `absolute` | Removed from flow. Positioned relative to nearest positioned ancestor | Nearest ancestor with position != static |
-| `fixed` | Removed from flow. Stays in place when scrolling | Viewport |
-| `sticky` | Acts relative until scroll threshold, then acts fixed | Scroll container |
-
-```java
-/* Relative — nudge from normal position, original space preserved */
-.box1 {
-  position: relative;
-  top: 20px;    /* moves 20px DOWN from where it would normally be */
-  left: 10px;   /* moves 10px RIGHT */
-}
-
-/* Absolute — ripped out of flow, positioned inside nearest positioned parent */
-.parent { position: relative; }  /* parent MUST be positioned! */
-.child  {
-  position: absolute;
-  top: 0;
-  right: 0;   /* top-right corner of .parent */
-}
-
-/* Fixed — stays on screen even when scrolling */
+```css
+/* Flexbox setup */
 .navbar {
-  position: fixed;
-  top: 0;
-  width: 100%;
-}
-```
-<Callout type="info" title="Key rule for absolute positioning">
-An `absolute` element looks UP the DOM tree for the nearest ancestor that has `position: relative`, `absolute`, or `fixed`. If none found, it positions relative to `<html>` (the viewport). This is why you almost always see `position: relative` on a parent when using `position: absolute` on a child — the parent becomes the reference point.
-</Callout>
-
-<Quiz question={"What is the difference between `display: none` and `visibility: hidden`?"} options={["No difference \u2014 both hide the element", "`display: none` removes the element from flow; `visibility: hidden` hides it but it still takes space", "`visibility: hidden` removes the element from flow; `display: none` keeps the space", "Both remove the element from document flow"]} answerIndex={1}>
-B) `display: none` removes the element completely — it takes no space, as if it was never there. `visibility: hidden` makes it invisible but it still occupies its space in the layout. Think: leaving the room vs wearing an invisibility cloak.
-</Quiz>
-<Quiz question={"What does `position: absolute` do?"} options={["Positions the element relative to its normal position", "Positions the element relative to the viewport", "Positions the element relative to the nearest positioned ancestor", "Keeps the element in normal document flow"]} answerIndex={2}>
-C) It removes the element from normal flow and positions it relative to the nearest ancestor that has a position value other than `static`. If no positioned ancestor exists, it uses the document body. Remember: `relative` = nudge from where you were; `absolute` = teleport to exact coordinates inside your parent.
-</Quiz>
-### 5\. Flexbox
-
-**Why does Flexbox exist?** Before Flexbox, centering a div vertically was a legendary CSS struggle. Developers used hacks with tables, floats, and negative margins just to put something in the middle of the page. Flexbox was invented to solve this: it gives you a simple, powerful way to arrange elements in a row or column, with total control over spacing and alignment.
-
-**The analogy:** Think of a flex container as a **shelf**. The items on the shelf are flex items. You can decide:
-
-*   Should items go left-to-right (row) or top-to-bottom (column)?
-*   Should items bunch up at the start, spread out evenly, or center themselves?
-*   Should items stretch to fill the shelf height, or stay their natural size?
-*   If there are too many items, should they wrap to a new row?
-
-All you do is put `display: flex` on the parent — the children automatically become flex items.
-
-#### Container properties (parent)
-
-| Property | Values | Default |
-| --- | --- | --- |
-| `flex-direction` | `row` | `row-reverse` | `column` | `column-reverse` | `row` |
-| `justify-content` | `flex-start` | `flex-end` | `center` | `space-between` | `space-around` | `space-evenly` | `flex-start` |
-| `align-items` | `flex-start` | `flex-end` | `center` | `stretch` | `baseline` | `stretch` |
-| `flex-wrap` | `nowrap` | `wrap` | `wrap-reverse` | `nowrap` |
-| `gap` | Any length value | `0` |
-
-<Callout type="info" title="The two axes — this is the KEY to Flexbox">
-Flexbox has two axes. **Main axis** = the direction items flow (horizontal in `row`, vertical in `column`). **Cross axis** = the perpendicular direction.  
-  
-`justify-content` controls the **main axis** (think: "justify" like justifying text — left, center, right).  
-`align-items` controls the **cross axis** (think: "align" items vertically).  
-  
-If you flip `flex-direction` to `column`, these axes SWAP — `justify-content` now controls vertical, `align-items` controls horizontal. This is a commonly confused distinction.
-</Callout>
-
-<Callout type="warn" title="justify-content values visualized (in row direction)">
-`flex-start`: **\[A B C          \]** — items packed to the start  
-`flex-end`: **\[          A B C\]** — items packed to the end  
-`center`: **\[     A B C     \]** — items centered  
-`space-between`: **\[A     B     C\]** — first and last touch edges, equal space between  
-`space-around`: **\[  A    B    C  \]** — equal space around each item (edges get half)  
-`space-evenly`: **\[   A   B   C   \]** — perfectly equal gaps everywhere
-</Callout>
-
-#### Item properties (children)
-
-| Property | What it does |
-| --- | --- |
-| `flex-grow` | How much the item should grow to fill extra space (default: 0 = don't grow) |
-| `flex-shrink` | How much the item should shrink when space is tight (default: 1 = shrink equally) |
-| `flex-basis` | Starting size before growing/shrinking (default: auto = use the element's natural size) |
-| `align-self` | Override `align-items` for this one item only |
-| `order` | Visual order (default: 0, lower = first) |
-
-```java
-/* Center something perfectly — the #1 reason Flexbox was invented */
-.container {
   display: flex;
-  justify-content: center;  /* horizontal center (main axis) */
-  align-items: center;      /* vertical center (cross axis) */
-  height: 100vh;            /* need a height, or nothing to center against */
+  justify-content: space-between; /* Space items out */
+  align-items: center;            /* Center vertically */
 }
 
-/* Navigation bar — logo on left, links on right */
-.nav {
-  display: flex;
-  justify-content: space-between;  /* pushes first and last item to edges */
-  align-items: center;
-}
-
-/* Flex shorthand: flex-grow flex-shrink flex-basis */
-.item { flex: 1; }            /* same as flex: 1 1 0% — all items grow equally */
-.item { flex: 0 0 200px; }   /* fixed 200px, don't grow, don't shrink */
-```
-
-<Quiz question={"Which CSS property is used to align items along the main axis in a flex container?"} options={["`align-items`", "`justify-content`", "`flex-direction`", "`align-content`"]} answerIndex={1}>
-B) `justify-content` — it aligns items along the main axis. `align-items` aligns along the cross axis. Remember: "justify" = main axis, "align" = cross axis.
-</Quiz>
-<Quiz question={"You have a flex container with `flex-direction: column`. Which property controls horizontal alignment of the items?"} options={["`justify-content`", "`align-items`", "`flex-wrap`", "`flex-basis`"]} answerIndex={1}>
-B) `align-items`. When `flex-direction` is `column`, the main axis becomes vertical and the cross axis becomes horizontal. Since `align-items` controls the cross axis, it now controls horizontal alignment. This axis-swap is a commonly confused point.
-</Quiz>
-### 6\. CSS Grid
-
-**Why does Grid exist if we have Flexbox?** Flexbox is one-dimensional — it handles a row OR a column. Grid is two-dimensional — it handles rows AND columns at the same time. Think of Flexbox as arranging items on a clothesline (one direction). Grid is like arranging items on a chessboard (rows and columns simultaneously).
-
-Grid is great for page-level layouts with defined rows and columns — use it when Flexbox's single-axis approach isn't enough.
-
-```java
-.container {
+/* Grid setup */
+.gallery {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;  /* 3 columns: 25% 50% 25% */
-  grid-template-rows: auto;
-  gap: 16px;                            /* space between grid cells */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
 }
+```
 
-/* Span multiple columns/rows */
-.wide {
-  grid-column: 1 / 3;  /* spans column line 1 to line 3 (= 2 columns) */
-}
+---
 
-/* Repeat shorthand */
+### 4. GPU Compositing & Animation Performance
+
+*   **Reflow & Paint (Slow)**: If you animate properties like `width`, `height`, `left`, or `top`, the browser must recalculate the dimensions of that box and all surrounding elements, and then repaint the pixels on every frame. *Analogy: Redrawing every page of a flip-book animation by hand.*
+*   **Compositing (Fast)**: If you animate using `transform: translate3d()` or `opacity`, the browser puts that element on its own separate clear plastic sheet (GPU Layer). It leaves the background sheet untouched and simply slides the plastic sheet around.
+    *   *Analogy*: Moving transparency sheets on an overhead projector. Extremely fast and yields smooth 60fps/120fps animations.
+
+---
+
+### 5. Conceptual Quizzes
+
+<Quiz question="What is the result of vertical margins on two adjacent block elements (top margin 30px and bottom margin 40px)?" options={["A combined gap of 70px.","A combined gap of 10px.","The margins collapse, resulting in a single gap of 40px (the larger value).","The elements overlap."]} answerIndex={2}>
+Vertical margins between adjacent block elements collapse. The browser uses only the larger margin value (40px in this case), rather than adding them together.
+</Quiz>
+
+<Quiz question="Which box-sizing model includes padding and border in the element's total width and height?" options={["content-box","padding-box","border-box","margin-box"]} answerIndex={2}>
+`box-sizing: border-box` forces padding and border to be calculated inside the specified width and height, preventing layout changes.
+</Quiz>
+
+---
+
+### 6. Practice Problems
+
+<Problem title="Problem 1: 3-Column Layout with Sidebar flex">
+<ProblemDescription>
+Create a CSS layout with:
+1. A header that spans full width.
+2. A main layout containing a sidebar (fixed 250px) and a main content area that stretches to fill all remaining width.
+3. Use Flexbox layout.
+</ProblemDescription>
+<ProblemSolution>
+This layout uses flex properties:
+
+```css
 .container {
-  grid-template-columns: repeat(3, 1fr);  /* 3 equal columns */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  width: 100%;
+  background: #333;
+  color: white;
+  padding: 20px;
+}
+
+.main-wrapper {
+  display: flex;
+  flex: 1; /* Stretch to fill available vertical space */
+}
+
+.sidebar {
+  width: 250px;
+  flex-shrink: 0; /* Prevent sidebar from compressing */
+  background: #f4f4f4;
+  padding: 20px;
+}
+
+.main-content {
+  flex-grow: 1; /* Take all remaining horizontal space */
+  padding: 20px;
 }
 ```
-<Callout type="info" title="Grid vs Flexbox — when to use which">
-**Flexbox:** when you have a single row or column of items (navbars, card rows, centering).  
-**Grid:** when you need a full page layout with defined rows AND columns (dashboards, galleries, complex layouts).  
-In practice, you often use Grid for the overall page structure and Flexbox for individual components within it.
-</Callout>
-
-### 7\. Units — px, em, rem, %
-
-**Why are there so many unit types?** Imagine building with only centimeters — it works for a bookshelf but not for a building that needs to scale. CSS has different units because different situations need different kinds of measurement:
-
-*   **Fixed sizes** (borders, shadows) → `px`
-*   **Scalable text** that respects user preferences → `rem`
-*   **Relative sizing** based on parent → `em`, `%`
-*   **Viewport-based** layouts → `vw`, `vh`
-
-| Unit | Type | Relative to | Best for |
-| --- | --- | --- | --- |
-| `px` | Absolute | Screen pixels (fixed) | Borders, shadows, small fixed sizes |
-| `em` | Relative | Parent element's font-size | Component-level scaling (padding relative to text size) |
-| `rem` | Relative | Root (`<html>`) font-size (default 16px) | Global consistent sizing (most common for font sizes) |
-| `%` | Relative | Parent element's size | Fluid widths (containers, images) |
-| `vw` | Relative | 1% of viewport width | Full-screen layouts, hero sections |
-| `vh` | Relative | 1% of viewport height | Full-screen layouts, hero sections |
-
-```java
-/* If html font-size is 16px (browser default): */
-1rem = 16px
-2rem = 32px
-0.5rem = 8px
-
-/* em depends on parent — this is where it gets tricky: */
-.parent { font-size: 20px; }
-.child  { font-size: 1.5em; }  /* = 30px (20 × 1.5) */
-```
-<Callout type="error" title="The em compounding trap">
-`em` is relative to the **parent's** font-size. So if you nest elements with `em` sizes, they compound like interest. A parent at `2em` with a child at `2em` = the child is 4x the root size. And the grandchild at `2em` = 8x. This is why `rem` (root em) was invented — it ALWAYS references the root element, no matter how deeply nested. Use `rem` for font sizes to stay sane.
-</Callout>
-
-<Quiz question={"If root font-size is 16px, what is `2.5rem` in pixels?"} options={["25px", "32px", "40px", "48px"]} answerIndex={2}>
-C) 40px — `rem` is always relative to root font-size. 2.5 x 16px = 40px. It does not matter how many elements this is nested inside — `rem` always looks at the root.
-</Quiz>
-### 8\. Colors & Backgrounds
-
-**Why so many color formats?** Different formats exist for different use cases: named colors are readable, hex is compact, RGB gives precise control, and RGBA adds transparency. Understanding all formats — and especially the distinction between `opacity` and `rgba` — is essential for writing correct, maintainable CSS.
-
-| Format | Example | Notes |
-| --- | --- | --- |
-| Named | `color: red;` | ~147 named colors |
-| Hex | `color: #ff5733;` | 6-digit or 3-digit shorthand (`#f00` = `#ff0000`) |
-| RGB | `color: rgb(255, 87, 51);` | 0–255 per channel |
-| RGBA | `color: rgba(255, 87, 51, 0.5);` | Alpha 0 (transparent) to 1 (opaque) |
-| HSL | `color: hsl(14, 100%, 60%);` | Hue, Saturation, Lightness |
-
-```java
-/* Background shorthand */
-.hero {
-  background: #1a1a2e url("bg.jpg") no-repeat center/cover;
-}
-
-/* Gradient */
-.banner {
-  background: linear-gradient(to right, #e94560, #0f3460);
-}
-
-/* opacity — affects the ENTIRE element including ALL children */
-.faded { opacity: 0.5; }
-
-/* Use rgba for transparent backgrounds WITHOUT affecting children */
-.overlay { background: rgba(0, 0, 0, 0.5); }
-```
-<Callout type="info" title="opacity vs rgba — a key distinction">
-`opacity: 0.5` makes the ENTIRE element (and all its children — text, images, everything) 50% transparent. There is no way to undo this on children.  
-`background: rgba(0,0,0,0.5)` only makes the **background** transparent — children remain fully visible. Use rgba when you want a semi-transparent background with readable text on top.
-</Callout>
-
-### 9\. Text & Fonts
-
-Text styling controls how your content reads. The key insight: `font-*` properties control the typeface itself (family, size, weight), while `text-*` properties control how the text is displayed (alignment, decoration, transformation).
-
-| Property | Values |
-| --- | --- |
-| `font-family` | `'Arial', sans-serif` — fallback chain (browser tries each until one works) |
-| `font-size` | `16px`, `1rem`, `1.2em` |
-| `font-weight` | `normal` (400), `bold` (700), 100–900 |
-| `font-style` | `normal`, `italic`, `oblique` |
-| `text-align` | `left`, `center`, `right`, `justify` |
-| `text-decoration` | `none`, `underline`, `line-through`, `overline` |
-| `text-transform` | `uppercase`, `lowercase`, `capitalize` |
-| `line-height` | `1.5` (unitless multiplier preferred — it scales with font-size) |
-| `letter-spacing` | `2px`, `0.1em` |
-| `word-spacing` | `4px` |
-
-```java
-/* Font shorthand: style weight size/line-height family */
-p {
-  font: italic 700 16px/1.5 'Arial', sans-serif;
-}
-
-/* Remove underline from links */
-a { text-decoration: none; }
-
-/* Ellipsis for overflow text — all 3 properties are required */
-.truncate {
-  white-space: nowrap;       /* prevent text wrapping */
-  overflow: hidden;          /* hide the overflow */
-  text-overflow: ellipsis;   /* show "..." at the cut point */
-}
-```
-
-### 10\. Pseudo-classes & Pseudo-elements
-
-**Why do these exist?** Sometimes you want to style an element based on its _state_ (is the mouse hovering over it? is it the first item in a list?) or a _part_ of an element (just the first letter, or insert an icon before it). You cannot create a CSS class for "the paragraph the mouse is currently hovering over" because that changes every second. Pseudo-classes and pseudo-elements solve this.
-
-<Callout type="warn" title="Pseudo-class vs Pseudo-element — the naming trick">
-**Pseudo-class** (single colon `:`) = styles based on STATE or POSITION. "Is this link being hovered? Is this the 3rd child?" These select _whole elements_ in a particular condition.  
-  
-**Pseudo-element** (double colon `::`) = styles a PART of an element or creates a virtual element. "Style just the first letter. Insert content before this element." These target _pieces_ of an element.  
-  
-Memory trick: one colon = one whole element in a state. Two colons = part of an element.
-</Callout>
-
-#### Pseudo-classes (single colon — state/position)
-
-| Pseudo-class | Selects |
-| --- | --- |
-| `:hover` | When mouse is over the element |
-| `:active` | When element is being clicked (mouse button held down) |
-| `:focus` | When element has keyboard focus (tabbed to or clicked on an input) |
-| `:visited` | Links that have been visited |
-| `:first-child` | First child of its parent |
-| `:last-child` | Last child of its parent |
-| `:nth-child(n)` | nth child — `:nth-child(odd)`, `:nth-child(2n)`, `:nth-child(3)` |
-| `:not(selector)` | Elements that don't match — `:not(.active)` |
-
-#### Pseudo-elements (double colon — parts of element)
-
-| Pseudo-element | What it does |
-| --- | --- |
-| `::before` | Inserts virtual content before element's content |
-| `::after` | Inserts virtual content after element's content |
-| `::first-line` | Styles the first line of text |
-| `::first-letter` | Styles the first letter (drop caps) |
-| `::placeholder` | Styles input placeholder text |
-
-```java
-/* Link states — order matters! (LoVe HAte) */
-a:link    { color: blue; }
-a:visited { color: purple; }
-a:hover   { color: red; }
-a:active  { color: orange; }
-
-/* Zebra-striped table rows */
-tr:nth-child(even) { background: #f4f4f4; }
-
-/* ::before and ::after REQUIRE the content property — without it, nothing appears */
-.required::after {
-  content: " *";
-  color: red;
-}
-```
-<Callout type="error" title="Common Mistake — link pseudo-class order">
-The order must be **:link → :visited → :hover → :active** (remember: **L**o**V**e **HA**te). If the order is wrong, some states get overridden by later rules due to equal specificity. For example, if `:hover` comes before `:visited`, visited links will not show the hover color.
-</Callout>
-
-<Quiz question={"Which pseudo-element requires the `content` property to work?"} options={["`::first-line`", "`::before`", "`::first-letter`", "`:hover`"]} answerIndex={1}>
-B) `::before` (and `::after`) require the `content` property — without it, they will not render at all. Even if you want nothing visible, you need `content: ""`. Note: `:hover` is a pseudo-CLASS (single colon), not a pseudo-element.
-</Quiz>
-### 11\. Transitions & Animations
-
-**Why do transitions exist?** Without transitions, CSS changes happen instantly — a button goes from blue to red in 0 milliseconds. That feels jarring and cheap. Transitions add smooth, gradual changes that make your UI feel polished and professional. Think of it like a dimmer switch vs a light switch — both control brightness, but the dimmer does it smoothly.
-
-**Transition vs Animation:** A _transition_ is a simple A-to-B change triggered by a state change (like hover). An _animation_ can have multiple steps (A → B → C → D), can loop, and can run automatically without any trigger.
-
-```java
-/* Transition — smooth change when state changes (e.g., hover) */
-.btn {
-  background: #e94560;
-  transition: background 0.3s ease, transform 0.2s;
-}
-.btn:hover {
-  background: #d63850;
-  transform: scale(1.05);
-}
-
-/* Transition shorthand: property duration timing-function delay */
-.box { transition: all 0.3s ease-in-out; }
-
-/* Animation with @keyframes — multiple steps, can loop */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.element {
-  animation: fadeIn 1s ease-in forwards;
-  /* forwards = stay at the final state after animation ends */
-}
-```
-
-| Timing function | Behavior |
-| --- | --- |
-| `ease` | Slow start, fast middle, slow end (default — most natural) |
-| `linear` | Constant speed (robotic, use for loading bars) |
-| `ease-in` | Slow start, fast end (like dropping a ball) |
-| `ease-out` | Fast start, slow end (like a car braking) |
-| `ease-in-out` | Slow start and slow end (most elegant) |
-
-<Callout type="info" title="Key detail">
-Put the `transition` property on the **base state** (not the hover state). This way, the transition plays both when hovering IN and OUT. If you put it only on `:hover`, the transition will play when hovering in but snap back instantly when hovering out.
-</Callout>
-
-### 12\. Responsive Design
-
-**Why does responsive design matter?** People browse on phones, tablets, laptops, and 4K monitors. A design that looks perfect on a laptop will be unreadable on a phone if it is not responsive. Media queries let you write different CSS rules for different screen sizes — like having different outfits for different weather.
-
-There are two approaches:
-
-*   **Mobile-first** (recommended): Write base CSS for mobile, then use `min-width` to add styles for larger screens. You are "building up."
-*   **Desktop-first**: Write base CSS for desktop, then use `max-width` to override for smaller screens. You are "scaling down."
-
-```java
-/* Mobile-first approach — start small, scale up */
-.container { width: 100%; }  /* base: full width on mobile */
-
-@media (min-width: 768px) {    /* tablets and up */
-  .container { width: 750px; }
-}
-
-@media (min-width: 1024px) {   /* desktops and up */
-  .container { width: 960px; }
-}
-
-/* Desktop-first (max-width) — hide sidebar on mobile */
-@media (max-width: 600px) {
-  .sidebar { display: none; }
-  .main    { margin-left: 0; }
-}
-```
-<Callout type="info" title="Viewport meta tag — required for responsive">
-Without this tag in HTML `<head>`, media queries will NOT work on mobile devices. The browser will render the page at desktop width and zoom out, making everything tiny:  
-`<meta name="viewport" content="width=device-width, initial-scale=1.0">`
-</Callout>
-
-<Quiz question={"In a mobile-first approach, which media query do you use to add styles for larger screens?"} options={["`@media (max-width: 768px)`", "`@media (min-width: 768px)`", "`@media (screen)`", "`@media (device-width: 768px)`"]} answerIndex={1}>
-B) `min-width` means "apply these styles when the screen is AT LEAST this wide." In mobile-first, you write base styles for small screens, then use `min-width` breakpoints to progressively add styles for larger screens. `max-width` is for desktop-first (scaling down).
-</Quiz>
-### 13\. Shorthand Properties
-
-Shorthand properties let you set multiple related properties in one line. Less typing, cleaner code. But you need to remember the order of values.
-
-```java
-/* Margin / Padding shorthand */
-margin: 10px;                  /* all 4 sides = 10px */
-margin: 10px 20px;             /* top/bottom = 10px, left/right = 20px */
-margin: 10px 20px 30px;        /* top = 10, left/right = 20, bottom = 30 */
-margin: 10px 20px 30px 40px;   /* top right bottom left (clockwise) */
-
-/* Border shorthand */
-border: 2px solid #333;       /* width  style  color */
-
-/* Background shorthand */
-background: #fff url("img.png") no-repeat center/cover;
-
-/* Font shorthand */
-font: italic bold 16px/1.5 Arial, sans-serif;
-```
-<Callout type="info" title="4-value order">
-Margin, padding, and border-radius with 4 values always go **clockwise**: Top → Right → Bottom → Left. Remember: **TR**ou**BL**e (TRBL). For 3 values: top, left/right (shared), bottom. For 2 values: top/bottom (shared), left/right (shared).
-</Callout>
-
-<Quiz question={"What does `margin: 10px 20px 30px;` mean?"} options={["top: 10px, right: 20px, bottom: 30px, left: 20px", "top: 10px, right: 20px, bottom: 30px, left: 0", "top: 10px, right: 30px, bottom: 20px, left: 10px", "top: 10px, right: 20px, bottom: 30px, left: 30px"]} answerIndex={0}>
-A) 3-value shorthand: top = 10px, right = 20px, bottom = 30px, left = same as right = 20px. When the left value is missing, it mirrors the right value.
-</Quiz>
-### 14\. More Practice Questions
-
-<Quiz question={"An element has `width: 200px; box-sizing: border-box; padding: 20px; border: 5px solid;`. What is the total width on screen?"} options={["250px", "200px", "150px", "210px"]} answerIndex={1}>
-B) 200px. With `box-sizing: border-box`, the width includes padding and border. The content area shrinks to 150px (200 - 20*2 - 5*2) to accommodate, but the total on-screen width remains 200px.
-</Quiz>
-<Quiz question={"What is the specificity of the selector `div.container > ul li a:hover`?"} options={["0,0,2,4", "0,0,1,4", "0,1,1,3", "0,0,2,3"]} answerIndex={0}>
-A) 0,0,2,4. Count: IDs = 0. Classes/pseudo-classes = `.container` + `:hover` = 2. Elements = `div` + `ul` + `li` + `a` = 4. The `>` combinator has no specificity value.
-</Quiz>
-<Quiz question={"You want a transparent background on a div WITHOUT making its child text transparent. Which approach works?"} options={["`opacity: 0.5`", "`background: rgba(0, 0, 0, 0.5)`", "`visibility: hidden`", "`display: none`"]} answerIndex={1}>
-B) `rgba` makes only the background transparent. `opacity` would make the entire element AND all children transparent — you cannot override it on children. This is one of the most practical CSS distinctions to understand.
-</Quiz>
-<Quiz question={"A flex container has `flex-direction: row` and `justify-content: space-between`. Where do the items appear?"} options={["All items centered horizontally", "First item at the start, last item at the end, equal space between them", "Equal space around each item", "Items stacked vertically"]} answerIndex={1}>
-B) `space-between` places the first item flush to the start edge and the last item flush to the end edge, distributing remaining space equally between items. No space before the first or after the last.
-</Quiz>
-<Quiz question={"An element has `position: relative; top: 20px;`. What happens?"} options={["The element moves 20px from the top of the viewport", "The element moves 20px down from its normal position, but its original space is still reserved", "The element moves 20px down and other elements fill its original space", "Nothing \u2014 `top` does not work with relative positioning"]} answerIndex={1}>
-B) With `position: relative`, the element shifts 20px down from where it WOULD have been, but its original space in the document flow is preserved. Other elements do not move to fill the gap — they act as if the element is still in its original position.
-</Quiz>
+</ProblemSolution>
+</Problem>

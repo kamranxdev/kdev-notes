@@ -1,707 +1,173 @@
 ---
-title: JavaScript
+title: JavaScript (JS)
+description: A detailed guide to the V8 engine runtime, event loops, execution contexts, closures, prototypes, asynchronous programming, and performance.
 ---
 
-### 1\. What is JavaScript?
+### 1. V8 Engine Runtime & Compilation
 
-JavaScript is a **lightweight, interpreted, dynamically-typed scripting language** that runs inside web browsers (and on servers via Node.js). It makes web pages interactive — responding to clicks, validating forms, updating content without page reloads.
+Computers do not understand JavaScript text directly. The V8 engine acts as a translation team to convert code text into raw CPU commands.
+*   **Analogy**: The dynamic translation team.
 
-| Feature | JavaScript | Java |
-| --- | --- | --- |
-| Type | Scripting language | Object-oriented programming language |
-| Typing | Dynamic (types checked at runtime) | Static (types checked at compile time) |
-| Compiled? | Interpreted (by browser/Node.js) | Compiled to bytecode, run on JVM |
-| Where it runs | Browser + Node.js | JVM (any platform) |
-| Syntax style | C-like but loosely typed | Strictly typed, verbose |
-| Relation | None — the name is purely a marketing decision. They are completely different languages. |
-
-<Callout type="warn" title="📋 Exam Fact">
-JavaScript was created by Brendan Eich in **1995** at Netscape. The official standard is called **ECMAScript (ES)**. ES6 (2015) introduced major features: `let`, `const`, arrow functions, classes, template literals.
-</Callout>
-
-### 2\. Data Types & typeof
-
-JavaScript has **7 primitive types** and 1 structural type:
-
-| Type | Example | typeof result |
-| --- | --- | --- |
-| string | `"hello"`, `'world'` | `"string"` |
-| number | `42`, `3.14`, `NaN`, `Infinity` | `"number"` |
-| boolean | `true`, `false` | `"boolean"` |
-| undefined | `undefined` (variable declared, not assigned) | `"undefined"` |
-| null | `null` (intentional empty value) | `"object"` ⚠️ (historic bug) |
-| symbol | `Symbol("id")` | `"symbol"` |
-| bigint | `9007199254740991n` | `"bigint"` |
-| object | `{}`, `[]`, `null` | `"object"` |
-| function | `function() {}` | `"function"` |
-
-```java
-typeof "hello"       // "string"
-typeof 42            // "number"
-typeof true          // "boolean"
-typeof undefined     // "undefined"
-typeof null          // "object"  ← famous JavaScript bug, memorise this!
-typeof NaN           // "number"  ← NaN is technically a number type!
-typeof []            // "object"  ← arrays are objects
-typeof function(){}  // "function"
 ```
-<Callout type="info" title="💡 Exam tip">
-`typeof null === "object"` and `typeof NaN === "number"` are the two most-tested typeof surprises. Memorise both.
-</Callout>
-
-### 3\. var vs let vs const
-
-| Feature | var | let | const |
-| --- | --- | --- | --- |
-| Scope | Function scope | Block scope `{}` | Block scope `{}` |
-| Hoisted? | Yes — initialised as `undefined` | Yes — but in TDZ (not usable) | Yes — but in TDZ (not usable) |
-| Re-declare same scope? | ✅ Yes | ❌ No | ❌ No |
-| Reassign value? | ✅ Yes | ✅ Yes | ❌ No |
-| Must initialise? | No | No | ✅ Yes |
-
-```java
-// var — function scoped
-function test() {
-  if (true) {
-    var x = 10;
-  }
-  console.log(x); // 10 — var leaks out of the if block!
-}
-
-// let — block scoped
-function test2() {
-  if (true) {
-    let y = 20;
-  }
-  console.log(y); // ReferenceError: y is not defined
-}
-
-// const — cannot reassign
-const PI = 3.14;
-PI = 3; // TypeError: Assignment to constant variable
-
-// const with objects — the reference is fixed, but contents can change
-const obj = { a: 1 };
-obj.a = 99; // ✅ allowed — changing a property
-obj = {};    // ❌ not allowed — reassigning the variable
-```
-<Callout type="error" title="⚠️ Warning — Hoisting Trap">
-`var` declarations are moved to the top of their function and set to `undefined`. `let` and `const` are hoisted but sit in the **Temporal Dead Zone (TDZ)** — accessing them before declaration throws a **ReferenceError**, not undefined.
-</Callout>
-
-```java
-// var hoisting — classic exam question
-console.log(a); // undefined (hoisted, but not yet assigned)
-var a = 5;
-console.log(a); // 5
-
-// let TDZ — throws error
-console.log(b); // ReferenceError: Cannot access 'b' before initialization
-let b = 5;
+  JS Code ──► Parser ──► AST (Abstract Syntax Tree) ──► Ignition (Interpreter)
+                                                           │ (Bytecode)
+                                                           ▼
+                                                       TurboFan (JIT Compiler)
+                                                           │ (Native Machine Code)
+                                                           ▼
+                                                          CPU
 ```
 
-### 4\. Operators
+*   **The Parser**: Reads the text characters of your code and builds a structured map called the **Abstract Syntax Tree (AST)**.
+*   **The Interpreter (Ignition)**: A quick translator who translates the AST into bytecode instantly. It starts running code immediately, but executes it slowly.
+*   **The JIT Compiler (TurboFan)**: A speed specialist. They watch for code loops that run 1000 times (hot spots), compile them directly into raw copper-wire CPU instructions (native machine code), and bypass the interpreter to run them at lightning speed.
 
-#### Arithmetic Operators
+---
 
-```java
-+   // addition (also string concatenation)
--   // subtraction
-*   // multiplication
-/   // division
-%   // modulo (remainder): 10 % 3 → 1
-**  // exponentiation: 2 ** 3 → 8
-++  // increment: x++ (post), ++x (pre)
---  // decrement
+### 2. Call Stack & The Event Loop
 
-let x = 5;
-console.log(x++); // 5 — returns THEN increments
-console.log(x);   // 6
-console.log(++x); // 7 — increments THEN returns
+JavaScript is single-threaded, meaning it can only perform one task at a time.
+*   **Analogy**: A single-chef kitchen with a helper reservation window.
+
+```
+   [ Call Stack ] ──► (Async Web API Call) ──► [ Web APIs (Helper) ]
+          ▲                                           │
+          │                                           ▼
+      (Event Loop) ◄── [ Microtasks (VIP) ] ◄──── (Completes)
+          ▲
+          │
+      (Event Loop) ◄── [ Macrotasks (Queue) ] ◄── (Completes)
 ```
 
-#### Comparison: == vs ===
+*   **Call Stack**: The chef's immediate order ticket stack. The chef only works on the top ticket (Last In, First Out).
+*   **Web APIs**: The kitchen's smart automated helpers (e.g. browser timers, fetch requests). While the helper is waiting for the timer to expire, the chef continues cooking.
+*   **Callback Queue (Macrotasks)**: A line of completed helper tickets (e.g., click events, timeouts) waiting for the chef.
+*   **Microtask Queue**: VIP hot-line tickets (e.g., Promises, `.then()` handlers).
+*   **Event Loop**: The kitchen manager. They wait until the chef's immediate ticket stack (Call Stack) is completely empty. Then, they first check the VIP microtask queue and run all those tickets. Finally, they take the next macrotask ticket from the callback queue and hand it to the chef.
 
-```java
-// == (loose equality) — converts types before comparing
-1 == "1"    // true  — string "1" is converted to number 1
-0 == false  // true  — false converts to 0
-null == undefined // true
+```javascript
+console.log("Start"); // 1. Run immediately on Stack
 
-// === (strict equality) — NO type conversion
-1 === "1"   // false — different types
-0 === false // false — different types
-null === undefined // false
-```
-<Callout type="info" title="💡 Exam tip">
-Always prefer `===` in real code. The exam tests `==` heavily because its type coercion produces surprising results. When in doubt: `==` converts types, `===` does not.
-</Callout>
+setTimeout(() => {
+  console.log("Timeout"); // 4. Queued to Macrotasks
+}, 0);
 
-#### Logical & Ternary Operators
-
-```java
-// Logical
-true && false  // false (AND — both must be true)
-true || false  // true  (OR  — one must be true)
-!true          // false (NOT)
-
-// Ternary — shorthand if/else
-// condition ? valueIfTrue : valueIfFalse
-let age = 18;
-let status = age >= 18 ? "adult" : "minor";
-console.log(status); // "adult"
-```
-
-### 5\. Type Coercion — The #1 Tricky Topic
-
-JavaScript automatically converts values from one type to another. This is called **implicit type coercion** and it causes many surprising results.
-
-<Callout type="info" title="🔑 Key Rule">
-The `+` operator: if **either operand is a string**, it concatenates. All other arithmetic operators (`-`, `*`, `/`, `%`) convert strings to numbers first.
-</Callout>
-
-```java
-// + with strings = concatenation
-"1" + 2        // "12"  — number 2 becomes string "2"
-1 + "2"        // "12"  — same result
-"5" + 3 + 2   // "532" — left to right: "5"+3="53", "53"+2="532"
-5 + 3 + "2"   // "82"  — 5+3=8 first (numbers), then 8+"2"="82"
-
-// - * / always convert to number
-"5" - 3        // 2   — "5" becomes number 5
-"6" * "2"      // 12  — both become numbers
-"10" / "2"    // 5
-"abc" - 1     // NaN — "abc" can't be a number
-
-// Boolean coercion
-true + 1       // 2  — true becomes 1
-false + 1      // 1  — false becomes 0
-true + true    // 2
-
-// null and undefined
-null + 1       // 1  — null becomes 0
-undefined + 1  // NaN
-
-// Floating point trap
-0.1 + 0.2       // 0.30000000000000004 — NOT 0.3!
-0.1 + 0.2 == 0.3 // false — floating point precision issue
-```
-<Callout type="warn" title="📋 Exam Pattern">
-Output prediction questions on type coercion appear in nearly every JS exam. Memorise: **"1" + 2 = "12"** and **"5" - 3 = 2**. The key: + concatenates strings, everything else forces numeric conversion.
-</Callout>
-
-### 6\. Functions
-
-```java
-// 1. Function Declaration — hoisted, can be called before it's written
-function greet(name) {
-  return "Hello, " + name;
-}
-console.log(greet("Darshan")); // "Hello, Darshan"
-
-// 2. Function Expression — NOT hoisted
-const add = function(a, b) {
-  return a + b;
-};
-console.log(add(3, 4)); // 7
-
-// 3. Arrow Function (ES6) — shorter syntax
-const multiply = (a, b) => a * b;
-console.log(multiply(3, 4)); // 12
-
-// Arrow with body block (multiple statements)
-const square = (n) => {
-  let result = n * n;
-  return result;
-};
-
-// Default parameters
-function say(msg = "Hi") {
-  console.log(msg);
-}
-say();        // "Hi"
-say("Hello"); // "Hello"
-```
-<Callout type="info" title="💡 Exam tip">
-Arrow functions do **not** have their own `this`. They inherit `this` from the enclosing scope. Function declarations are hoisted — expressions are not.
-</Callout>
-
-### 7\. Arrays & Array Methods
-
-```java
-let arr = [1, 2, 3, 4, 5];
-
-// Add / Remove
-arr.push(6);        // adds to END   → [1,2,3,4,5,6]
-arr.pop();          // removes END   → [1,2,3,4,5], returns 6
-arr.unshift(0);    // adds to START → [0,1,2,3,4,5]
-arr.shift();        // removes START → [1,2,3,4,5], returns 0
-
-// splice(start, deleteCount, ...items) — modifies original
-arr.splice(1, 2);      // removes 2 elements from index 1 → [1,4,5]
-arr.splice(1, 0, 9);  // inserts 9 at index 1, deletes nothing
-
-// slice(start, end) — returns new array, does NOT modify original
-let part = [1,2,3,4,5].slice(1, 3); // [2, 3]  (index 1 up to but NOT including 3)
-
-// Search
-[10,20,30].indexOf(20);   // 1  (index of value 20)
-[10,20,30].indexOf(99);   // -1 (not found)
-[1,2,3].includes(2);       // true
-
-// Iterate / Transform
-[1,2,3].map(x => x * 2);      // [2, 4, 6]  — new array, every element transformed
-[1,2,3,4].filter(x => x > 2); // [3, 4]    — new array, only matching elements
-[1,2,3,4].reduce((acc, x) => acc + x, 0); // 10 — reduces to single value (sum here)
-```
-
-| Method | Mutates original? | Returns |
-| --- | --- | --- |
-| push() | ✅ Yes | New length |
-| pop() | ✅ Yes | Removed element |
-| shift() | ✅ Yes | Removed element |
-| unshift() | ✅ Yes | New length |
-| splice() | ✅ Yes | Array of removed elements |
-| slice() | ❌ No | New array (copy) |
-| map() | ❌ No | New array (transformed) |
-| filter() | ❌ No | New array (filtered) |
-| reduce() | ❌ No | Single accumulated value |
-
-### 8\. String Methods
-
-```java
-let s = "  Hello, World!  ";
-
-s.length                 // 18 (including spaces)
-s.trim()                 // "Hello, World!"  — removes leading/trailing whitespace
-s.toUpperCase()          // "  HELLO, WORLD!  "
-s.toLowerCase()          // "  hello, world!  "
-s.indexOf("World")       // 9  (first occurrence index, -1 if not found)
-s.includes("Hello")      // true
-s.charAt(2)              // "H"  (character at index 2)
-s.substring(2, 7)        // "Hello"  (from index 2 up to but not including 7)
-s.replace("World", "JS") // "  Hello, JS!  "  (replaces first match)
-s.split(",")             // ["  Hello", " World!  "]  — splits into array
-"hello"[0]               // "h"  — strings are indexable
-
-// Template literals (ES6) — backtick strings
-let name = "Darshan";
-let msg = `Hello, ${name}! You are ${20+1} years old.`;
-// "Hello, Darshan! You are 21 years old."
-```
-
-### 9\. Loops
-
-```java
-// for loop
-for (let i = 0; i < 3; i++) {
-  console.log(i); // 0, 1, 2
-}
-
-// while loop
-let i = 0;
-while (i < 3) {
-  console.log(i); // 0, 1, 2
-  i++;
-}
-
-// do-while — runs at LEAST once even if condition is false
-let j = 5;
-do {
-  console.log(j); // 5 — runs once even though 5 < 3 is false
-} while (j < 3);
-
-// for...in — iterates over KEYS of an object (or indexes of array)
-const person = { name: "Ali", age: 25 };
-for (let key in person) {
-  console.log(key); // "name", "age"
-}
-
-// for...of — iterates over VALUES of iterable (array, string, etc.)
-const nums = [10, 20, 30];
-for (let val of nums) {
-  console.log(val); // 10, 20, 30
-}
-```
-<Callout type="info" title="🔑 Key Fact">
-`for...in` → keys/indexes. `for...of` → values. Use `for...of` for arrays, `for...in` for objects.
-</Callout>
-
-### 10\. Objects
-
-```java
-// Creating an object
-const car = {
-  brand: "Toyota",
-  year: 2022,
-  start: function() {
-    return "Engine started!";
-  }
-};
-
-// Accessing properties — dot notation
-console.log(car.brand);    // "Toyota"
-console.log(car.year);     // 2022
-
-// Accessing properties — bracket notation (useful for dynamic keys)
-console.log(car["brand"]); // "Toyota"
-let prop = "year";
-console.log(car[prop]);   // 2022
-
-// Calling a method
-console.log(car.start()); // "Engine started!"
-
-// Adding / modifying properties
-car.color = "red";  // adds new property
-car.year = 2023;   // modifies existing
-
-// Deleting a property
-delete car.color;
-```
-
-### 11\. DOM Manipulation
-
-The DOM (Document Object Model) is the browser's representation of the HTML page as a tree of objects. JavaScript can read and change it.
-
-```java
-// Selecting elements
-document.getElementById("myBtn")         // by id — returns single element
-document.querySelector(".myClass")       // CSS selector — returns FIRST match
-document.querySelectorAll("p")           // CSS selector — returns ALL matches (NodeList)
-document.getElementsByClassName("btn") // by class — returns HTMLCollection
-
-// Changing content
-let el = document.getElementById("title");
-el.innerHTML = "<b>New Title</b>";  // sets HTML content
-el.textContent = "Plain text";       // sets text only (safer — no HTML parsing)
-
-// Changing styles
-el.style.color = "red";
-el.style.display = "none";
-
-// Changing attributes
-el.setAttribute("href", "https://example.com");
-el.getAttribute("href");
-
-// Adding event listener
-el.addEventListener("click", function() {
-  console.log("Clicked!");
+Promise.resolve().then(() => {
+  console.log("Promise"); // 3. Queued to VIP Microtasks
 });
+
+console.log("End"); // 2. Run immediately on Stack
+
+// Output Order: "Start" -> "End" -> "Promise" -> "Timeout"
 ```
 
-### 12\. Events
+---
 
-| Event | When it fires |
-| --- | --- |
-| onclick | Element is clicked |
-| onchange | Value of input/select changes |
-| onsubmit | Form is submitted |
-| onload | Page or image finishes loading |
-| onmouseover | Mouse enters element |
-| onkeydown | Key is pressed down |
-| onfocus | Input element gets focus |
-| onblur | Input element loses focus |
+### 3. Scopes, Hoisting & Closures
 
-```java
-// Inline HTML (older style)
-<button onclick="sayHi()">Click Me</button>
+#### Scopes & Hoisting: Setting Up the Stage
+*   **Hoisting**: Setting up props on a theatrical stage before the actors begin reading the script.
+    *   `var` is declared and assigned `undefined` on the stage floor.
+    *   `let` and `const` are placed inside a locked glass cabinet (Temporal Dead Zone) until the actor reaches the line that unlocks them.
 
-// addEventListener (preferred)
-document.getElementById("btn").addEventListener("click", function(event) {
-  event.preventDefault(); // stops default behavior (e.g., form submission)
-  console.log("Button clicked");
-});
-```
+#### Closures: The Apartment Wiretap
+*   **Closure**: A spy leaving a wiretap bug in an apartment.
+*   **Analogy**: When a function finishes running, its local variables (the apartment) are usually cleaned up by garbage collection. But if that function returns an inner function that references those variables, it creates a closure. The inner function acts as a wiretap that remains in the apartment, keeping the memory alive so it can still read the variables long after the parent function has exited.
 
-### 13\. Closures
-
-A closure is when an inner function **remembers variables from its outer function**, even after the outer function has finished executing.
-
-```java
-function makeCounter() {
-  let count = 0;          // this variable lives in makeCounter's scope
-
-  return function() {     // inner function — this is the closure
+```javascript
+function createCounter() {
+  let count = 0; // Stays alive in the apartment
+  return function() {
     count++;
     return count;
   };
 }
 
-const counter = makeCounter(); // makeCounter finished, but count survives
-console.log(counter()); // 1
-console.log(counter()); // 2
-console.log(counter()); // 3
-
-// Each call to makeCounter() creates a SEPARATE closure
-const counter2 = makeCounter();
-console.log(counter2()); // 1 — independent from counter
+const counter = createCounter();
+console.log(counter()); // Prints: 1
+console.log(counter()); // Prints: 2
 ```
-<Callout type="info" title="💡 Exam tip">
-Closures are used for **data privacy** — variables inside a closure can't be accessed from outside. The inner function "closes over" the outer variables.
-</Callout>
 
-### 14\. The `this` Keyword
+---
 
-`this` refers to the object that is currently executing the function. Its value depends on _how_ the function is called.
+### 4. Dynamic Binding: this, call, apply, bind
 
-```java
-// In a method — this = the object
+The `this` keyword refers to the object that is executing the current function.
+*   **Analogy**: "Who owns the current phone?" If a phone rings, `this` refers to whoever is holding the phone at that exact moment.
+    *   *Implicit*: When a method is called on an object, that object is holding the phone (`user.sayName()`).
+    *   *Arrow Functions*: Arrow functions are like a phone that has no owner; they simply inherit the ownership (lexical scope) of the room they were built in.
+
+```javascript
 const person = {
-  name: "Darshan",
-  greet() {
-    console.log(this.name); // "Darshan"
-  }
-};
-person.greet();
-
-// In a regular function (non-strict mode) — this = global (window)
-function show() {
-  console.log(this); // window (browser) or global (Node.js)
-}
-
-// Arrow functions — NO own this, inherits from enclosing scope
-const obj = {
-  name: "Test",
-  regular: function() {
-    console.log(this.name); // "Test" — this = obj
+  name: "Kamran",
+  greetNormal: function() {
+    console.log("Hello, " + this.name); // 'this' points to person
   },
-  arrow: () => {
-    console.log(this.name); // undefined — arrow uses outer this (window)
+  greetArrow: () => {
+    console.log("Hello, " + this.name); // 'this' inherits outer window scope (name is undefined)
   }
 };
 ```
 
-### 15\. Hoisting
+*   `call(thisArg, arg1, arg2)`: Invokes the function immediately, manually handing the phone to `thisArg`.
+*   `apply(thisArg, [argsArray])`: Same as `call`, but arguments are passed as an array.
+*   `bind(thisArg)`: Returns a new function with the phone permanently glued to `thisArg`.
 
-<Callout type="info" title="🔑 Key Fact — Hoisting Summary">
+---
 
+### 5. Conceptual Quizzes
 
-*   **var declarations** → hoisted to top of function, initialised as `undefined`
-*   **var assignments** → NOT hoisted, stay where they are
-*   **function declarations** → fully hoisted (name + body), callable anywhere
-*   **let / const** → hoisted but in **Temporal Dead Zone (TDZ)** — throws ReferenceError if accessed before declaration
-*   **function expressions / arrow functions** → follow the rules of the variable they're assigned to
+<Quiz question="What is the execution order of the logs: console.log('A'); setTimeout(() => console.log('B'), 0); Promise.resolve().then(() => console.log('C')); console.log('D');?" options={["A -> B -> C -> D","A -> D -> B -> C","A -> D -> C -> B","A -> C -> D -> B"]} answerIndex={2}>
+'A' and 'D' execute synchronously. The Promise `.then()` callback is placed in the Microtask queue (high priority), executing next. The `setTimeout` callback is placed in the Macrotask queue, executing last.
+</Quiz>
 
+<Quiz question="What is the Temporal Dead Zone in JavaScript?" options={["A region of memory allocated for trash collection.","The time window between variable binding entry and its actual declaration line where let and const variables cannot be read.","A thread lock state.","A deprecated API status."]} answerIndex={1}>
+For variables declared with `let` or `const`, they are hoisted but remain uninitialized in the Temporal Dead Zone (TDZ). Reading them before their declaration line throws a `ReferenceError`.
+</Quiz>
 
-</Callout>
+---
 
-```java
-// var hoisting
-console.log(x); // undefined — declaration hoisted, assignment not
-var x = 10;
-console.log(x); // 10
+### 6. Practice Problems
 
-// Function declaration hoisting — fully hoisted
-sayHello(); // "Hello!" — works even before the function definition
-function sayHello() { console.log("Hello!"); }
+<Problem title="Problem 1: Custom Promise Implementation">
+<ProblemDescription>
+Write a basic constructor `SimplePromise` that:
+1. Supports state transitions from `PENDING` to `RESOLVED` or `REJECTED`.
+2. Supports chaining using `.then(onResolve)`.
+</ProblemDescription>
+<ProblemSolution>
+This implementation manages state callbacks:
 
-// let TDZ
-console.log(y); // ReferenceError: Cannot access 'y' before initialization
-let y = 5;
+```javascript
+class SimplePromise {
+  constructor(executor) {
+    this.state = 'PENDING';
+    this.value = undefined;
+    this.callbacks = [];
 
-// Function expression — NOT hoisted
-greet(); // TypeError: greet is not a function
-var greet = function() { console.log("Hi"); };
-```
+    const resolve = (value) => {
+      if (this.state !== 'PENDING') return;
+      this.state = 'RESOLVED';
+      this.value = value;
+      this.callbacks.forEach(cb => cb(value));
+    };
 
-### 16\. Truthy & Falsy Values
+    try {
+      executor(resolve);
+    } catch (err) {
+      // Basic fail handler
+    }
+  }
 
-In JavaScript, every value is either truthy or falsy when evaluated in a boolean context (like an `if` statement).
-
-<Callout type="error" title="⚠️ The 6 Falsy Values — Memorise These">
-`false`  |  `0`  |  `""` (empty string)  |  `null`  |  `undefined`  |  `NaN`  
-  
-Everything else is **truthy** — including `"0"`, `"false"`, `[]`, `{}`.
-</Callout>
-
-```java
-// Falsy — all these if-blocks do NOT run
-if (0)         { /* skipped */ }
-if ("")        { /* skipped */ }
-if (null)      { /* skipped */ }
-if (undefined) { /* skipped */ }
-if (NaN)       { /* skipped */ }
-
-// Truthy — these DO run
-if ("0")        { /* runs — non-empty string, even if "0" */ }
-if ([])         { /* runs — empty array is truthy! */ }
-if ({})         { /* runs — empty object is truthy! */ }
-if ("false")    { /* runs — non-empty string is truthy */ }
-if (-1)         { /* runs — any non-zero number is truthy */ }
-```
-
-### 17\. NaN — Not a Number
-
-```java
-typeof NaN         // "number" — NaN is paradoxically of type number
-isNaN(NaN)        // true
-isNaN("abc")      // true  — "abc" gets coerced to NaN
-isNaN("123")      // false — "123" coerces to number 123
-isNaN(undefined) // true  — undefined is NaN when converted
-
-NaN === NaN       // false — NaN is NOT equal to itself!
-NaN == NaN        // false — same rule
-
-// How to properly check for NaN:
-Number.isNaN(NaN)   // true  — stricter, doesn't coerce
-Number.isNaN("abc") // false — "abc" is not NaN, it's a string
-```
-<Callout type="info" title="💡 Exam tip">
-`NaN !== NaN` is one of the most surprising facts in JavaScript. It is the only value in JS not equal to itself. Use `isNaN()` or `Number.isNaN()` to check for it.
-</Callout>
-
-### 18\. JSON.parse() and JSON.stringify()
-
-JSON (JavaScript Object Notation) is a text format for exchanging data. Two key methods convert between JSON strings and JS objects.
-
-```java
-// JavaScript object → JSON string
-const user = { name: "Darshan", age: 21 };
-const json = JSON.stringify(user);
-console.log(json);          // '{"name":"Darshan","age":21}'
-console.log(typeof json); // "string"
-
-// JSON string → JavaScript object
-const str = '{"name":"Darshan","age":21}';
-const obj = JSON.parse(str);
-console.log(obj.name);      // "Darshan"
-console.log(typeof obj);   // "object"
-
-// JSON rules — keys must be double-quoted strings
-// Invalid JSON: { name: "Darshan" }  — key must be "name"
-// Valid JSON:   { "name": "Darshan" }
-```
-
-### 19\. setTimeout and setInterval
-
-```java
-// setTimeout — run code ONCE after a delay (milliseconds)
-setTimeout(function() {
-  console.log("Runs after 2 seconds");
-}, 2000);
-
-// setTimeout with arrow function
-setTimeout(() => console.log("Hello!"), 1000);
-
-// setInterval — run code REPEATEDLY every N milliseconds
-const id = setInterval(() => {
-  console.log("Runs every 1 second");
-}, 1000);
-
-// Stop the interval
-clearInterval(id);
-
-// Cancel a timeout before it fires
-const t = setTimeout(() => console.log("Never runs"), 5000);
-clearTimeout(t);
-```
-
-### 20\. Error Handling — try / catch / finally
-
-```java
-try {
-  // code that might throw an error
-  let result = 10 / 0;
-  JSON.parse("invalid json {"); // throws SyntaxError
-} catch (error) {
-  // runs if an error is thrown inside try
-  console.log(error.message); // "Unexpected token i in JSON..."
-  console.log(error.name);    // "SyntaxError"
-} finally {
-  // ALWAYS runs — error or not
-  console.log("Cleanup done");
-}
-
-// Throw your own error
-function divide(a, b) {
-  if (b === 0) throw new Error("Cannot divide by zero");
-  return a / b;
+  then(onResolve) {
+    if (this.state === 'RESOLVED') {
+      onResolve(this.value);
+    } else {
+      this.callbacks.push(onResolve);
+    }
+    return this;
+  }
 }
 ```
-<Callout type="info" title="🔑 Key Fact">
-**try** — monitored block. **catch** — runs only on error. **finally** — always runs regardless of error. `finally` is commonly used for cleanup (closing files, stopping loaders).
-</Callout>
-
-### 21\. Browser Dialogs — prompt(), alert(), confirm()
-
-```java
-alert("Hello!");
-// Shows a message box. Returns undefined.
-
-let name = prompt("What is your name?");
-// Shows input box. Returns the string entered, or null if cancelled.
-
-let confirmed = confirm("Are you sure?");
-// Shows OK/Cancel dialog. Returns true (OK) or false (Cancel).
-
-console.log(typeof prompt("test")); // "string" or "object" (null)
-```
-
-| Function | Returns | Use for |
-| --- | --- | --- |
-| alert(msg) | undefined | Showing messages |
-| prompt(msg) | string or null | Getting user input |
-| confirm(msg) | true or false | Yes/No decisions |
-
-### Practice Questions — Output Prediction & Concepts
-
-<Quiz question={"What is the output of the following code?  \n`console.log(1 + \"2\" + 3);`"} options={["6", "\"123\"", "\"15\"", "NaN"]} answerIndex={1}>
-✅ B) "123" — `1 + "2"` hits a string so becomes `"12"`, then `"12" + 3` = `"123"`. Left-to-right evaluation.
-</Quiz>
-<Quiz question={"What does `typeof null` return?"} options={["\"null\"", "\"undefined\"", "\"object\"", "\"string\""]} answerIndex={2}>
-✅ C) "object" — This is a well-known historic bug in JavaScript that was never fixed to preserve backward compatibility.
-</Quiz>
-<Quiz question={"What does `typeof NaN` return?"} options={["\"NaN\"", "\"undefined\"", "\"boolean\"", "\"number\""]} answerIndex={3}>
-✅ D) "number" — NaN stands for "Not a Number" but is paradoxically of type "number". Always a top exam question.
-</Quiz>
-<Quiz question={"What is the output?  \n`console.log(0.1 + 0.2 == 0.3);`"} options={["true", "false", "NaN", "undefined"]} answerIndex={1}>
-✅ B) false — Due to floating-point precision, `0.1 + 0.2` equals `0.30000000000000004`, not exactly `0.3`.
-</Quiz>
-<Quiz question={"What is the output?\n```java\nvar x = 5;\nconsole.log(x++);\nconsole.log(x);\n```"} options={["5, 5", "6, 6", "5, 6", "6, 5"]} answerIndex={2}>
-✅ C) 5, 6 — Post-increment `x++` returns the current value (5) THEN increments. Next line x is now 6.
-</Quiz>
-<Quiz question={"What is the output?\n```java\nconsole.log(a);\nvar a = 10;\n```"} options={["10", "ReferenceError", "null", "undefined"]} answerIndex={3}>
-✅ D) undefined — `var a` is hoisted to the top and initialised as `undefined`. The assignment `a = 10` happens later.
-</Quiz>
-<Quiz question={"What is the output?  \n`console.log(1 == \"1\");`  \n`console.log(1 === \"1\");`"} options={["true, true", "false, false", "true, false", "false, true"]} answerIndex={2}>
-✅ C) true, false — `==` converts "1" to number 1 before comparing (equal). `===` checks type too: number ≠ string (not equal).
-</Quiz>
-<Quiz question={"What is the output?  \n`console.log(\"5\" - 3);`"} options={["\"53\"", "\"5-3\"", "2", "NaN"]} answerIndex={2}>
-✅ C) 2 — The `-` operator only does subtraction (no string concatenation). "5" is coerced to number 5, then 5 - 3 = 2.
-</Quiz>
-<Quiz question={"What is the output?\n```java\nlet arr = [1, 2, 3, 4];\nlet result = arr.filter(x => x > 2);\nconsole.log(result);\n```"} options={["\\[1, 2\\]", "\\[3, 4\\]", "\\[2, 3, 4\\]", "true"]} answerIndex={1}>
-✅ B) \[3, 4\] — `filter` returns a new array with elements where the callback returns `true`. Only 3 and 4 are greater than 2.
-</Quiz>
-<Quiz question={"What is the output?\n```java\nlet arr = [1, 2, 3];\nconsole.log(arr.map(x => x * 2));\nconsole.log(arr);\n```"} options={["\\[2, 4, 6\\], \\[2, 4, 6\\]", "\\[2, 4, 6\\], \\[1, 2, 3\\]", "\\[1, 2, 3\\], \\[2, 4, 6\\]", "\\[2, 4, 6\\], undefined"]} answerIndex={1}>
-✅ B) \[2, 4, 6\], \[1, 2, 3\] — `map` does NOT mutate the original array. It returns a new array. The original `arr` is unchanged.
-</Quiz>
-<Quiz question={"What is the output?\n```java\nfunction makeAdder(x) {\n  return function(y) {\n    return x + y;\n  };\n}\nconst add5 = makeAdder(5);\nconsole.log(add5(3));\n```"} options={["undefined", "3", "5", "8"]} answerIndex={3}>
-✅ D) 8 — This is a closure. `add5` "closes over" `x = 5`. When called with `3`, it returns `5 + 3 = 8`.
-</Quiz>
-<Quiz question={"What is the output?  \n`console.log(NaN === NaN);`"} options={["true", "false", "undefined", "TypeError"]} answerIndex={1}>
-✅ B) false — NaN is the only value in JavaScript that is not equal to itself. Use `isNaN()` or `Number.isNaN()` to check for NaN.
-</Quiz>
-<Quiz question={"What is the output?\n```java\nlet a = 10;\nfunction test() {\n  console.log(a);\n  var a = 20;\n}\ntest();\n```"} options={["10", "20", "undefined", "ReferenceError"]} answerIndex={2}>
-✅ C) undefined — Inside `test()`, `var a` is hoisted within the function scope. At `console.log(a)`, the local `a` exists but is `undefined` (not yet assigned). The outer `a = 10` is shadowed.
-</Quiz>
-<Quiz question={"What is the output?  \n`console.log(true + true + \"1\");`"} options={["\"111\"", "3", "\"21\"", "\"true true 1\""]} answerIndex={2}>
-✅ C) "21" — Left to right: `true + true` → `1 + 1` → `2` (both booleans convert to numbers). Then `2 + "1"` → `"21"` (string concatenation).
-</Quiz>
-<Quiz question={"Which of the following values is TRUTHY in JavaScript?"} options={["0", "\"\"", "\\[\\]", "null"]} answerIndex={2}>
-✅ C) \[\] — An empty array is truthy in JavaScript. Only these 6 values are falsy: `false`, `0`, `""`, `null`, `undefined`, `NaN`. Empty arrays and objects are NOT falsy.
-</Quiz>
-<Quiz question={"What is the output?\n```java\nlet arr = [10, 20, 30];\nconsole.log(arr.indexOf(20));\nconsole.log(arr.indexOf(99));\n```"} options={["1, 0", "2, -1", "1, -1", "20, undefined"]} answerIndex={2}>
-✅ C) 1, -1 — `indexOf` returns the index of the element (20 is at index 1). If not found, it returns -1 (99 is not in the array).
-</Quiz>
-<Quiz question={"What is the output?  \n`console.log(typeof undefined === typeof null);`"} options={["true", "false", "undefined", "TypeError"]} answerIndex={1}>
-✅ B) false — `typeof undefined` is `"undefined"`. `typeof null` is `"object"`. `"undefined" === "object"` is false.
-</Quiz>
-<Quiz question={"What is the output?\n```java\nlet s = \"Hello, World\";\nconsole.log(s.substring(7, 12));\n```"} options={["\"Hello\"", "\"World\"", "\"orld\"", "\"World,\""]} answerIndex={1}>
-✅ B) "World" — `substring(7, 12)` extracts characters from index 7 up to (but not including) index 12. H(0)e(1)l(2)l(3)o(4),(5) (6)W(7)o(8)r(9)l(10)d(11) → "World".
-</Quiz>
-<Quiz question={"What is the output?\n```java\nconst obj = { name: \"test\" };\nconst key = \"name\";\nconsole.log(obj.key);\nconsole.log(obj[key]);\n```"} options={["\"test\", \"test\"", "undefined, \"test\"", "\"test\", undefined", "undefined, undefined"]} answerIndex={1}>
-✅ B) undefined, "test" — `obj.key` looks for a property literally named "key" (not the variable) → undefined. `obj[key]` uses the variable's value "name" → `obj["name"]` → "test".
-</Quiz>
-<Quiz question={"What is the output?\n```java\nlet x = 10;\nlet y = 3;\nconsole.log(x % y);\nconsole.log(x ** y);\n```"} options={["3, 30", "1, 1000", "3, 1000", "1, 30"]} answerIndex={1}>
-✅ B) 1, 1000 — `%` is modulo: 10 ÷ 3 = 3 remainder **1**. `**` is exponentiation: 10³ = **1000**.
-</Quiz>
+</ProblemSolution>
+</Problem>
