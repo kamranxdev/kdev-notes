@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Kamran's Notes - Technical Documentation",
-    short_name: "Kamran's Notes",
+    name: "K-Dev Notes - Technical Documentation",
+    short_name: "K-Dev Notes",
     description: "A detailed repository of reference guides, syntax cheat sheets, and technical writeups with clear analogies.",
     start_url: "/",
     display: "standalone",

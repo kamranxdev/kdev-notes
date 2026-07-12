@@ -11,8 +11,8 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://notes.kamranx.dev'),
   title: {
-    template: "%s | Kamran's Notes",
-    default: "Kamran's Notes - Technical Documentation & Reference",
+    template: "%s | K-Dev Notes",
+    default: "K-Dev Notes - Technical Documentation & Reference",
   },
   description: "A detailed repository of reference guides, syntax cheat sheets, and technical writeups with clear analogies and production-grade examples.",
   keywords: ["programming", "web development", "database", "SQL", "Linux shell", "Next.js", "React", "developer reference"],
@@ -24,19 +24,19 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Kamran's Notes",
+    title: "K-Dev Notes",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
     url: "https://notes.kamranx.dev",
-    title: "Kamran's Notes - Technical Documentation & Reference",
+    title: "K-Dev Notes - Technical Documentation & Reference",
     description: "A detailed repository of reference guides, syntax cheat sheets, and technical writeups with clear analogies and production-grade examples.",
-    siteName: "Kamran's Notes",
+    siteName: "K-Dev Notes",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kamran's Notes - Technical Documentation & Reference",
+    title: "K-Dev Notes - Technical Documentation & Reference",
     description: "A detailed repository of reference guides, syntax cheat sheets, and technical writeups with clear analogies and production-grade examples.",
   },
 };

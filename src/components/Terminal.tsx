@@ -19,7 +19,7 @@ export default function Terminal({ totalNotes, totalCategories }: TerminalProps)
       command: 'welcome',
       output: (
         <div className="space-y-1">
-          <p className="text-kamranx-accent font-bold">Kamran's Notes Shell [Version 1.0.0]</p>
+          <p className="text-kamranx-accent font-bold">K-Dev Notes Shell [Version 1.0.0]</p>
           <p className="text-muted-foreground text-xs">(c) 2026 Kamran Khan. All rights reserved.</p>
           <p className="text-xs mt-2">
             Type <span className="text-yellow-400 font-bold">help</span> or click the quick commands below to explore.
@@ -147,7 +147,7 @@ export default function Terminal({ totalNotes, totalCategories }: TerminalProps)
       </div>
 
       {/* Terminal Display */}
-      <div 
+      <div
         ref={displayRef}
         onClick={focusInput}
         className="flex-1 p-4 min-h-[220px] max-h-[300px] overflow-y-auto font-mono text-sm text-zinc-300 space-y-3 cursor-text scrollbar-thin scrollbar-thumb-zinc-800"
