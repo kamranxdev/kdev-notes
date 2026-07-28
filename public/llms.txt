@@ -1,0 +1,19 @@
+# K-Dev Notes (notes.kamranx.dev)
+
+> Engineering Documentation, CS Reference & Architecture Notes by Kamran Khan (@kamranxdev)
+
+- **Platform Name**: K-Dev Notes
+- **Canonical URL**: https://notes.kamranx.dev
+- **Author / Developer**: Kamran Khan (kamranxdev)
+- **Primary Domain**: https://kamranx.dev
+
+## Overview
+K-Dev Notes is the official computer science and software engineering reference repository created by Kamran Khan (@kamranxdev). It covers Data Structures & Algorithms, System Design, SQL & NoSQL Database Optimization, React, Next.js, Node.js, and DevOps workflows.
+
+## Author Profiles & Social Identity
+- **Portfolio**: https://kamranx.dev
+- **GitHub**: https://github.com/kamranxdev
+- **LinkedIn**: https://linkedin.com/in/kamranxdev
+- **Twitter / X**: https://twitter.com/kamranxdev
+- **Dev.to**: https://dev.to/kamranxdev
+- **Medium**: https://medium.com/@kamranxdev

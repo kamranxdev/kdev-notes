@@ -9,15 +9,32 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://notes.kamranx.dev'),
+  metadataBase: new URL('https://notes.kamranx.dev'),
   title: {
-    template: "%s | K-Dev Notes",
-    default: "K-Dev Notes - Technical Documentation & Reference",
+    template: "%s | K-Dev Notes | Kamran Khan (kamranxdev)",
+    default: "K-Dev Notes | Engineering Docs & Reference | Kamran Khan (kamranxdev)",
   },
-  description: "A detailed repository of reference guides, syntax cheat sheets, and technical writeups with clear analogies and production-grade examples.",
-  keywords: ["programming", "web development", "database", "SQL", "Linux shell", "Next.js", "React", "developer reference"],
+  description: "Official technical documentation, computer science notes, DSA cheat sheets, and production code patterns authored by Kamran Khan (kamranxdev).",
+  keywords: [
+    "K-Dev Notes",
+    "Kamran Khan",
+    "kamranxdev",
+    "kamranx",
+    "notes.kamranx.dev",
+    "@kamranxdev",
+    "Kamran Khan Software Engineer",
+    "Software Engineer & Full Stack Developer",
+    "System Design",
+    "Data Structures & Algorithms",
+    "Next.js Notes",
+    "TypeScript Docs"
+  ],
   authors: [{ name: "Kamran Khan", url: "https://kamranx.dev" }],
-  creator: "Kamran Khan",
+  creator: "Kamran Khan (kamranxdev)",
+  publisher: "Kamran Khan",
+  alternates: {
+    canonical: "https://notes.kamranx.dev",
+  },
   icons: {
     icon: "/favicon.svg",
   },
@@ -30,14 +47,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://notes.kamranx.dev",
-    title: "K-Dev Notes - Technical Documentation & Reference",
-    description: "A detailed repository of reference guides, syntax cheat sheets, and technical writeups with clear analogies and production-grade examples.",
+    title: "K-Dev Notes | Engineering Docs & Reference | Kamran Khan (kamranxdev)",
+    description: "Official technical documentation, computer science notes, DSA cheat sheets, and production code patterns authored by Kamran Khan (kamranxdev).",
     siteName: "K-Dev Notes",
   },
   twitter: {
     card: "summary_large_image",
-    title: "K-Dev Notes - Technical Documentation & Reference",
-    description: "A detailed repository of reference guides, syntax cheat sheets, and technical writeups with clear analogies and production-grade examples.",
+    title: "K-Dev Notes | Engineering Docs & Reference | Kamran Khan (kamranxdev)",
+    description: "Official technical documentation, computer science notes, DSA cheat sheets, and production code patterns authored by Kamran Khan (kamranxdev).",
+    creator: "@kamranxdev",
+    site: "@kamranxdev",
   },
 };
 

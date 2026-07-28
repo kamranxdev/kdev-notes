@@ -1,0 +1,16 @@
+# K-Dev Notes Full Knowledge Base Context
+
+## Purpose
+Detailed technical reference guides, code patterns, and architectural writeups authored by **Kamran Khan** (online handle: **kamranxdev**).
+
+### Categories & Topics Covered
+1. **Frontend Engineering**: React 19, Next.js 16 App Router, Server Components, State Management, Core Web Vitals.
+2. **Backend Engineering**: Node.js, Express, Microservices Architecture, REST & GraphQL APIs, Database Indexing.
+3. **Algorithms & System Design**: DSA Cheat Sheets, Scalability Patterns, High Availability, Distributed Systems.
+4. **DevOps & Cloud**: Docker, Kubernetes, CI/CD Pipelines, GitHub Actions, Edge Compute.
+
+### Entity Links
+- **Author Profile**: https://kamranx.dev
+- **Ecosystem Hub**: https://hub.kamranx.dev
+- **AI Hub**: https://ai.kamranx.dev
+- **P2P Drop**: https://drop.kamranx.dev
