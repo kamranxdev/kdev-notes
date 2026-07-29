@@ -1,83 +1,139 @@
 ---
 title: Window Functions & Analytical SQL
-description: Comprehensive reference for SQL window functions, partitioning, ordering, framing specs, ranking (RANK vs DENSE_RANK), and navigation functions.
+description: Comprehensive reference for SQL window functions, partitioning, ordering, framing specifications, ranking (RANK vs DENSE_RANK), navigation functions, and running aggregations.
 ---
 
 ## 🪟 What is a Window Function?
 
-Traditional `GROUP BY` clauses collapse individual table rows into summary groups. In contrast, **Window Functions** perform calculations across a subset of table rows (a partition) while **preserving the individual row identity and granularity** of the dataset.
+Traditional `GROUP BY` clauses collapse individual table rows into single summary group rows, losing row-level granularity. In contrast, **Window Functions** compute aggregate values across a sliding window subset of rows (a partition) while **preserving the individual row identity and original row count** of the dataset.
 
-* **Analogy**: *A sliding camera lens.* The lens focuses on a specific section of rows (the partition) to perform calculations (like computing running sums or department ranks), but outputs every original row alongside its calculated analytical value.
+* **Analogy**: *Glass Floor Observation Deck in a Skyscraper.*
+  - **`GROUP BY`**: Demolishes individual room walls and converts an entire floor into one giant summary room.
+  - **Window Function (`OVER()`)**: Installs a transparent glass floor panel above the skyscraper rooms. As you walk across the panel, you observe individual rooms and calculate running totals or room salary ranks, but every room remains intact at its exact location.
+
+```
+                    GROUP BY vs. Window Functions
+                                  │
+    ┌─────────────────────────────┴─────────────────────────────┐
+    ▼                                                           ▼
+GROUP BY dept_id                                  AVG(salary) OVER(PARTITION BY dept_id)
+Collapses 10 rows into 1 summary row             Preserves all 10 rows + appends aggregate column
+```
 
 ```sql
 SELECT emp_name, dept_id, salary,
        AVG(salary) OVER(PARTITION BY dept_id) AS dept_avg_salary,
-       RANK() OVER(PARTITION BY dept_id ORDER BY salary DESC) AS sal_rank
+       DENSE_RANK() OVER(PARTITION BY dept_id ORDER BY salary DESC) AS sal_rank
 FROM employees;
 ```
 
 ---
 
-## 📊 Ranking Functions: ROW_NUMBER vs RANK vs DENSE_RANK
+## 📐 Anatomy of a Window Function
 
-When ranking items within a partition (e.g., top-earning employees per department), SQL provides three primary functions that handle tied values differently:
+A window function specification consists of three primary components:
 
-| Employee | Salary | `ROW_NUMBER()` | `RANK()` | `DENSE_RANK()` |
-| :--- | :--- | :--- | :--- | :--- |
-| **Alice** | $100,000 | 1 | 1 | 1 |
-| **Bob** | $90,000 | 2 | 2 | 2 |
-| **Charlie** | $90,000 | 3 | 2 | 2 |
-| **David** | $80,000 | 4 | **4** (Leaves gap) | **3** (No gap) |
-
-* `ROW_NUMBER()`: Assigns a strictly sequential unique integer to every row regardless of ties.
-* `RANK()`: Assigns the same rank to tied rows, but **skips subsequent rank numbers** (gap left).
-* `DENSE_RANK()`: Assigns the same rank to tied rows, but **does not skip rank numbers** (consecutive integers).
+```sql
+FUNCTION() OVER (
+    PARTITION BY dept_id         -- 1. Grouping Boundary
+    ORDER BY salary DESC         -- 2. Evaluation Sort Order
+    ROWS BETWEEN 2 PRECEDING AND CURRENT ROW -- 3. Sliding Frame
+)
+```
 
 ---
 
-## ⏱️ Navigation & Framing Functions
+## 📊 Ranking Functions: `ROW_NUMBER` vs `RANK` vs `DENSE_RANK`
 
-### Navigation Functions
-* `LAG(col, offset, default)`: Accesses column data from a previous row relative to the current row without doing a self-join (ideal for calculating Month-over-Month growth).
-* `LEAD(col, offset, default)`: Accesses column data from a subsequent row.
-* `FIRST_VALUE(col)` / `LAST_VALUE(col)`: Returns the first or last value in the specified window frame.
+When evaluating relative ranks within a partition (e.g., top 3 salespeople per region), SQL provides three ranking functions that handle tied values differently:
 
-### Window Frame Specification (`ROWS / RANGE BETWEEN`)
-Specifies the exact sliding boundary of rows included in the window calculation:
+| Employee | Salary | `ROW_NUMBER()` | `RANK()` | `DENSE_RANK()` | `NTILE(2)` |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Alice** | $100,000 | 1 | 1 | 1 | Bucket 1 |
+| **Bob** | $90,000 | 2 | 2 | 2 | Bucket 1 |
+| **Charlie** | $90,000 | 3 | 2 | 2 | Bucket 2 |
+| **David** | $80,000 | 4 | **4** (Leaves gap) | **3** (No gap left!) | Bucket 2 |
+
+- `ROW_NUMBER()`: Assigns a strictly unique, sequential integer to every row regardless of ties.
+- `RANK()`: Assigns identical rank numbers to tied rows, but **leaves gaps in subsequent numbers** (e.g., 1, 2, 2, 4).
+- `DENSE_RANK()`: Assigns identical rank numbers to tied rows, but **does not leave gaps** (e.g., 1, 2, 2, 3).
+- `NTILE(n)`: Divides the ordered partition into $n$ equal-sized buckets and assigns bucket numbers (1 to $n$).
+
+---
+
+## ⏱️ Navigation & Offset Functions
+
+Navigation functions access data from surrounding rows relative to the current row without performing expensive self-joins:
+
+- `LAG(col, offset, default)`: Accesses column data from a **prior row** in the partition (ideal for Month-over-Month growth calculations).
+- `LEAD(col, offset, default)`: Accesses column data from a **subsequent row** in the partition.
+- `FIRST_VALUE(col)`: Returns the first value in the window frame.
+- `LAST_VALUE(col)`: Returns the last value in the window frame.
+- `NTH_VALUE(col, n)`: Returns the $n$-th value in the window frame.
 
 ```sql
--- Calculate a 3-month moving average of sales revenue
-SELECT sale_date, amount,
-       AVG(amount) OVER (
-           ORDER BY sale_date 
-           ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
-       ) AS moving_3m_avg
+-- Calculate Month-over-Month (MoM) revenue growth
+SELECT month_date,
+       monthly_revenue,
+       LAG(monthly_revenue, 1, 0) OVER (ORDER BY month_date) AS prior_month_revenue,
+       monthly_revenue - LAG(monthly_revenue, 1, 0) OVER (ORDER BY month_date) AS mom_dollar_growth
 FROM monthly_sales;
 ```
 
-* `UNBOUNDED PRECEDING`: Starts at the very first row of the partition.
-* `CURRENT ROW`: Ends at the current row being processed.
-* `UNBOUNDED FOLLOWING`: Extends to the final row of the partition.
+---
+
+## 🖼️ Window Frame Specifications (`ROWS` vs `RANGE`)
+
+Window frames define the exact subset of rows included in calculation relative to the current row:
+
+```
+                  Window Frame Boundary Specifications
+                                    │
+    ┌───────────────────────────────┴───────────────────────────────┐
+    ▼                                                               ▼
+ROWS BETWEEN 2 PRECEDING AND CURRENT ROW             ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+Evaluates fixed physical row count (3 rows)          Evaluates entire partition from first to last row
+```
+
+- `ROWS`: Operates on physical row counts relative to current row index.
+- `RANGE`: Operates on logical values based on `ORDER BY` values (e.g., date ranges).
+
+```sql
+-- 3-Month Rolling Average Revenue
+SELECT sale_date, revenue,
+       AVG(revenue) OVER (
+           ORDER BY sale_date 
+           ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+       ) AS rolling_3m_avg
+FROM daily_sales;
+```
+
+> [!CAUTION]
+> **The `LAST_VALUE()` Default Frame Trap**:
+> When `ORDER BY` is included without an explicit frame, SQL defaults to `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`.
+> Under this default frame, `LAST_VALUE()` will evaluate the current row as the last value instead of the end of the partition! Always specify `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING` when using `LAST_VALUE()`.
 
 ---
 
 ## ❓ Conceptual Quizzes
 
-<Quiz question="Which window function should be used to find the top 3 products by sales per category when tied sales amounts must not leave gaps in top rankings?" options={["ROW_NUMBER()", "RANK()", "DENSE_RANK()", "NTILE(3)"]} answerIndex={2}>
-`DENSE_RANK()` ranks tied values equally without skipping subsequent numbers (1, 2, 2, 3), ensuring that a product tied for 2nd place does not prevent the next product from being evaluated as rank 3.
+<Quiz question="Which window function should be used to select the top 3 highest-paid employees per department when tied salaries must NOT skip subsequent rank numbers?" options={["ROW_NUMBER()", "RANK()", "DENSE_RANK()", "NTILE(3)"]} answerIndex={2}>
+`DENSE_RANK()` ranks tied values equally without skipping numbers (1, 2, 2, 3), ensuring that two employees tied for 2nd place do not prevent the next employee from being ranked 3rd.
+</Quiz>
+
+<Quiz question="Why does calling LAST_VALUE(salary) OVER(ORDER BY emp_id) return the current row's salary instead of the department's highest salary?" options={["LAST_VALUE only works on text data types.", "The default window frame when ORDER BY is present is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW, making the current row the frame boundary.", "LAST_VALUE requires a GROUP BY clause.", "LAST_VALUE evaluates rows in reverse order."]} answerIndex={1}>
+When `ORDER BY` is specified without an explicit frame clause, SQL defaults to `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`. Thus, the frame ends at `CURRENT ROW`, making `LAST_VALUE()` evaluate to the current row.
 </Quiz>
 
 ---
 
 ## 💻 Practice Problems
 
-<Problem title="Problem: Calculating Year-Over-Year Sales Growth">
+<Problem title="Problem: Calculating Year-Over-Year (YoY) Revenue Growth">
 <ProblemDescription>
-Given a `yearly_revenue` table with columns `year` and `revenue`, write a SQL query to calculate each year's revenue, the previous year's revenue, and the YoY percentage growth rate.
+Given a `yearly_sales` table (`year`, `revenue`), write a SQL query using window functions to calculate each year's revenue, the prior year's revenue, and the YoY percentage growth rate rounded to 2 decimal places.
 </ProblemDescription>
 <ProblemSolution>
-Use the `LAG()` window function to retrieve the prior year's revenue:
-
 ```sql
 SELECT year,
        revenue,
@@ -86,7 +142,7 @@ SELECT year,
            ((revenue - LAG(revenue, 1) OVER (ORDER BY year)) / 
             NULLIF(LAG(revenue, 1) OVER (ORDER BY year), 0)) * 100, 2
        ) AS yoy_growth_pct
-FROM yearly_revenue;
+FROM yearly_sales;
 ```
 </ProblemSolution>
 </Problem>

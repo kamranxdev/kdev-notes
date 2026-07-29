@@ -1,38 +1,53 @@
 ---
 title: SQL Logical Execution Order & The NULL Trap
-description: Master the exact 8-step logical execution sequence of SQL queries, 3-valued boolean logic, NULL hazards, and aggregate filtering rules.
+description: Master the exact 10-step logical execution sequence of SQL queries, 3-valued boolean logic, the NOT IN NULL hazard, and safe conditional expressions.
 ---
 
 ## 🔄 Logical Query Execution Order
 
-While developers write SQL statements starting with the `SELECT` clause, the SQL database engine evaluates clause logic in a strictly defined 8-step execution sequence:
+While developers write SQL statements starting with the `SELECT` clause, the SQL database engine evaluates clause logic in a strictly defined 10-step execution sequence:
+
+* **Analogy**: *An Automated Factory Assembly Conveyor Belt.*
+  - **1. FROM**: Raw materials feed onto the conveyor belt from input bins (Table feeds & cross joins).
+  - **2. ON**: Filtering individual component pairs before welding them together.
+  - **3. JOIN**: Welding assembly parts together into a combined raw product chassis.
+  - **4. WHERE**: Quality inspection scanners discarding defective product chassis before binning.
+  - **5. GROUP BY**: Sorting passed items into distinct color-coded sorting bins.
+  - **6. HAVING**: Weighing entire sorting bins and discarding bins that fall below target aggregate weight.
+  - **7. SELECT**: Stamping brand decals and serial numbers onto items (evaluating math expressions & aliases).
+  - **8. DISTINCT**: Shredding duplicate identical items passing down the track.
+  - **9. ORDER BY**: Lining up finished boxes in numerical order for shipment.
+  - **10. LIMIT / OFFSET**: Loading only the first crate of 10 boxes onto the delivery truck.
 
 ```
-  Written Syntax Order                Engine Logical Execution Order
-  1. SELECT                           1. FROM (Cross joins & table feeds)
-  2. FROM                             2. ON (Filter join conditions)
-  3. WHERE                            3. JOIN (Produce joined virtual table)
-  4. GROUP BY                         4. WHERE (Filter individual rows)
-  5. HAVING                           5. GROUP BY (Group rows into buckets)
-  6. ORDER BY                         6. HAVING (Filter aggregated buckets)
-  7. LIMIT / OFFSET                   7. SELECT (Evaluate columns & aliases)
-                                      8. DISTINCT (De-duplicate output rows)
-                                      9. ORDER BY (Sort result set)
-                                      10. LIMIT / OFFSET (Slice page result)
+   Written Syntax Order                Engine Logical Execution Order
+   1. SELECT                           1. FROM (Cross joins & table feeds)
+   2. FROM                             2. ON (Filter join conditions)
+   3. WHERE                            3. JOIN (Produce joined virtual table)
+   4. GROUP BY                         4. WHERE (Filter individual rows)
+   5. HAVING                           5. GROUP BY (Group rows into buckets)
+   6. ORDER BY                         6. HAVING (Filter aggregated buckets)
+   7. LIMIT / OFFSET                   7. SELECT (Evaluate math, columns & aliases)
+                                       8. DISTINCT (De-duplicate output rows)
+                                       9. ORDER BY (Sort final result set)
+                                       10. LIMIT / OFFSET (Slice page result)
 ```
+
+---
 
 ### Critical Architectural Takeaways:
-1. **The Alias Trap**: Because `WHERE` (step 4) is evaluated long before `SELECT` (step 7), you **cannot** reference column aliases created in `SELECT` inside a `WHERE` clause.
-2. **Where vs. Having**: `WHERE` filters individual rows *before* grouping occurs. `HAVING` filters group summaries *after* `GROUP BY` has aggregated the rows. You cannot use aggregate functions (`SUM`, `AVG`, `COUNT`) inside a `WHERE` clause.
+
+1. **The Alias Trap**: Because `WHERE` (step 4) is evaluated long before `SELECT` (step 7), you **cannot** reference column aliases declared in `SELECT` inside a `WHERE` clause.
+2. **`WHERE` vs `HAVING`**: `WHERE` filters individual rows *before* grouping occurs. `HAVING` filters aggregated group buckets *after* `GROUP BY` completes. Aggregate functions (`SUM`, `AVG`, `COUNT`) are invalid inside `WHERE`.
 
 ```sql
--- WRONG: Fails because 'annual_salary' alias and AVG() are invalid in WHERE
+-- ❌ WRONG: Fails because 'annual_salary' alias and AVG() are evaluated prematurely in WHERE
 SELECT dept_id, AVG(salary) AS avg_sal, salary * 12 AS annual_salary
 FROM employees
 WHERE annual_salary > 50000 AND AVG(salary) > 4000
 GROUP BY dept_id;
 
--- CORRECT: Fixed query with HAVING and inline math
+-- ✅ CORRECT: Fixed query putting row filters in WHERE and group filters in HAVING
 SELECT dept_id, AVG(salary) AS avg_sal
 FROM employees
 WHERE salary * 12 > 50000
@@ -44,46 +59,84 @@ HAVING AVG(salary) > 4000;
 
 ## 📦 The NULL Trap: 3-Valued Boolean Logic
 
-In SQL, `NULL` does not equal `0`, an empty string `""`, or false. It represents an **Unknown Value** (missing or unassigned data).
+In SQL, `NULL` does not equal `0`, an empty string `""`, or `FALSE`. It represents an **Unknown / Missing Value**. SQL operates on **3-Valued Logic** (`TRUE`, `FALSE`, `UNKNOWN`).
 
-* **Analogy**: *A mystery sealed box.* Comparing `box == 10` returns `UNKNOWN`. Comparing `boxA == boxB` returns `UNKNOWN` because you do not know the contents of either box.
+* **Analogy**: *A Mystery Sealed Box.* Comparing `box == 10` returns `UNKNOWN`. Comparing `boxA == boxB` returns `UNKNOWN` because you do not know the contents of either sealed box.
 
-### Three-Valued Logic Truth Table
+```
+                               3-Valued Logic Operations
+                                           │
+         ┌─────────────────────────────────┼─────────────────────────────────┐
+         ▼                                 ▼                                 ▼
+   10 = NULL ──► UNKNOWN          NULL = NULL ──► UNKNOWN          TRUE AND UNKNOWN ──► UNKNOWN
+```
 
-| Comparison | Logical Result |
+---
+
+### Three-Valued Logic Truth Tables
+
+| Expression | Logical Result |
 | :--- | :--- |
 | `10 = NULL` | `UNKNOWN` |
-| `NULL = NULL` | `UNKNOWN` |
+| `NULL = NULL` | `UNKNOWN` (Use `IS NULL` instead!) |
 | `NULL != NULL` | `UNKNOWN` |
 | `TRUE AND UNKNOWN` | `UNKNOWN` |
 | `FALSE AND UNKNOWN` | `FALSE` |
 | `TRUE OR UNKNOWN` | `TRUE` |
+| `FALSE OR UNKNOWN` | `UNKNOWN` |
+| `NOT UNKNOWN` | `UNKNOWN` |
 
 ```sql
--- WRONG: Returns ZERO rows because comparisons against NULL evaluate to UNKNOWN
+-- ❌ WRONG: Returns ZERO rows because comparison against NULL yields UNKNOWN
 SELECT * FROM employees WHERE manager_id = NULL;
 
--- CORRECT: Uses explicitly designed NULL operators
+-- ✅ CORRECT: Uses explicit NULL comparison operators
 SELECT * FROM employees WHERE manager_id IS NULL;
 ```
 
+---
+
 > [!CAUTION]
-> **The NOT IN NULL Trap**:
-> Evaluating `x NOT IN (1, 2, NULL)` expands into `(x != 1 AND x != 2 AND x != NULL)`.
-> Since `x != NULL` evaluates to `UNKNOWN`, the entire `AND` expression resolves to `UNKNOWN`, returning **zero rows**! Always filter out `NULL` values when writing subqueries used in `NOT IN`.
+> **The `NOT IN (..., NULL)` Catastrophe**:
+> Evaluating `x NOT IN (1, 2, NULL)` expands logically into:
+> `(x != 1 AND x != 2 AND x != NULL)`
+> Since `x != NULL` resolves to `UNKNOWN`, any expression evaluated as `(TRUE AND UNKNOWN)` resolves to `UNKNOWN`. As a result, the `WHERE` clause filters out **100% of all rows**, returning an **empty result set**!
+>
+> **Best Practice**: Always use `EXISTS` or ensure subqueries used inside `NOT IN` filter out `NULL` values!
+
+```sql
+-- ❌ DANGEROUS: If department_id contains a single NULL row, this returns ZERO rows!
+SELECT * FROM employees 
+WHERE dept_id NOT IN (SELECT dept_id FROM departments);
+
+-- ✅ SAFE REWRITE 1: Filter NULLs in subquery
+SELECT * FROM employees 
+WHERE dept_id NOT IN (SELECT dept_id FROM departments WHERE dept_id IS NOT NULL);
+
+-- ✅ SAFE REWRITE 2: Use NOT EXISTS (Immune to the NULL trap!)
+SELECT e.* FROM employees e
+WHERE NOT EXISTS (
+    SELECT 1 FROM departments d WHERE d.dept_id = e.dept_id
+);
+```
 
 ---
 
-## 🛠️ Handling NULL Values Cleanly
+## 🛠️ Handling NULLs & Conditional Logic
 
-1. `COALESCE(val1, val2, ..., default)`: Standard SQL function that returns the first non-null argument in the parameter list.
-2. `NVL(expr1, expr2)` (Oracle) / `IFNULL(expr1, expr2)` (MySQL): Replaces `expr1` with `expr2` if `expr1` is `NULL`.
-3. `NULLIF(expr1, expr2)`: Returns `NULL` if `expr1 = expr2`, avoiding division-by-zero errors.
+1. `COALESCE(val1, val2, ..., default)`: Returns the first non-null value in the argument list.
+2. `NULLIF(expr1, expr2)`: Returns `NULL` if `expr1 = expr2`. Crucial for preventing division-by-zero crashes.
+3. `CASE WHEN ... THEN ... ELSE ... END`: Evaluates conditional branching expressions.
 
 ```sql
--- Safe division avoiding division-by-zero using NULLIF and COALESCE
+-- Safe revenue per unit division avoiding division-by-zero crashes
 SELECT product_id,
-       COALESCE(total_revenue / NULLIF(total_units, 0), 0) AS avg_unit_price
+       COALESCE(total_revenue / NULLIF(total_units, 0), 0) AS avg_unit_price,
+       CASE 
+           WHEN total_units = 0 THEN 'Out of Stock'
+           WHEN total_units < 10 THEN 'Low Stock'
+           ELSE 'In Stock'
+       END AS inventory_status
 FROM sales_summary;
 ```
 
@@ -91,27 +144,34 @@ FROM sales_summary;
 
 ## ❓ Conceptual Quizzes
 
-<Quiz question="What is the result of executing the query: SELECT * FROM employees WHERE emp_id NOT IN (10, 20, NULL)?" options={["Returns all employees except those with emp_id 10 and 20.", "Returns zero rows regardless of the table contents.", "Throws a compile-time syntax error.", "Ignores the NULL and returns employees except 10 and 20."]} answerIndex={1}>
-`NOT IN (10, 20, NULL)` expands to `emp_id != 10 AND emp_id != 20 AND emp_id != NULL`. Because `emp_id != NULL` yields `UNKNOWN`, the combined `AND` condition evaluates to `UNKNOWN` for all rows, resulting in an empty result set.
+<Quiz question="What is the result of executing: SELECT * FROM employees WHERE emp_id NOT IN (10, 20, NULL)?" options={["Returns all employees except emp_id 10 and 20.", "Returns zero rows regardless of table contents.", "Throws a compile-time syntax error.", "Ignores the NULL and returns all employees except 10 and 20."]} answerIndex={1}>
+`NOT IN (10, 20, NULL)` expands logically to `emp_id != 10 AND emp_id != 20 AND emp_id != NULL`. Because `emp_id != NULL` yields `UNKNOWN`, the combined `AND` expression resolves to `UNKNOWN` for every row, resulting in an empty output.
+</Quiz>
+
+<Quiz question="Why does COALESCE(NULL, NULL, 'Default') return 'Default'?" options={["COALESCE converts all arguments into strings.", "COALESCE scans arguments sequentially from left to right and returns the first non-null value.", "COALESCE only accepts up to two parameters.", "COALESCE is a DDL keyword."]} answerIndex={1}>
+`COALESCE` evaluates its parameter list in sequence and returns the very first argument that is not `NULL`. Since the first two arguments are `NULL`, it returns the third value `'Default'`.
 </Quiz>
 
 ---
 
 ## 💻 Practice Problems
 
-<Problem title="Problem: Handling Missing Data Aggregations">
+<Problem title="Problem: Division-by-Zero Defensive Calculation">
 <ProblemDescription>
-Write a query against `sales` returning `region`, `total_sales`, and `commission_fee`. If `commission_pct` is `NULL`, assume a default commission of 5% (0.05).
+Write a query against a `campaign_stats` table (`campaign_id`, `clicks`, `conversions`) that calculates the conversion rate (`conversions / clicks`). If `clicks` is zero or `NULL`, the conversion rate must output `0.00` without crashing the database query.
 </ProblemDescription>
 <ProblemSolution>
-Use `COALESCE` to provide fallback commission percentages:
-
 ```sql
-SELECT region,
-       SUM(amount) AS total_sales,
-       SUM(amount * COALESCE(commission_pct, 0.05)) AS commission_fee
-FROM sales
-GROUP BY region;
+SELECT campaign_id,
+       clicks,
+       conversions,
+       ROUND(
+           COALESCE(
+               (conversions::NUMERIC / NULLIF(clicks, 0)) * 100, 
+               0.00
+           ), 2
+       ) AS conversion_rate_pct
+FROM campaign_stats;
 ```
 </ProblemSolution>
 </Problem>

@@ -8,6 +8,7 @@
     "02-querying-joins-and-nulls",
     "03-window-functions-and-analytics",
     "04-performance-indexing-and-transactions",
+    "05-advanced-objects-json-and-partitioning",
     "---Official Documentation---",
     "external:[ExternalLink][PostgreSQL Documentation](https://www.postgresql.org/docs/)"
   ]

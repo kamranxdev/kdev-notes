@@ -1,0 +1,7 @@
+{
+  "title": "Advanced Objects & JSONB",
+  "icon": "Code",
+  "pages": [
+    "jsonb-views-and-partitioning"
+  ]
+}

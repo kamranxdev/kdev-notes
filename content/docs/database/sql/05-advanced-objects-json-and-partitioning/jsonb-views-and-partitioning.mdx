@@ -1,0 +1,252 @@
+---
+title: "Advanced SQL: JSONB, Materialized Views, Partitioning & Triggers"
+description: Master semi-structured JSONB manipulation, GIN indexing, Virtual vs Materialized Views, Big Data Table Partitioning (Range/List/Hash), Stored Procedures, and Database Triggers.
+---
+
+## 📦 Semi-Structured JSON vs. JSONB Data Processing
+
+Modern relational database engines like PostgreSQL support storing and querying semi-structured document data alongside traditional relational tables.
+
+* **Analogy**: *Filing Cabinets vs Transparent Storage Containers.*
+  - **Relational Tables**: A rigid filing cabinet with strictly pre-printed folders. Every document must conform exactly to column slots.
+  - **JSON / JSONB**: Transparent storage containers. You can drop dynamic, nested document objects inside without pre-defining schema columns, inspecting or querying internal fields on demand.
+
+```
+                           JSON vs. JSONB Storage Types
+                                        │
+        ┌───────────────────────────────┴───────────────────────────────┐
+        ▼                                                               ▼
+JSON (Raw Text Storage)                                JSONB (Decomposed Binary Storage)
+Stores exact raw JSON text representation               Decomposes JSON into binary format at write time
+Preserves duplicate keys & whitespace                  Strips duplicate keys, re-orders for speed
+Slower query execution; no GIN index support            Ultra-fast querying; supports GIN Inverted Indexes
+```
+
+---
+
+### 1. Key JSONB Operators & Query Mechanics
+
+```sql
+-- Sample Table with JSONB Payload
+CREATE TABLE user_profiles (
+    user_id     INT PRIMARY KEY,
+    attributes  JSONB NOT NULL
+);
+
+INSERT INTO user_profiles VALUES
+(101, '{"name": "Alice", "role": "admin", "skills": ["SQL", "Python"], "address": {"city": "Seattle"}}'),
+(102, '{"name": "Bob", "role": "user", "skills": ["Java"], "address": {"city": "Austin"}}');
+```
+
+| Operator / Syntax | Purpose & Operational Result | Example Query |
+| :--- | :--- | :--- |
+| **`->`** | Extracts JSON object field or array element by key/index (Returns `JSONB`) | `attributes -> 'address'` $\rightarrow$ `{"city": "Seattle"}` |
+| **`->>`** | Extracts JSON field value as scalar `TEXT` string | `attributes ->> 'name'` $\rightarrow$ `'Alice'` |
+| **`#>`** | Extracts nested JSON sub-object at specified path | `attributes #> '{address, city}'` $\rightarrow$ `"Seattle"` |
+| **`#>>`** | Extracts nested JSON value at path as `TEXT` | `attributes #>> '{address, city}'` $\rightarrow$ `'Seattle'` |
+| **`@>`** | **Containment Test**: Checks if left JSONB contains right JSONB | `attributes @> '{"role": "admin"}'` $\rightarrow$ `TRUE` |
+
+```sql
+-- Querying JSONB arrays and nested fields
+SELECT user_id, 
+       attributes ->> 'name' AS user_name,
+       attributes #>> '{address, city}' AS city
+FROM user_profiles
+WHERE attributes @> '{"role": "admin"}';
+```
+
+---
+
+### 2. High-Speed GIN (Generalized Inverted Index) Indexing
+To prevent full table scans when querying JSONB documents, build a **GIN Index**:
+
+```sql
+-- Create GIN index on entire JSONB document
+CREATE INDEX idx_profiles_attributes_gin ON user_profiles USING GIN (attributes);
+
+-- This query now executes sub-millisecond GIN index lookups!
+SELECT * FROM user_profiles 
+WHERE attributes @> '{"role": "admin"}';
+```
+
+---
+
+## 🪟 Virtual Views vs. Materialized Views
+
+Views provide encapsulated abstract layers over complex SQL queries:
+
+```
+                            Virtual Views vs Materialized Views
+                                            │
+        ┌───────────────────────────────────┴───────────────────────────────────┐
+        ▼                                                                       ▼
+Virtual View (CREATE VIEW)                              Materialized View (CREATE MATERIALIZED VIEW)
+Virtual query definition saved in catalog               Physically caches query result dataset on disk
+Re-executes underlying query on every read               Sub-second reads for complex multi-table joins
+Zero storage cost; 100% real-time data                  Requires manual/scheduled REFRESH to update
+```
+
+```sql
+-- 1. Virtual View: Always live, zero disk storage
+CREATE VIEW v_active_users AS
+SELECT user_id, email, status FROM users WHERE status = 'ACTIVE';
+
+-- 2. Materialized View: Cached table snapshot on disk
+CREATE MATERIALIZED VIEW mv_monthly_sales_summary AS
+SELECT DATE_TRUNC('month', sale_date) AS month, 
+       SUM(amount) AS total_revenue
+FROM sales
+GROUP BY DATE_TRUNC('month', sale_date);
+
+-- Fast analytical read directly from cached disk snapshot
+SELECT * FROM mv_monthly_sales_summary WHERE month >= '2024-01-01';
+
+-- 3. Concurrent Refresh Strategy (Requires unique index on materialized view)
+CREATE UNIQUE INDEX idx_mv_month ON mv_monthly_sales_summary(month);
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_monthly_sales_summary;
+```
+
+---
+
+## 🧩 Big Data Table Partitioning & Partition Pruning
+
+Table Partitioning divides a single logical table into smaller, physically independent child partition tables on disk:
+
+* **Analogy**: *Filing Cabinet Drawers by Year.* Instead of stuffing 100,000,000 invoices into one single drawer, you create 10 distinct drawers labeled by year (2020 through 2029).
+
+```
+                            Table Partitioning Types
+                                       │
+        ┌──────────────────────────────┼──────────────────────────────┐
+        ▼                              ▼                              ▼
+Range Partitioning             List Partitioning              Hash Partitioning
+Partition by numeric/date ranges Partition by explicit values  Distributes tuples via hash function
+e.g., order_date by Quarter      e.g., region ('US', 'EU')      e.g., tenant_id % 4 buckets
+```
+
+```sql
+-- Creating a Range-Partitioned Parent Table
+CREATE TABLE partition_orders (
+    order_id     BIGINT,
+    order_date   DATE NOT NULL,
+    amount       NUMERIC(10, 2)
+) PARTITION BY RANGE (order_date);
+
+-- Creating Child Partitions
+CREATE TABLE orders_2024_q1 PARTITION OF partition_orders
+    FOR VALUES FROM ('2024-01-01') TO ('2024-04-01');
+
+CREATE TABLE orders_2024_q2 PARTITION OF partition_orders
+    FOR VALUES FROM ('2024-04-01') TO ('2024-07-01');
+```
+
+> [!TIP]
+> **Partition Pruning**:
+> When running `SELECT * FROM partition_orders WHERE order_date = '2024-02-15'`, the Cost-Based Query Optimizer detects the date boundaries and **prunes (ignores)** all child partitions except `orders_2024_q1`, achieving sub-second search speeds on multi-billion row tables!
+
+---
+
+## ⚙️ Stored Procedures, Stored Functions & Triggers
+
+### 1. Stored Functions vs. Stored Procedures
+
+| Feature | Stored Function (`CREATE FUNCTION`) | Stored Procedure (`CREATE PROCEDURE`) |
+| :--- | :--- | :--- |
+| **Invocation** | Called inside queries (`SELECT my_func(col)`) | Called standalone (`CALL my_procedure()`) |
+| **Return Value** | Mandatory return scalar or table | Optional output parameters |
+| **Transaction Control** | **Cannot** execute `COMMIT` or `ROLLBACK` | **Permitted** to manage explicit `COMMIT`/`ROLLBACK` boundaries |
+
+```sql
+-- Stored Procedure with explicit transaction management
+CREATE OR REPLACE PROCEDURE transfer_funds(
+    sender_id INT, 
+    receiver_id INT, 
+    amount NUMERIC
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE accounts SET balance = balance - amount WHERE account_id = sender_id;
+    UPDATE accounts SET balance = balance + amount WHERE account_id = receiver_id;
+    
+    -- Explicitly commit work unit inside procedure
+    COMMIT;
+END;
+$$;
+
+-- Calling the procedure
+CALL transfer_funds(101, 202, 500.00);
+```
+
+---
+
+### 2. Database Triggers
+Triggers are event handlers that automatically execute when DML events (`INSERT`, `UPDATE`, `DELETE`) fire on a table:
+
+```sql
+-- 1. Create Audit Log Table
+CREATE TABLE audit_log (
+    log_id      SERIAL PRIMARY KEY,
+    emp_id      INT,
+    old_salary  NUMERIC,
+    new_salary  NUMERIC,
+    changed_at  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Create Trigger Function
+CREATE OR REPLACE FUNCTION log_salary_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.salary IS DISTINCT FROM NEW.salary THEN
+        INSERT INTO audit_log(emp_id, old_salary, new_salary)
+        VALUES (OLD.emp_id, OLD.salary, NEW.salary);
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. Bind Trigger to Table
+CREATE TRIGGER trg_salary_audit
+AFTER UPDATE ON employees
+FOR EACH ROW
+EXECUTE FUNCTION log_salary_change();
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is the primary difference between a Virtual View and a Materialized View?" options={["Virtual Views require GIN indexes, while Materialized Views require B-Trees.", "Virtual Views execute their underlying query dynamically on every read, whereas Materialized Views physically cache dataset results on disk.", "Materialized Views cannot be queried with SELECT.", "Virtual Views auto-commit DDL operations."]} answerIndex={1}>
+Virtual views are non-materialized saved query definitions evaluated dynamically on every read. **Materialized Views** physically store the populated query result dataset on disk, enabling sub-second reads for heavy analytical queries.
+</Quiz>
+
+<Quiz question="Why is a GIN index preferred over a B-Tree index for JSONB containment queries (@>)?" options={["B-Tree indexes cannot index JSON data types.", "B-Tree indexes sort the entire binary blob scalar, whereas GIN indexes unpack internal JSON keys and array elements into an inverted lookup table.", "GIN indexes automatically compress disk storage.", "GIN indexes only work on integers."]} answerIndex={1}>
+A B-Tree index treats the JSONB document as a single scalar binary value. A **GIN (Generalized Inverted Index)** decomposes internal keys, values, and array elements inside the JSONB structure, enabling fast inverted index lookups for containment operators (`@>`).
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Automated Audit Trail with Triggers">
+<ProblemDescription>
+Write a PL/pgSQL trigger function and trigger binding that automatically updates an `updated_at` timestamp column to `CURRENT_TIMESTAMP` whenever a row in the `customers` table is modified via an `UPDATE` statement.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+-- 1. Create reusable trigger function
+CREATE OR REPLACE FUNCTION update_timestamp_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Bind BEFORE UPDATE trigger to customers table
+CREATE TRIGGER trg_customers_updated_at
+BEFORE UPDATE ON customers
+FOR EACH ROW
+EXECUTE FUNCTION update_timestamp_column();
+```
+</ProblemSolution>
+</Problem>

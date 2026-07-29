@@ -1,83 +1,161 @@
 ---
-title: GROUPING SETS, CUBE, ROLLUP & Conditional Aggregation
-description: Advanced SQL aggregation techniques, multidimensional reporting, GROUPING SETS, ROLLUP, CUBE extensions, and conditional CASE WHEN aggregations.
+title: Advanced Aggregations, GROUPING SETS & Rollups
+description: Master multidimensional data aggregation in SQL using GROUPING SETS, CUBE, ROLLUP, the GROUPING() indicator function, and pivoting techniques.
 ---
 
-## 🎲 Multidimensional Aggregation Extensions
+## 🏬 Multidimensional Data Aggregation
 
-When generating executive dashboard summaries, reporting tools often require aggregations at multiple hierarchical levels (e.g., total sales by region, total sales by product line, total sales by region + product line, and global grand total).
+In corporate business intelligence (BI) reporting, financial analysts frequently request summary metrics across multiple dimensions simultaneously (e.g., total sales by **Region**, total sales by **Product Category**, total sales by **Region + Category**, and **Grand Total**).
 
-Instead of writing multiple `SELECT` queries linked with expensive `UNION ALL` statements, SQL provides dedicated multidimensional aggregation extensions:
+Writing separate `GROUP BY` queries linked together via `UNION ALL` forces the database engine to perform multiple full table scans over big datasets. SQL provides multidimensional aggregation operators (`GROUPING SETS`, `ROLLUP`, `CUBE`) to calculate all dimensional subtotals in a **single efficient table pass**:
 
-### 1. GROUPING SETS
-Allows defining multiple explicit grouping combinations in a single query pass:
+* **Analogy**: *A Corporate Executive Financial Reporting Dashboard.*
+  - **`GROUP BY`**: Printing a single regional sales report.
+  - **`GROUPING SETS`**: Custom-selecting a bundle of specific summary reports (Region, Category, Region+Category) printed simultaneously.
+  - **`ROLLUP`**: Hierarchical drilling (Year $\rightarrow$ Quarter $\rightarrow$ Month $\rightarrow$ Grand Total).
+  - **`CUBE`**: Generating every possible combinatorial permutation of metric cards ($2^N$ summary combinations).
+
+```
+                      Multidimensional Aggregators
+                                    │
+    ┌───────────────────────────────┼───────────────────────────────┐
+    ▼                               ▼                               ▼
+GROUPING SETS ((r), (c), (r,c))   ROLLUP (year, quarter, month)     CUBE (region, product)
+Calculates specific subtotal sets Hierarchical subtotal rollup      Generates all 2^N (4) permutations
+```
+
+---
+
+## 🎛️ Multidimensional Operators: Syntax & Behaviors
+
+### 1. `GROUPING SETS`: Targeted Dimension Subtotals
+Specifies explicit combinations of columns to aggregate:
 
 ```sql
-SELECT region, product_category, SUM(revenue) AS total_revenue
+-- Computes 3 distinct aggregations in ONE query pass:
+-- 1. Total sales by region
+-- 2. Total sales by product_category
+-- 3. Grand total ()
+SELECT region, product_category, SUM(sales_amount) AS total_sales
 FROM sales
 GROUP BY GROUPING SETS (
-    (region, product_category),  -- Group by Region + Category
-    (region),                    -- Group by Region subtotal
-    (product_category),          -- Group by Category subtotal
-    ()                           -- Global Grand Total
+    (region),
+    (product_category),
+    ()
 );
 ```
 
-### 2. ROLLUP
-Produces hierarchical subtotals and grand totals from left to right:
-* `GROUP BY ROLLUP (year, quarter, month)` expands into:
-  1. `(year, quarter, month)`
-  2. `(year, quarter)`
-  3. `(year)`
-  4. `()` (Grand Total)
+---
 
-### 3. CUBE
-Generates all $2^N$ possible cross-tabulation combinations of the specified columns:
-* `GROUP BY CUBE (region, category)` produces 4 sets: `(region, category)`, `(region)`, `(category)`, and `()`.
+### 2. `ROLLUP`: Hierarchical Drill-Down Subtotals
+Generates hierarchical subtotals and a grand total based on column order:
+
+```sql
+-- ROLLUP (year, quarter, month) generates 4 subtotal levels:
+-- 1. (year, quarter, month)
+-- 2. (year, quarter)
+-- 3. (year)
+-- 4. () [Grand Total]
+SELECT year, quarter, month, SUM(revenue) AS total_revenue
+FROM financial_sales
+GROUP BY ROLLUP (year, quarter, month);
+```
 
 ---
 
-## 💡 Conditional Aggregation Pattern
-
-Conditional aggregation embeds `CASE WHEN` logic directly inside standard aggregate functions (`SUM`, `COUNT`, `AVG`). This allows pivoting row-based data into formatted columnar reports in a single table scan.
+### 3. `CUBE`: Full Combinatorial Power Sets
+Generates all $2^N$ possible subtotal combinations across $N$ columns:
 
 ```sql
--- Pivot quarterly sales into individual columns per employee
-SELECT emp_id,
-       SUM(CASE WHEN quarter = 'Q1' THEN revenue ELSE 0 END) AS q1_revenue,
-       SUM(CASE WHEN quarter = 'Q2' THEN revenue ELSE 0 END) AS q2_revenue,
-       SUM(CASE WHEN quarter = 'Q3' THEN revenue ELSE 0 END) AS q3_revenue,
-       SUM(CASE WHEN quarter = 'Q4' THEN revenue ELSE 0 END) AS q4_revenue,
-       SUM(revenue) AS total_annual_revenue
-FROM quarterly_sales
-GROUP BY emp_id;
+-- CUBE (region, category) generates 2^2 = 4 subtotal levels:
+-- 1. (region, category)
+-- 2. (region)
+-- 3. (category)
+-- 4. () [Grand Total]
+SELECT region, category, SUM(sales) AS total_sales
+FROM sales
+GROUP BY CUBE (region, category);
+```
+
+---
+
+## 🔍 Disambiguating Subtotal NULLs with `GROUPING()`
+
+When `ROLLUP` or `CUBE` generates subtotal rows, it inserts `NULL` into the un-aggregated dimensional columns. However, if your raw table data already contains genuine `NULL` values (e.g., unassigned regions), standard queries cannot distinguish between a real data `NULL` and an aggregation subtotal `NULL`.
+
+SQL provides the **`GROUPING(col)`** indicator function:
+- Returns **`1`** if the column `NULL` was generated as an aggregation subtotal marker.
+- Returns **`0`** if the column `NULL` originates from raw table data.
+
+```sql
+SELECT 
+    CASE WHEN GROUPING(region) = 1 THEN 'All Regions (Subtotal)' 
+         ELSE COALESCE(region, 'Unknown Region') 
+    END AS region_label,
+    CASE WHEN GROUPING(category) = 1 THEN 'All Categories (Subtotal)' 
+         ELSE COALESCE(category, 'Uncategorized') 
+    END AS category_label,
+    SUM(sales_amount) AS total_sales
+FROM sales
+GROUP BY ROLLUP (region, category);
+```
+
+---
+
+## 🔄 Pivot & Unpivot Patterns
+
+Pivoting transforms row-based categorical data into horizontal column headers using conditional aggregation (`CASE WHEN` inside aggregate functions):
+
+```sql
+-- Pivoting monthly sales rows into quarterly columns
+SELECT year,
+       SUM(CASE WHEN quarter = 'Q1' THEN revenue ELSE 0 END) AS Q1_Revenue,
+       SUM(CASE WHEN quarter = 'Q2' THEN revenue ELSE 0 END) AS Q2_Revenue,
+       SUM(CASE WHEN quarter = 'Q3' THEN revenue ELSE 0 END) AS Q3_Revenue,
+       SUM(CASE WHEN quarter = 'Q4' THEN revenue ELSE 0 END) AS Q4_Revenue,
+       SUM(revenue) AS Total_Yearly_Revenue
+FROM quarterly_financials
+GROUP BY year
+ORDER BY year;
 ```
 
 ---
 
 ## ❓ Conceptual Quizzes
 
-<Quiz question="What is the total number of grouping combinations generated by GROUP BY CUBE(region, department, year)?" options={["3 combinations", "6 combinations", "8 combinations (2^3)", "9 combinations"]} answerIndex={2}>
-`CUBE` generates all $2^N$ permutations of the specified $N$ columns. For 3 columns, $2^3 = 8$ distinct grouping sets are computed in a single pass.
+<Quiz question="What is the key difference between ROLLUP(year, month) and CUBE(year, month)?" options={["ROLLUP creates 4 subtotals while CUBE creates 2.", "ROLLUP produces hierarchical subtotals based on column order ((year, month), (year), ()), whereas CUBE generates all 2^N combinatorial power sets.", "CUBE can only be used on string columns.", "ROLLUP automatically deletes duplicate table rows."]} answerIndex={1}>
+`ROLLUP` is order-dependent and generates $N + 1$ hierarchical subtotals. `CUBE` evaluates all $2^N$ combinatorial power sets regardless of column hierarchy.
+</Quiz>
+
+<Quiz question="What does a GROUPING(region) value of 1 indicate in a ROLLUP query?" options={["The region column contains a valid non-null string.", "The row represents an aggregated subtotal across all regions generated by ROLLUP/CUBE.", "An error occurred during query execution.", "The region table primary key was deleted."]} answerIndex={1}>
+`GROUPING(col)` returns `1` when the column `NULL` is an aggregate subtotal row marker introduced by `ROLLUP` or `CUBE`, and `0` when it represents genuine underlying data.
 </Quiz>
 
 ---
 
 ## 💻 Practice Problems
 
-<Problem title="Problem: Regional Sales Subtotals via ROLLUP">
+<Problem title="Problem: Single-Pass Multi-Level Regional Sales Matrix">
 <ProblemDescription>
-Write a query against `store_sales` computing total revenue grouped by `country` and `city`, producing automated country subtotals and a global grand total.
+Write a single SQL query against `store_sales` (`country`, `state`, `sales`) that computes:
+1. Sales by country and state
+2. Total sales by country
+3. Overall grand total sales
+Use the `GROUPING()` function to output `"All Countries"` and `"All States"` in place of subtotal `NULL`s.
 </ProblemDescription>
 <ProblemSolution>
-Use `ROLLUP` to generate hierarchical subtotals:
-
 ```sql
-SELECT country, city, SUM(revenue) AS total_revenue,
-       GROUPING(country) AS is_country_subtotal,
-       GROUPING(city) AS is_grand_total
+SELECT 
+    CASE WHEN GROUPING(country) = 1 THEN 'All Countries (Grand Total)' 
+         ELSE country 
+    END AS country_name,
+    CASE WHEN GROUPING(state) = 1 THEN 'All States (Subtotal)' 
+         ELSE state 
+    END AS state_name,
+    SUM(sales) AS total_revenue
 FROM store_sales
-GROUP BY ROLLUP (country, city);
+GROUP BY ROLLUP (country, state)
+ORDER BY GROUPING(country), country, GROUPING(state), state;
 ```
 </ProblemSolution>
 </Problem>

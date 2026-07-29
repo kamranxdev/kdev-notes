@@ -1,92 +1,175 @@
 ---
-title: ACID Transactions & Concurrency Isolation Levels
-description: Comprehensive technical guide to ACID database guarantees, concurrency anomalies (dirty reads, phantom reads), and SQL isolation levels.
+title: ACID Transactions, Concurrency Control & MVCC
+description: Master database ACID guarantees, Multi-Version Concurrency Control (MVCC), transaction isolation levels, concurrency anomalies (write skew), and pessimistic locking strategies.
 ---
 
-## 🛡️ ACID Properties of Database Transactions
+## 🛡️ ACID Properties & Underlying Engine Mechanics
 
-A transaction is a single logical unit of database work containing one or more DML statements. A relational engine guarantees reliability by adhering to **ACID** properties:
+A transaction is a single logical unit of database work containing one or more DML statements. An RDBMS engine guarantees transactional reliability by strictly adhering to **ACID** properties:
+
+* **Analogy**: *Bank Vault Wire Transfers with Dual-Custody Locks.*
+  - **Atomicity**: Either the full $1,000 is debited from Account A and credited to Account B, or the wire transfer fails completely and no money moves.
+  - **Consistency**: After the transfer, the sum of balances ($A + B$) remains strictly balanced and satisfies schema constraints.
+  - **Isolation**: Two simultaneous wire transfers involving Account A process in isolation without seeing intermediate partial ledger amounts.
+  - **Durability**: Once the receipt is printed (`COMMIT`), the wire log is written into non-volatile storage and survives power outages.
 
 ```
-                          ACID Guarantees
-                                 │
-     ┌───────────────────┬───────┴───────┬───────────────────┐
-     ▼                   ▼               ▼                   ▼
- Atomicity          Consistency      Isolation           Durability
-All-or-Nothing     Valid Schema     Concurrent       Permanent Persistence
- Undo Log          Constraints     MVCC / Locks        WAL / Redo Log
+                               ACID Engine Implementation
+                                           │
+         ┌───────────────────┬─────────────┴─────────────┬───────────────────┐
+         ▼                   ▼                           ▼                   ▼
+     Atomicity          Consistency                  Isolation           Durability
+   Undo Log / MVCC    Schema Constraints          Locks / Read Views    WAL / Redo Log
+   All-or-Nothing     Invariants Preserved        Concurrent Isolation  Survives Crashes
 ```
 
-* **Atomicity**: All operations inside the transaction complete successfully, or the entire transaction is undone (`ROLLBACK`). Managed via the **Undo Log**.
-* **Consistency**: The database transitions from one valid schema state to another, preserving all declared foreign keys, constraints, and triggers.
-* **Isolation**: Concurrent transactions execute without interfering with one another's intermediate states. Managed via **Locks** and **MVCC (Multi-Version Concurrency Control)**.
-* **Durability**: Once committed (`COMMIT`), changes are saved permanently to disk storage and survive hardware failure. Managed via the **Write-Ahead Log (WAL) / Redo Log**.
+---
+
+## 🔄 Multi-Version Concurrency Control (MVCC)
+
+Modern databases implement **Multi-Version Concurrency Control (MVCC)** so that **"Readers never block Writers, and Writers never block Readers."**
+
+Instead of acquiring expensive shared read locks on table rows during `SELECT` queries, the database engine maintains multiple timestamped versions of tuple rows concurrently:
+
+```
+                            MVCC Tuple Versioning (PostgreSQL)
+                                            │
+        ┌───────────────────────────────────┴───────────────────────────────────┐
+        ▼                                                                       ▼
+Tuple Version 1 (Original)                               Tuple Version 2 (Updated)
+xmin: Tx 101 (Created)                                   xmin: Tx 105 (Created)
+xmax: Tx 105 (Superseded by update)                      xmax: 0 (Active live row)
+```
+
+- **PostgreSQL Tuple Headers**: Every row contains hidden metadata fields (`xmin` = creating transaction ID, `xmax` = deleting/updating transaction ID). A transaction only sees tuples where `xmin` is committed and `xmax` is uncommitted or higher than its transaction snapshot.
+- **MySQL InnoDB Undo Logs**: Updates copy original tuple versions into an **Undo Log Segment**, constructing an in-memory linked-list snapshot read view for concurrent readers.
 
 ---
 
-## ⚡ Concurrency Anomalies
+## ⚡ Concurrency Anomalies Deep Dive
 
-When multiple client applications read and write data concurrently without strict isolation, three classic concurrency anomalies can occur:
+When transactions execute concurrently without total isolation, five classic concurrency anomalies can corrupt data:
 
-### 1. Dirty Read
-Transaction A modifies a row. Transaction B reads the modified uncommitted row. Transaction A subsequently issues a `ROLLBACK`. Transaction B has read data that "never officially existed".
+```
+                                Concurrency Anomalies
+                                          │
+    ┌──────────────┬──────────────┬───────┴──────┬──────────────┬──────────────┐
+    ▼              ▼              ▼              ▼              ▼              ▼
+Dirty Read   Non-Repeatable  Phantom Read   Lost Update     Write Skew   Serialization
+              Read (Fuzzy)                                               Failure
+```
 
-### 2. Non-Repeatable Read
-Transaction A reads a row. Transaction B updates or deletes that row and issues a `COMMIT`. Transaction A re-reads the same row during its transaction lifecycle and sees **modified column values**.
-
-### 3. Phantom Read
-Transaction A executes a range query (e.g., `WHERE salary > 50000`) returning 10 rows. Transaction B inserts a new row matching the condition and commits. Transaction A re-runs the range query and sees **11 rows** (a "phantom" row appeared).
+1. **Dirty Read**: Tx A updates a row without committing. Tx B reads the modified uncommitted row. Tx A issues a `ROLLBACK`. Tx B has read "phantom data" that never officially existed.
+2. **Non-Repeatable Read (Fuzzy Read)**: Tx A reads a row value ($100$). Tx B updates the row to $200$ and commits. Tx A re-reads the row and sees a **different value** ($200$).
+3. **Phantom Read**: Tx A executes a range query (`WHERE salary > 50000`) returning 10 rows. Tx B inserts a new row matching the condition and commits. Tx A re-runs the range query and sees **11 rows** (a new "phantom" record appeared).
+4. **Lost Update**: Tx A and Tx B read the same row balance ($100$) concurrently. Both calculate updates ($100 - 20 = 80$ and $100 - 30 = 70$). Tx A writes $80$, and Tx B writes $70$, **overwriting and losing** Tx A's deduction!
+5. **Write Skew**: Tx A and Tx B read overlapping data bound by a domain invariant (e.g., "Combined balance of Account A + B must remain $\ge 0$"). Tx A deducts from A, and Tx B deducts from B simultaneously. Individually both pass checks, but together they **violate the invariant**.
 
 ---
 
-## 🔒 SQL Isolation Levels Comparison
+## 🔒 Transaction Isolation Levels Comparison
 
-ANSI/ISO SQL defines four isolation levels offering tradeoffs between concurrency performance and data safety:
+ANSI/ISO SQL defines four isolation levels offering tradeoffs between throughput performance and data safety:
 
-| Isolation Level | Dirty Read | Non-Repeatable Read | Phantom Read | Concurrency Mechanism |
-| :--- | :--- | :--- | :--- | :--- |
-| **Read Uncommitted** | Permitted | Permitted | Permitted | No read locks acquired |
-| **Read Committed** | **Prevented** | Permitted | Permitted | Short-term shared locks released after each statement |
-| **Repeatable Read** | **Prevented** | **Prevented** | Permitted | Long-term shared read locks held until `COMMIT` |
-| **Serializable** | **Prevented** | **Prevented** | **Prevented** | Strict Range Locks / Serialized execution queue |
+| Isolation Level | Dirty Read | Non-Repeatable Read | Phantom Read | Write Skew | Engine Concurrency Strategy |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Read Uncommitted** | Permitted | Permitted | Permitted | Permitted | No read locks acquired; dirty pages read directly from RAM |
+| **Read Committed** | **Prevented** | Permitted | Permitted | Permitted | Statement-level MVCC snapshot generated per query |
+| **Repeatable Read** | **Prevented** | **Prevented** | Permitted (Prevented in InnoDB MVCC) | Permitted | Transaction-level MVCC snapshot generated at first query |
+| **Serializable** | **Prevented** | **Prevented** | **Prevented** | **Prevented** | Strict Range Locks or Serializable Snapshot Isolation (SSI) |
 
 ```sql
--- Setting explicit isolation level for transaction block
+-- Setting explicit transaction isolation level
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 
 BEGIN TRANSACTION;
-  UPDATE accounts SET balance = balance - 500 WHERE account_id = 101;
-  UPDATE accounts SET balance = balance + 500 WHERE account_id = 202;
+  UPDATE inventory SET stock = stock - 1 WHERE item_id = 42;
 COMMIT;
 ```
 
 ---
 
+## 🔐 Locking Hierarchy, Strategies & Deadlocks
+
+### 1. Lock Granularity & Lock Modes
+The Lock Manager enforces hierarchical lock levels:
+
+```
+                            Lock Granularity Hierarchy
+                                        │
+                    Database Lock ──► Table Lock ──► Page Lock ──► Row Lock
+```
+
+- **Shared Lock (S)**: Acquired for read operations. Multiple transactions can hold Shared locks concurrently.
+- **Exclusive Lock (X)**: Acquired for write operations (`UPDATE`/`DELETE`). Only one transaction can hold an Exclusive lock on a target resource.
+- **Intent Locks (IS / IX)**: Acquired at higher table levels to indicate that fine-grained row locks are held below, preventing full-table lock escalation conflicts.
+
+---
+
+### 2. Explicit Pessimistic Locking
+Prevents race conditions by locking selected rows during initial read queries:
+
+```sql
+BEGIN TRANSACTION;
+-- Acquires an Exclusive Row Lock (X), blocking concurrent transactions
+SELECT stock FROM inventory WHERE item_id = 99 FOR UPDATE;
+
+-- Safely update inventory knowing no competitor can modify item 99
+UPDATE inventory SET stock = stock - 1 WHERE item_id = 99;
+COMMIT;
+```
+
+---
+
+### 3. Deadlocks & Detection
+A **Deadlock** occurs when Tx A holds Lock 1 and requests Lock 2, while Tx B holds Lock 2 and requests Lock 1 (a circular wait-for dependency):
+
+```
+                        Deadlock Circular Dependency
+                                      │
+               Tx A (Holds Lock 1) ──► Waits for Lock 2 (Held by Tx B)
+                       ▲                               │
+                       └──────── Waits for Lock 1 ─────┘
+```
+
+The database background **Deadlock Detector** thread periodically evaluates the dependency wait-for graph, detects cycles, and aborts one transaction (the **Deadlock Victim**) with error `40P01` so the other can proceed.
+
+---
+
 ## ❓ Conceptual Quizzes
 
-<Quiz question="Which database logging mechanism guarantees Durability by writing transaction changes to disk before committing?" options={["The Undo Log", "The Write-Ahead Log (WAL) / Redo Log", "The Query Cache", "The Buffer Pool Memory"]} answerIndex={1}>
-The **Write-Ahead Log (WAL) / Redo Log** records transaction changes sequentially to non-volatile disk storage before a commit is confirmed, ensuring data durability across system crashes.
+<Quiz question="How does Multi-Version Concurrency Control (MVCC) prevent readers from blocking writers in a relational database?" options={["By converting all SELECT statements into DDL statements.", "By maintaining timestamped row versions or undo log chains, allowing readers to view consistent snapshots without acquiring exclusive locks.", "By disabling table indexes.", "By locking the entire database schema during reads."]} answerIndex={1}>
+MVCC maintains multiple concurrent tuple versions (or Undo Log snapshots). Read queries evaluate consistent historical snapshots corresponding to their transaction start time without acquiring exclusive locks, allowing concurrent write transactions to modify rows unhindered.
+</Quiz>
+
+<Quiz question="Which concurrency anomaly occurs when two concurrent transactions read overlapping data, make disjoint updates that satisfy individual constraints, but together break a global domain invariant?" options={["Dirty Read", "Non-Repeatable Read", "Phantom Read", "Write Skew"]} answerIndex={3}>
+**Write Skew** occurs when transactions evaluate a shared domain condition (e.g., medical on-call doctor coverage), make updates to separate rows based on that reading, and together violate the global domain invariant. It is only prevented under **Serializable** isolation.
 </Quiz>
 
 ---
 
 ## 💻 Practice Problems
 
-<Problem title="Problem: E-Commerce Inventory Race Condition">
+<Problem title="Problem: E-Commerce Inventory Race Condition Fix">
 <ProblemDescription>
-Two concurrent customer checkout transactions attempt to purchase the final remaining item (`stock = 1`). Both read `stock = 1` simultaneously, pass the check, and reduce `stock` to `-1`. Design a SQL transaction solution using Pessimistic Locking to prevent the race condition.
+Two concurrent checkout requests attempt to purchase the last remaining item (`stock = 1`). Both execute `SELECT stock FROM inventory WHERE item_id = 50`, see `stock = 1`, and decrement stock to `-1`.
+
+Write a robust SQL transaction using Pessimistic Row Locking (`FOR UPDATE`) to prevent overselling.
 </ProblemDescription>
 <ProblemSolution>
-Use `FOR UPDATE` to acquire an exclusive row lock during row selection:
-
 ```sql
 BEGIN TRANSACTION;
 
--- Acquires an exclusive row lock on the inventory row, blocking concurrent readers
-SELECT stock FROM inventory WHERE item_id = 99 FOR UPDATE;
+-- Step 1: Acquire exclusive row lock, blocking concurrent checkout transactions
+SELECT stock 
+FROM inventory 
+WHERE item_id = 50 
+FOR UPDATE;
 
--- Safely deduct stock knowing no concurrent transaction can modify item_id 99
-UPDATE inventory SET stock = stock - 1 WHERE item_id = 99 AND stock > 0;
+-- Step 2: Perform stock verification and decrement safely
+UPDATE inventory 
+SET stock = stock - 1 
+WHERE item_id = 50 AND stock >= 1;
 
 COMMIT;
 ```

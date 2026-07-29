@@ -1,11 +1,17 @@
 ---
 title: Schema Design, Integrity Constraints & Normalization
-description: Comprehensive reference for relational integrity constraints, SQL data types, referential integrity cascades, and normalization forms (1NF through BCNF).
+description: Comprehensive reference for relational integrity constraints, SQL data types, referential integrity cascades, and normalization forms (1NF through BCNF) vs strategic denormalization.
 ---
 
 ## 🔒 Relational Integrity Constraints
 
-Constraints are declarative rules configured at schema definition time (`CREATE TABLE` / `ALTER TABLE`). The database storage engine enforces these rules on every insert, update, and delete to guarantee referential integrity and data validity.
+Constraints are declarative rules configured at schema definition time (`CREATE TABLE` / `ALTER TABLE`). The database storage engine enforces these rules on every `INSERT`, `UPDATE`, and `DELETE` operation to guarantee domain integrity and referential data validity across tables.
+
+* **Analogy**: *Building Blueprints & Inspection Codes.*
+  - **PRIMARY KEY**: The unique National Identification / Fingerprint assigned to each resident.
+  - **FOREIGN KEY**: A parental guardianship paper linking a minor child to a verified parent record.
+  - **UNIQUE**: Passport numbers—no two residents can hold the exact same active passport string.
+  - **CHECK**: City structural safety codes (e.g., "Balcony railing height must be ≥ 42 inches").
 
 ```sql
 CREATE TABLE departments (
@@ -23,110 +29,199 @@ CREATE TABLE employees (
     CONSTRAINT fk_emp_dept FOREIGN KEY (dept_id) 
         REFERENCES departments(dept_id) 
         ON DELETE SET NULL
+        ON UPDATE CASCADE
 );
 ```
 
+---
+
 ### Constraint Mechanics Matrix
 
-| Constraint | Primary Purpose | Nullability Rule | Indexing Impact |
+| Constraint | Primary Operational Purpose | Nullability Behavior | Physical Indexing Impact |
 | :--- | :--- | :--- | :--- |
-| **PRIMARY KEY** | Uniquely identifies each record in the table. | Strictly `NOT NULL` | Implicitly creates a **Clustered / Primary Index** |
-| **FOREIGN KEY** | Enforces referential integrity link to a parent table primary key. | Can be `NULL` (unless explicitly declared `NOT NULL`) | Best practice: Add a manual Non-Clustered index for fast joins |
-| **UNIQUE** | Prevents duplicate non-null entries in a column/group of columns. | Permits multiple `NULL` entries (since `NULL != NULL`) | Implicitly creates a **Unique Non-Clustered Index** |
-| **NOT NULL** | Prevents missing/unknown values from being saved into the field. | Rejects `NULL` | None |
-| **CHECK** | Validates that column data satisfies a boolean expression. | Expression evaluates to `TRUE` or `UNKNOWN` (passes `NULL`) | None |
-| **DEFAULT** | Provides fallback literal/expression value if omitted on `INSERT`. | N/A | None |
+| **PRIMARY KEY** | Uniquely identifies each tuple in the table. | Implicitly and strictly `NOT NULL` | Automatically creates a **Clustered Index** (or Primary B-Tree) |
+| **FOREIGN KEY** | Enforces referential integrity link to a parent table key. | Permits `NULL` values (unless explicitly marked `NOT NULL`) | Best practice: Manually add a Non-Clustered index to prevent full scans on joins |
+| **UNIQUE** | Prevents duplicate non-null entries across column values. | Permits **multiple `NULL` entries** (since `NULL != NULL` in SQL) | Automatically creates a **Unique Non-Clustered Index** |
+| **NOT NULL** | Prevents missing/unknown values from being stored. | Rejects `NULL` insertions | None |
+| **CHECK** | Validates that column data satisfies a boolean expression. | Evaluates expression; passes if `TRUE` or `UNKNOWN` (`NULL`) | None |
+| **DEFAULT** | Provides fallback expression/literal if column is omitted on `INSERT`. | Applied during missing `INSERT` values | None |
 
 ---
 
-## 🔄 Foreign Key Delete Actions
+## 🔄 Foreign Key Cascading Actions
 
-When a parent row in a referenced table is deleted, foreign key cascading rules define child row behavior:
+When a parent row in a referenced table is deleted or updated, foreign key rules determine how child rows react:
 
-* `ON DELETE RESTRICT` (Default): Throws a referential integrity violation error and blocks deletion of the parent row if any child rows exist.
-* `ON DELETE CASCADE`: Automatically deletes all child rows linked to the deleted parent row.
-* `ON DELETE SET NULL`: Automatically updates foreign key columns in child rows to `NULL` when the parent row is removed.
+```
+                          Parent Row Deleted / Updated
+                                       │
+     ┌───────────────────┬─────────────┴─────────────┬───────────────────┐
+     ▼                   ▼                           ▼                   ▼
+ON DELETE RESTRICT   ON DELETE CASCADE         ON DELETE SET NULL    ON DELETE SET DEFAULT
+Blocks parent delete;  Deletes linked child       Sets child foreign    Resets child foreign
+throws FK error        tuples automatically       key field to NULL     key to default value
+```
+
+1. **`ON DELETE RESTRICT` (Default)**: Throws a referential integrity violation error and blocks deletion of the parent row if any child rows reference it.
+2. **`ON DELETE CASCADE`**: Automatically deletes all child rows linked to the parent row being removed.
+3. **`ON DELETE SET NULL`**: Automatically updates the foreign key column in all linked child rows to `NULL` when the parent row is deleted.
+
+---
+
+## 🔢 SQL Data Types Engineering Guide
+
+Choosing proper physical column data types impacts disk storage footprint, CPU cache alignment, and indexing speed:
+
+| Data Type Category | SQL Types | Storage Size | Engineering Guidelines & Best Practices |
+| :--- | :--- | :--- | :--- |
+| **Exact Numeric** | `INT`, `BIGINT`, `NUMERIC(p, s)` | 4B, 8B, Variable | Use `BIGINT` for auto-increment PKs expected to surpass 2 billion rows. Use `NUMERIC(p,s)` for financial monetary amounts to prevent floating-point rounding errors. |
+| **Approximate Numeric** | `FLOAT`, `DOUBLE PRECISION` | 4B, 8B | Fast CPU calculations for scientific modeling, but prone to IEEE 754 floating-point precision loss (`0.1 + 0.2 ≠ 0.3`). **Never use for money!** |
+| **Character String** | `VARCHAR(N)`, `TEXT` | Variable (1 Byte + Length) | `VARCHAR(N)` enforces maximum character bounds at application boundaries. `TEXT` stores arbitrary-length strings. |
+| **Temporal Data** | `DATE`, `TIMESTAMP WITH TIME ZONE` | 4B, 8B | Always store timestamps with explicit timezone information (`TIMESTAMPTZ` in PostgreSQL) to avoid cross-region UTC bugs. |
+| **Semi-Structured** | `JSONB`, `UUID` | Variable, 16B | `JSONB` stores decomposed binary JSON enabling fast GIN index queries. `UUID` provides globally unique 128-bit identifiers across distributed nodes. |
 
 ---
 
 ## 📐 Database Normalization (1NF to BCNF)
 
-Normalization is the process of structuring relational schema tables to eliminate data redundancy, update anomalies, insertion anomalies, and deletion anomalies.
+Normalization is the systematic process of organizing relational schema tables to eliminate **data redundancy** and prevent destructive database anomalies:
+- **Insertion Anomaly**: Inability to insert data without adding dummy attributes in unrelated fields.
+- **Deletion Anomaly**: Deleting one piece of data unintentionally wipes out completely unrelated critical information.
+- **Update Anomaly**: Updating a single data entity requires modifying dozens of duplicate rows across the database.
 
-* **Analogy**: *Organizing your clothes closet.* Instead of dumping shoes, shirts, coats, and socks into one giant pile (unnormalized table), you put shirts on hangers, shoes in shoe racks, and socks in labeled drawers (normalized relational tables).
+* **Analogy**: *Organizing your clothes closet.* Instead of dumping shoes, shirts, coats, and socks into one giant unorganized bin (unnormalized table), you put shirts on hangers, shoes in shoe racks, and socks in labeled drawers (normalized relational tables).
 
 ```
    Unnormalized Data  ──►  1NF (Atomic Values)  ──►  2NF (Remove Partial Dependencies)
-                                                                 │
+                                                                  │
    BCNF (Strict Superkey)  ◄──  3NF (Remove Transitive Dependencies) ◄┘
 ```
 
-### 1. First Normal Form (1NF)
-* **Rule**: Every column must contain **atomic values** (indivisible single values). No repeating groups, arrays, or comma-separated lists inside cells. Every row must be uniquely identifiable.
+---
+
+### 1. First Normal Form (1NF): Atomic Values
+* **Rule**: Every column must contain indivisible **atomic values**. No repeating groups, arrays, or comma-separated strings stored inside single cells. Every row must be uniquely identifiable.
 
 ```sql
--- VIOLATES 1NF (Multi-valued comma-separated hobbies)
+-- ❌ VIOLATES 1NF: Multi-valued comma-separated string in hobbies cell
 -- emp_id | emp_name | hobbies
 -- 101    | Alice    | "Reading, Swimming, Chess"
 
--- COMPLIES WITH 1NF (Atomic rows)
+-- ✅ COMPLIES WITH 1NF: Decomposed into atomic tuples
 -- emp_id | emp_name | hobby
 -- 101    | Alice    | Reading
 -- 101    | Alice    | Swimming
 -- 101    | Alice    | Chess
 ```
 
-### 2. Second Normal Form (2NF)
-* **Rule**: Table must be in **1NF**, and all non-key attributes must depend on the **entire primary key** (eliminates **partial functional dependency** in composite key tables).
+---
 
-### 3. Third Normal Form (3NF)
-* **Rule**: Table must be in **2NF**, and no non-key attribute can depend on another non-key attribute (eliminates **transitive functional dependency**). Every non-key column must depend on *the key, the whole key, and nothing but the key*.
+### 2. Second Normal Form (2NF): Full Functional Dependency
+* **Rule**: Table must be in **1NF**, and every non-key attribute must depend on the **entire primary key** (eliminates **partial functional dependencies** in composite key tables).
+
+```sql
+-- ❌ VIOLATES 2NF: Primary Key is composite (student_id, course_id).
+-- course_name depends ONLY on course_id (partial key dependency)!
+-- student_id | course_id | course_name | grade
+-- 101        | CS101     | Intro to CS | A
+-- 102        | CS101     | Intro to CS | B
+
+-- ✅ COMPLIES WITH 2NF: Split into two tables
+-- courses: (course_id [PK], course_name)
+-- student_courses: (student_id [PK], course_id [PK], grade)
+```
+
+---
+
+### 3. Third Normal Form (3NF): Non-Transitive Dependencies
+* **Rule**: Table must be in **2NF**, and no non-key attribute can depend on another non-key attribute (eliminates **transitive functional dependencies**).
+* *Mantra*: "Every non-key column must depend on *the key, the whole key, and nothing but the key* (so help me Codd)."
 
 ```
-Transitive Dependency Example:
-Emp_ID (Key) ──► Dept_ID (Non-Key) ──► Dept_Name (Non-Key)
-Solution: Move Dept_ID and Dept_Name into a separate Departments table.
+Transitive Dependency Violation:
+Emp_ID (Primary Key) ──► Dept_ID (Non-Key) ──► Dept_Name (Non-Key)
+
+Solution: Decompose into two separate tables:
+1. employees: (emp_id [PK], emp_name, dept_id [FK])
+2. departments: (dept_id [PK], dept_name)
 ```
 
-### 4. Boyce-Codd Normal Form (BCNF)
-* **Rule**: A stricter version of 3NF. For every non-trivial functional dependency $X \rightarrow Y$, $X$ must be a **superkey**.
+---
+
+### 4. Boyce-Codd Normal Form (BCNF): Strict Superkey Rule
+* **Rule**: A stricter refinement of 3NF. For every non-trivial functional dependency `X → Y`, `X` must be a **superkey** (candidate primary key).
+
+---
+
+## 🏗️ Strategic Denormalization
+
+While high normalization (3NF/BCNF) is mandatory for **OLTP (Online Transaction Processing)** systems to ensure high write performance and eliminate update anomalies, **OLAP (Online Analytical Processing)** data warehouses intentionally introduce **denormalization** (Star Schema / Snowflake Schema).
+
+| Architectural Metric | Highly Normalized Schemas (3NF) | Denormalized Schemas (Star Schema) |
+| :--- | :--- | :--- |
+| **Target Use Case** | OLTP High-Concurrency Web Applications | OLAP Business Intelligence & Reporting |
+| **Write Performance** | Extremely Fast (Minimal data duplication) | Slower (Multiple tables must be updated) |
+| **Read Query Complexity** | Complex (Requires 5-10 table `JOIN` operations) | Simple (Queries aggregate giant flattened Fact tables) |
+| **Storage Footprint** | Compact & Minimal | Larger due to intentional column redundancy |
 
 ---
 
 ## ❓ Conceptual Quizzes
 
-<Quiz question="What happens if a UNIQUE constraint is placed on a column containing multiple NULL values?" options={["The database throws a duplicate key error on the second NULL.", "The UNIQUE constraint permits multiple NULLs because NULL != NULL in SQL logic.", "The database converts NULLs into empty strings.", "UNIQUE automatically implies NOT NULL."]} answerIndex={1}>
+<Quiz question="What happens if a UNIQUE constraint is placed on a column containing multiple NULL values in standard SQL?" options={["The database throws a duplicate key error on the second NULL.", "The UNIQUE constraint permits multiple NULLs because NULL != NULL in SQL 3-valued logic.", "The database converts NULLs into empty strings.", "UNIQUE automatically implies NOT NULL."]} answerIndex={1}>
 In SQL standards, `NULL` represents an unknown value. Because comparing two unknown values (`NULL = NULL`) yields `UNKNOWN` (not `TRUE`), multiple `NULL` values do not violate a `UNIQUE` constraint.
+</Quiz>
+
+<Quiz question="Why is using NUMERIC(10, 2) mandatory for financial salary data instead of FLOAT or DOUBLE PRECISION?" options={["NUMERIC requires less storage than FLOAT.", "FLOAT uses binary IEEE 754 representation, which introduces rounding inaccuracies for decimal currency amounts.", "FLOAT does not support negative numbers.", "NUMERIC automatically indexes the column."]} answerIndex={1}>
+`FLOAT` and `DOUBLE` use binary floating-point representation (IEEE 754), which cannot represent fractions like $0.1$ exactly in binary, leading to rounding inaccuracies. `NUMERIC` stores exact decimal digits in base-10 format.
 </Quiz>
 
 ---
 
 ## 💻 Practice Problems
 
-<Problem title="Problem: Refactoring Transitive Dependencies to 3NF">
+<Problem title="Problem: Refactoring a Schema into 3NF">
 <ProblemDescription>
-Given a single table `employee_project`:
-`(emp_id, project_id, project_name, project_location)` where `(emp_id, project_id)` is a composite primary key. `project_name` depends solely on `project_id`. Identify the normalization violation and refactor into 3NF.
+You are given an unnormalized `orders` table:
+`order_id (PK), customer_id, customer_name, customer_email, order_date, item_id, item_name, item_price`
+
+Identify the functional dependencies and refactor this single table into a clean 3NF schema structure.
 </ProblemDescription>
 <ProblemSolution>
-The table violates **2NF** because `project_name` and `project_location` depend partially on `project_id` rather than the complete composite key `(emp_id, project_id)`.
+1. **Identify Anomalies**:
+   - `customer_name` and `customer_email` depend on `customer_id` (transitive dependency).
+   - `item_name` and `item_price` depend on `item_id`.
 
-Refactored 3NF Design:
-
+2. **Refactored 3NF Schema**:
 ```sql
--- Table 1: Projects (Project Entity)
-CREATE TABLE projects (
-    project_id       INT PRIMARY KEY,
-    project_name     VARCHAR(100) NOT NULL,
-    project_location VARCHAR(100)
+-- 1. Customers Table
+CREATE TABLE customers (
+    customer_id    INT PRIMARY KEY,
+    customer_name  VARCHAR(100) NOT NULL,
+    customer_email VARCHAR(150) UNIQUE NOT NULL
 );
 
--- Table 2: Employee Project Assignments (Junction Table)
-CREATE TABLE employee_projects (
-    emp_id      INT NOT NULL,
-    project_id  INT NOT NULL,
-    PRIMARY KEY (emp_id, project_id),
-    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE
+-- 2. Items Table
+CREATE TABLE items (
+    item_id        INT PRIMARY KEY,
+    item_name      VARCHAR(150) NOT NULL,
+    item_price     NUMERIC(10, 2) NOT NULL CHECK (item_price >= 0)
+);
+
+-- 3. Orders Header Table
+CREATE TABLE orders (
+    order_id       INT PRIMARY KEY,
+    customer_id    INT NOT NULL REFERENCES customers(customer_id),
+    order_date     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Order Items Junction Table
+CREATE TABLE order_items (
+    order_id       INT REFERENCES orders(order_id) ON DELETE CASCADE,
+    item_id        INT REFERENCES items(item_id),
+    quantity       INT NOT NULL CHECK (quantity > 0),
+    unit_price     NUMERIC(10, 2) NOT NULL, -- Historical price snapshot
+    PRIMARY KEY (order_id, item_id)
 );
 ```
 </ProblemSolution>
