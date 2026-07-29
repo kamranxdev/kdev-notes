@@ -1,0 +1,204 @@
+---
+title: Streams API, Spring Boot Core & GoF Design Patterns
+description: Master Java Streams API, functional interfaces, Spring Boot Inversion of Control (IoC), Dependency Injection (DI), and GoF Design Patterns in Java.
+---
+
+## 🌊 Functional Programming & The Streams API
+
+Introduced in Java 8, the **Streams API** provides a declarative, functional pipeline for processing collections of data:
+
+* **Analogy**: *An Automated Water Filtration Pipeline & Smart Factory.*
+  - **Source (`Collection.stream()`)**: Reservoir of un-filtered raw river water.
+  - **Intermediate Operations (`filter`, `map`)**: Inline pipe filters and chemical treatment chambers. Water flows through lazily—no filtering happens until the end faucet is opened!
+  - **Terminal Operation (`collect`, `reduce`)**: The end kitchen faucet pouring clean filtered water into a glass.
+  - **Spring Boot IoC Container**: An Automated Smart Building System. Instead of buying, wiring, and installing your own air conditioner (`new Service()`), the building system automatically injects pre-configured AC units into your room (`@Autowired`) when you move in!
+
+```
+                        Streams Processing Pipeline
+                                     │
+    Collection ──► Stream() ──► filter() ──► map() ──► collect(Collectors.toList())
+    (Source)       (Assembly)   (Lazy)      (Lazy)     (Terminal Trigger)
+```
+
+```java
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class StreamsDemo {
+    public static void main(String[] args) {
+        List<String> names = List.of("alice", "bob", "alexander", "charlie", "amanda");
+
+        // Declarative Streams Pipeline
+        List<String> result = names.stream()
+                .filter(name -> name.startsWith("a"))      // Filter names starting with 'a'
+                .map(String::toUpperCase)                  // Transform to uppercase
+                .sorted()                                  // Sort alphabetically
+                .collect(Collectors.toList());             // Terminal trigger
+
+        System.out.println("Filtered Names: " + result); // [ALEXANDER, ALICE, AMANDA]
+    }
+}
+```
+
+---
+
+## 🍃 Spring Boot Enterprise Core: IoC & Dependency Injection
+
+Spring Boot is built around **Inversion of Control (IoC)** and **Dependency Injection (DI)**:
+
+```
+                            Spring Boot IoC Container
+                                        │
+        ┌───────────────────────────────┼───────────────────────────────┐
+        ▼                               ▼                               ▼
+  @RestController                    @Service                       @Repository
+(HTTP Endpoint Controller)   (Business Logic Component)      (Database Access Data Layer)
+```
+
+```java
+// Spring Boot Component Architecture Example
+public interface OrderRepository {
+    void saveOrder(String orderId);
+}
+
+// 1. Data Layer Component
+@org.springframework.stereotype.Repository
+class OrderRepositoryImpl implements OrderRepository {
+    @Override
+    public void saveOrder(String orderId) {
+        System.out.println("Persisted Order " + orderId + " into Postgres Database.");
+    }
+}
+
+// 2. Business Service Layer Component
+@org.springframework.stereotype.Service
+class OrderService {
+    private final OrderRepository repository;
+
+    // Constructor Dependency Injection (Spring automatically injects bean!)
+    @org.springframework.beans.factory.annotation.Autowired
+    public OrderService(OrderRepository repository) {
+        this.repository = repository;
+    }
+
+    public void processOrder(String orderId) {
+        System.out.println("Validating order logic...");
+        repository.saveOrder(orderId);
+    }
+}
+```
+
+---
+
+## 🏗️ Essential Gang of Four (GoF) Design Patterns
+
+### 1. Singleton Pattern (Bill Pugh Initialization-on-Demand Holder)
+Provides thread-safe lazy initialization without synchronization overhead:
+
+```java
+public class DatabaseConnectionPool {
+    private DatabaseConnectionPool() {} // Private Constructor
+
+    // Static Inner Holder Class (Loaded lazily on first access!)
+    private static class Holder {
+        private static final DatabaseConnectionPool INSTANCE = new DatabaseConnectionPool();
+    }
+
+    public static DatabaseConnectionPool getInstance() {
+        return Holder.INSTANCE;
+    }
+}
+```
+
+---
+
+### 2. Builder Pattern
+Simplifies object instantiation for complex classes with many optional attributes:
+
+```java
+public class UserAccount {
+    private final String username;
+    private final String email;
+    private final boolean active;
+
+    private UserAccount(Builder builder) {
+        this.username = builder.username;
+        this.email = builder.email;
+        this.active = builder.active;
+    }
+
+    public static class Builder {
+        private String username;
+        private String email;
+        private boolean active = true;
+
+        public Builder username(String username) { this.username = username; return this; }
+        public Builder email(String email) { this.email = email; return this; }
+        public Builder active(boolean active) { this.active = active; return this; }
+
+        public UserAccount build() { return new UserAccount(this); }
+    }
+
+    public static void main(String[] args) {
+        UserAccount account = new UserAccount.Builder()
+                .username("john_doe")
+                .email("john@example.com")
+                .active(true)
+                .build();
+        System.out.println("Built Account for: " + account.username);
+    }
+}
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is the difference between intermediate and terminal operations in the Java Streams API?" options={["Intermediate operations execute immediately.", "Intermediate operations (filter, map) are lazy and return a new Stream without processing elements until a Terminal operation (collect, count) is invoked.", "Terminal operations can be chained continuously.", "Intermediate operations delete elements from memory."]} answerIndex={1}>
+**Intermediate operations** (`filter`, `map`) are **lazy**; they construct the pipeline pipeline without evaluating elements. Data flows through the pipeline only when a **Terminal operation** (`collect`, `forEach`, `reduce`) is invoked.
+</Quiz>
+
+<Quiz question="Why is Constructor Injection preferred over @Autowired Field Injection in Spring Boot applications?" options={["Field injection runs faster.", "Constructor injection enforces immutability (final fields), allows components to be tested easily without Spring context mocks, and prevents NullPointerExceptions.", "Constructor injection encrypts passwords.", "Field injection is deprecated."]} answerIndex={1}>
+**Constructor Injection** is the industry best practice in Spring Boot because it enforces immutability via `final` fields, guarantees required dependencies are supplied at instantiation time, and simplifies unit testing without launching heavy Spring context mocks.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Stream Aggregation & Grouping By">
+<ProblemDescription>
+Given a list of `Employee` objects (`name`, `department`, `salary`), write a Java Stream pipeline using `Collectors.groupingBy()` to group employees by department and calculate average department salary.
+</ProblemDescription>
+<ProblemSolution>
+```java
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+record Employee(String name, String department, double salary) {}
+
+public class StreamGroupingDemo {
+    public static void main(String[] args) {
+        List<Employee> employees = List.of(
+            new Employee("Alice", "Engineering", 95000),
+            new Employee("Bob", "Engineering", 85000),
+            new Employee("Charlie", "Finance", 70000),
+            new Employee("David", "Finance", 80000)
+        );
+
+        // Group by department and calculate average salary
+        Map<String, Double> avgSalaryByDept = employees.stream()
+            .collect(Collectors.groupingBy(
+                Employee::department,
+                Collectors.averagingDouble(Employee::salary)
+            ));
+
+        avgSalaryByDept.forEach((dept, avgSal) -> 
+            System.out.println(dept + " Average Salary: $" + avgSal)
+        );
+    }
+}
+```
+</ProblemSolution>
+</Problem>

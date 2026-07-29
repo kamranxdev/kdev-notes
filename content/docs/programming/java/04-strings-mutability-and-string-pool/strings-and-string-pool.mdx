@@ -1,0 +1,138 @@
+---
+title: String Immutability, String Constant Pool & Mutability
+description: Deep dive into Java String immutability mechanics, String Constant Pool (SCP) memory allocation, intern(), StringBuilder vs StringBuffer performance, and Text Blocks.
+---
+
+## 🖨️ String Immutability & The String Constant Pool (SCP)
+
+In Java, instances of `java.lang.String` are strictly **immutable**. Once created, their sequence of character bytes cannot be altered in memory.
+
+* **Analogy**: *A Currency Printing Press Vault.*
+  - **Immutable String**: A printed $100 bill. You cannot erase the ink on a $100 bill and turn it into a $500 bill. To get $500, the mint must print an entirely **new** currency bill.
+  - **String Constant Pool (SCP)**: A special high-security vault inside Heap memory. Before printing a new bill (`"Hello"`), the mint checks if an identical bill already exists in the vault. If found, it reuses the existing bill reference, saving memory!
+
+```
+                  String Constant Pool (SCP) Heap Allocation
+                                      │
+    String s1 = "Java";  ──┐
+                           ├─► [ String Constant Pool (SCP) ] ──► "Java" (Single Instance)
+    String s2 = "Java";  ──┘
+    
+    String s3 = new String("Java"); ──► Heap Memory Object ──► Points to "Java" in SCP
+```
+
+---
+
+## 🛠️ Instantiation Mechanics: Literal vs. `new` Keyword
+
+```java
+public class StringPoolDemo {
+    public static void main(String[] args) {
+        // 1. String Literal: Creates 1 object in SCP (or reuses existing)
+        String s1 = "Hello";
+        String s2 = "Hello";
+        System.out.println(s1 == s2); // TRUE (Both point to the SAME object in SCP!)
+
+        // 2. New Keyword: Creates 2 objects (1 in Heap, 1 in SCP if not present)
+        String s3 = new String("Hello");
+        System.out.println(s1 == s3); // FALSE (s3 points to explicit Heap object!)
+
+        // 3. String.intern(): Returns canonical reference from SCP
+        String s4 = s3.intern();
+        System.out.println(s1 == s4); // TRUE (intern() fetches reference from SCP!)
+    }
+}
+```
+
+---
+
+## ⚡ `StringBuilder` vs. `StringBuffer` vs. `String`
+
+Concatenating strings inside loops using `+` creates thousands of short-lived temporary `String` objects in memory, degrading Garbage Collection performance:
+
+```java
+// ❌ ANTI-PATTERN: Creates 10,000 temporary String objects on Heap!
+String result = "";
+for (int i = 0; i < 10000; i++) {
+    result += i; // Instantiates new StringBuilder and new String every iteration!
+}
+```
+
+| Metric | `java.lang.String` | `java.lang.StringBuilder` | `java.lang.StringBuffer` |
+| :--- | :--- | :--- | :--- |
+| **Mutability** | Immutable (Fixed array) | Mutable (Expandable array) | Mutable (Expandable array) |
+| **Thread Safety** | Thread-Safe (Immutable) | **Not Thread-Safe** | **Thread-Safe** (Synchronized) |
+| **Performance Speed** | Slow for concatenation loops | **Extremely Fast** (Single-thread) | Slightly Slower (Lock overhead) |
+| **Storage Allocation** | SCP / Heap | Heap RAM Buffer | Heap RAM Buffer |
+
+```java
+// ✅ BEST PRACTICE: Use StringBuilder for dynamic string assembly
+StringBuilder sb = new StringBuilder();
+for (int i = 0; i < 10000; i++) {
+    sb.append(i);
+}
+String result = sb.toString();
+```
+
+---
+
+## 📜 Java 15+ Multiline Text Blocks (`"""`)
+
+Java 15 introduced multiline **Text Blocks** delimited by triple quotes (`"""`), eliminating escape sequences for JSON, SQL, and HTML strings:
+
+```java
+public class TextBlockDemo {
+    public static void main(String[] args) {
+        // Modern clean multiline JSON string
+        String jsonPayload = """
+                {
+                    "name": "Alice",
+                    "role": "Lead Architect",
+                    "active": true
+                }
+                """;
+        System.out.println(jsonPayload);
+    }
+}
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What happens in memory when executing: String s1 = 'Java'; String s2 = new String('Java');?" options={["Only 1 object is created on the heap.", "s1 creates or reuses 'Java' in the String Constant Pool; s2 creates an explicit new String instance in general Heap memory pointing to the pool entry.", "The JVM crashes with a syntax error.", "s1 and s2 share the exact same reference."]} answerIndex={1}>
+`s1 = "Java"` puts `"Java"` in the **String Constant Pool (SCP)**. `new String("Java")` explicitly creates a **new separate Object on the general Heap**, resulting in two distinct memory references (`s1 == s2` evaluates to `false`).
+</Quiz>
+
+<Quiz question="Why is StringBuilder preferred over StringBuffer in single-threaded application code?" options={["StringBuilder encrypts data.", "StringBuilder is unsynchronized, eliminating method-locking overhead and delivering significantly faster execution speeds.", "StringBuffer cannot hold strings longer than 10 characters.", "StringBuilder converts code into C."]} answerIndex={1}>
+`StringBuffer` synchronizes all instance methods for thread-safety, introducing lock acquisition overhead. In single-threaded operations, **`StringBuilder`** is preferred because it eliminates synchronization overhead, executing significantly faster.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: High-Speed Log Message Formatter">
+<ProblemDescription>
+Write a method `public static String buildLogHeader(String level, String module, String message)` that formats a log string using `StringBuilder` to avoid intermediate object allocations.
+</ProblemDescription>
+<ProblemSolution>
+```java
+public class LogFormatter {
+    public static String buildLogHeader(String level, String module, String message) {
+        StringBuilder sb = new StringBuilder(128); // Pre-allocate buffer capacity
+        sb.append("[").append(System.currentTimeMillis()).append("] ")
+          .append("[").append(level.toUpperCase()).append("] ")
+          .append("[").append(module).append("]: ")
+          .append(message);
+        return sb.toString();
+    }
+
+    public static void main(String[] args) {
+        String log = buildLogHeader("ERROR", "AUTH_SERVICE", "Invalid JWT signature detected");
+        System.out.println(log);
+    }
+}
+```
+</ProblemSolution>
+</Problem>

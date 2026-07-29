@@ -4,11 +4,18 @@
   "root": true,
   "pages": [
     "index",
-    "01-core-fundamentals",
-    "02-oop-and-type-system",
-    "03-concurrency-and-performance",
-    "04-modern-java-and-ecosystem",
-    "05-patterns-and-interviews",
+    "01-jvm-architecture-and-execution-engine",
+    "02-jvm-memory-and-garbage-collection",
+    "03-primitives-types-and-memory",
+    "04-strings-mutability-and-string-pool",
+    "05-control-flow-and-exceptions",
+    "06-oop-semantics-interfaces-and-polymorphism",
+    "07-records-and-sealed-classes",
+    "08-generics-and-type-erasure",
+    "09-collections-framework-internals",
+    "10-multithreading-jmm-and-locks",
+    "11-async-executors-and-virtual-threads",
+    "12-streams-spring-boot-and-design-patterns",
     "---Official Documentation---",
     "external:[ExternalLink][Java SE Documentation](https://docs.oracle.com/en/java/)"
   ]

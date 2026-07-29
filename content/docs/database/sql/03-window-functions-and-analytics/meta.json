@@ -2,9 +2,7 @@
   "title": "Window Functions & Analytics",
   "icon": "Binary",
   "pages": [
-    "---[Binary]Ranking & Windows---",
     "window-functions-and-ranking",
-    "---[Layers]Aggregation---",
     "grouping-sets-and-aggregates"
   ]
 }

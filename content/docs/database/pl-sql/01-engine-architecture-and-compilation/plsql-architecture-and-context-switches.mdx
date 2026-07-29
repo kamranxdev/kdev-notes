@@ -1,0 +1,124 @@
+---
+title: PL/SQL Engine Architecture & Context Switches
+description: Deep dive into the Oracle database server dual-engine execution model, context switch bottlenecks, anonymous vs stored blocks, and P-code compilation.
+---
+
+## 🏛️ The Dual-Engine Architecture
+
+PL/SQL code executes directly inside the Oracle database server instance. However, the database server contains **two distinct execution engines**:
+
+1. **The PL/SQL Engine**: Responsible for procedural control flow, evaluating variable assignments, `IF-THEN-ELSE` conditionals, loops, collection methods, and exception handling blocks.
+2. **The SQL Engine**: Responsible for parsing SQL statements, consulting the Cost-Based Optimizer (CBO), managing transaction locks, and executing physical data page reads in the buffer pool.
+
+* **Analogy**: *A Executive Bank Manager & A Vault Clerk.*
+  - **The Bank Manager (PL/SQL Engine)**: Sits at a desk processing client application rules, evaluating credit logic (`IF credit > 700`), running loops, and writing decision logs.
+  - **The Vault Clerk (SQL Engine)**: Physical access custodian. Walks to the physical vault drawers (`TABLE`) to retrieve specific document folders (`ROWS`).
+
+```
+                         Oracle Database Server Instance
+ ┌─────────────────────────────────────────────────────────────────────────────┐
+ │                                                                             │
+ │  ┌───────────────────────────────┐        SQL Statements        ┌─────────┐ │
+ │  │        PL/SQL Engine          ├─────────────────────────────►│   SQL   │ │
+ │  │  (Loops, IFs, Assignments)    │◄─────────────────────────────┤ Engine  │ │
+ │  └───────────────────────────────┘           Data Rows          └────┬────┘ │
+ │                                                                        │    │
+ └────────────────────────────────────────────────────────────────────────┼────┘
+                                                                          ▼
+                                                                  [( Disk Blocks )]
+```
+
+---
+
+## 🚶 The Context Switch Bottleneck
+
+A **Context Switch** occurs every time execution control transitions from the PL/SQL engine to the SQL engine to process a SQL query or DML statement, and returns back with data payloads.
+
+* **The Row-by-Row Bottleneck**:
+  If the Bank Manager (**PL/SQL Engine**) runs a loop 100,000 times, walking over to the Vault Clerk (**SQL Engine**) for a single document folder on every single iteration, the manager spends 99% of their workday walking back and forth across the building (Context Switch Overhead)!
+
+```sql
+-- ❌ SLOW: 100,000 Context Switches executed inside a row-by-row cursor loop
+DECLARE
+  CURSOR c_emps IS SELECT employee_id FROM employees;
+BEGIN
+  FOR r IN c_emps LOOP
+    -- Context switch on EVERY single iteration!
+    UPDATE employees SET salary = salary * 1.05 WHERE employee_id = r.employee_id;
+  END LOOP;
+END;
+/
+```
+
+> [!WARNING]
+> High numbers of row-by-row context switches degrade CPU throughput and cause SGA buffer latch contention. Use **Bulk Operations (`BULK COLLECT` and `FORALL`)** to transfer data in single array batches!
+
+---
+
+## 🧱 Block Classification: Anonymous vs Stored Blocks
+
+PL/SQL code units are written as structured modular blocks:
+
+```
+                                  PL/SQL Block Types
+                                          │
+        ┌─────────────────────────────────┼─────────────────────────────────┐
+        ▼                                 ▼                                 ▼
+Anonymous Blocks                  Stored Procedures & Functions      Packages
+Compiled on-the-fly               Stored in Database Catalog         Encapsulated API
+Not saved in data dictionary      Compiled binary schema objects     Public Spec + Private Body
+```
+
+1. **Anonymous Blocks**: Unnamed PL/SQL blocks compiled and executed dynamically by client applications or scripts (SQL*Plus, SQL Developer). They are not saved in the database catalog.
+2. **Stored Procedures & Functions**: Named blocks compiled once and stored as binary schema objects in the database dictionary. Can be invoked by backend APIs or web services.
+3. **Packages**: Encapsulated groups of related procedures, functions, variables, and custom types stored together under a single schema namespace.
+
+---
+
+## ⚙️ Compilation Pipeline: P-Code vs Native Compilation
+
+When a PL/SQL block is compiled, the compiler transforms source code into intermediate bytecode instructions called **P-Code** (Parsed Code).
+
+```
+  Source Code (.sql) ──► PL/SQL Compiler ──► DIANA Tree ──► P-Code Bytecode ──► Executed in PGA
+```
+
+- **Interpreted P-Code (Default)**: P-Code instructions are stored in the database dictionary and executed by the PL/SQL Virtual Machine inside the process PGA memory.
+- **Native C Compilation**: PL/SQL code is compiled directly into native machine code (C shared libraries), bypassing VM bytecode interpretation for computation-heavy math tasks!
+
+```sql
+-- Enabling Native C compilation for high-speed computation modules
+ALTER SESSION SET PLSQL_CODE_TYPE = 'NATIVE';
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is an Engine Context Switch in PL/SQL and why does it degrade execution speed?" options={["A switch between Linux and Windows servers.", "The transfer of execution control and data payload between the PL/SQL procedural engine and the SQL database engine.", "A memory crash caused by allocating too many variables.", "The compilation of PL/SQL bytecode into C executable files."]} answerIndex={1}>
+Every time a PL/SQL block executes a SQL query or statement inside a loop, control passes between the **PL/SQL Engine** and the **SQL Engine**. Executing this row-by-row creates massive context switch CPU overhead.
+</Quiz>
+
+<Quiz question="What is P-Code in Oracle PL/SQL compilation?" options={["A Python script run on the client.", "Intermediate bytecode generated by the PL/SQL compiler that executes inside the PL/SQL Virtual Machine in PGA memory.", "A hardware security key.", "A SQL table format."]} answerIndex={1}>
+**P-Code** is the parsed bytecode representation of PL/SQL source code stored in the system catalog and executed by the database server's PL/SQL VM.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Refactoring Row-by-Row Cursor Loops">
+<ProblemDescription>
+You are reviewing a legacy anonymous block that iterates through 50,000 orders one-by-one to update `status = 'PROCESSED'`. Refactor the code to eliminate context switches entirely.
+</ProblemDescription>
+<ProblemSolution>
+Replace the PL/SQL row-by-row cursor loop with a single set-based SQL statement:
+
+```sql
+-- Replaces 50,000 row-by-row context switches with 1 single SQL engine call
+UPDATE orders
+SET status = 'PROCESSED'
+WHERE status = 'PENDING';
+```
+</ProblemSolution>
+</Problem>

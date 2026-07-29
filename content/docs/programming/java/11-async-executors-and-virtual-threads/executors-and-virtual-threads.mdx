@@ -1,0 +1,146 @@
+---
+title: Asynchronous Concurrency, CompletableFuture & Virtual Threads (Project Loom)
+description: Master ExecutorService thread pools, CompletableFuture reactive pipelines, and Java 21 Virtual Threads (Project Loom) mounting/unmounting mechanics.
+---
+
+## 🚀 The Executor Framework & Thread Pools
+
+Managing threads manually (`new Thread().start()`) is expensive and dangerous. The **Executor Framework** decouples task submission from thread execution through managed **Thread Pools**:
+
+* **Analogy**: *A Freight Dispatch Center & Micro-Drone Delivery Fleet.*
+  - **Platform Threads (`Thread`)**: Heavy cargo delivery trucks. Assigning 1 truck to deliver 1 envelope consumes massive fuel and road space (~1 MB RAM stack allocation per thread).
+  - **Thread Pool (`ExecutorService`)**: A fixed fleet of 10 trucks stationed at a central depot, continuously reusing trucks to haul incoming delivery packages from a central warehouse queue.
+  - **Virtual Threads (Java 21 Project Loom)**: A fleet of 1,000,000 lightweight micro-drones. When a drone reaches a closed customer door (blocking I/O operation), it unmounts its package, returns to the mother ship (Carrier Thread), and lets other drones fly!
+
+```
+                   Platform vs. Virtual Threads Architecture
+                                       │
+        ┌──────────────────────────────┴──────────────────────────────┐
+        ▼                                                             ▼
+Platform Threads (1:1 OS Kernel Mapping)                    Virtual Threads (M:N Carrier Thread Multiplexing)
+Java Thread 1 ──► OS Thread 1 (~1 MB Stack)                 Virtual Thread 1 ┐
+Java Thread 2 ──► OS Thread 2 (~1 MB Stack)                 Virtual Thread 2 ├─► Carrier OS Thread (~1 KB Stack)
+Max capacity: ~2,000 threads before OOM                     Virtual Thread N ┘
+                                                            Max capacity: 1,000,000+ threads!
+```
+
+---
+
+## ⚡ Asynchronous Pipelines with `CompletableFuture`
+
+`CompletableFuture` allows building non-blocking asynchronous data pipelines with functional callbacks:
+
+```java
+import java.util.concurrent.CompletableFuture;
+
+public class AsyncPipelineDemo {
+    public static void main(String[] args) {
+        // Asynchronous non-blocking pipeline
+        CompletableFuture.supplyAsync(() -> {
+            System.out.println("Fetching user profile from remote API...");
+            return "User_101";
+        }).thenApply(userId -> {
+            System.out.println("Enriching user details for: " + userId);
+            return userId + " [VIP Status]";
+        }).thenAccept(result -> {
+            System.out.println("Final Result Delivered: " + result);
+        }).exceptionally(ex -> {
+            System.err.println("Pipeline Failed: " + ex.getMessage());
+            return null;
+        });
+
+        // Keep main thread alive for async completion
+        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+    }
+}
+```
+
+---
+
+## 🧵 Java 21 Virtual Threads (Project Loom)
+
+Java 21 introduced **Virtual Threads**, lightweight threads managed directly by the JVM runtime rather than the underlying host OS:
+
+### Mounting & Unmounting Mechanics
+When a Virtual Thread executes a blocking I/O operation (`Thread.sleep()`, Socket read, Database JDBC query):
+1. The JVM **unmounts** the Virtual Thread from its underlying **Carrier Thread** (a standard OS thread).
+2. The Carrier Thread is freed immediately to execute other Virtual Threads.
+3. Once the blocking I/O operation completes, the JVM **remounts** the Virtual Thread onto any available Carrier Thread to resume execution!
+
+```java
+// Instantiating 100,000 Virtual Threads in Java 21!
+public class VirtualThreadDemo {
+    public static void main(String[] args) throws InterruptedException {
+        // Uses Virtual Thread Executor
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            for (int i = 0; i < 100_000; i++) {
+                final int taskId = i;
+                executor.submit(() -> {
+                    // Simulates blocking network I/O
+                    Thread.sleep(1000);
+                    return taskId;
+                });
+            }
+        } // Auto-closes and awaits all 100,000 virtual threads in ~1 second!
+
+        System.out.println("100,000 Virtual Threads Executed Successfully!");
+    }
+}
+```
+
+---
+
+> [!CAUTION]
+> **Virtual Thread Pinning Hazard**:
+> Executing a blocking operation inside a **`synchronized` block or native method** "pins" the Virtual Thread to its Carrier Thread, preventing unmounting.
+>
+> **Best Practice**: Replace `synchronized` blocks with **`ReentrantLock`** in Virtual Thread codebases to avoid carrier thread pinning!
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is the key execution difference between Platform Threads and Virtual Threads in Java 21?" options={["Platform threads run faster for pure CPU math.", "Platform threads map 1:1 to OS Kernel threads (~1MB stack), whereas Virtual Threads map M:N to Carrier Threads (~1KB stack) and automatically unmount during blocking I/O operations.", "Virtual threads cannot make network calls.", "Virtual threads convert Java into JavaScript."]} answerIndex={1}>
+**Platform Threads** map 1:1 to OS Kernel threads (~1 MB stack). **Virtual Threads** (Java 21) map M:N to Carrier Threads (~1 KB stack on Heap) and automatically **unmount** during blocking I/O operations, allowing millions of concurrent tasks to execute.
+</Quiz>
+
+<Quiz question="What causes Virtual Thread Pinning in Java 21, and how do you resolve it?" options={["Using arrays; resolved by using ArrayList.", "Executing blocking I/O inside a synchronized block or native method; resolved by replacing synchronized with ReentrantLock.", "Calling System.gc(); resolved by removing GC calls.", "Creating too many objects."]} answerIndex={1}>
+**Virtual Thread Pinning** occurs when a thread performs blocking I/O while inside a **`synchronized` block**, preventing the JVM from unmounting the virtual thread. The solution is to replace `synchronized` blocks with explicit **`ReentrantLock`** instances.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: High-Concurrency Virtual Thread HTTP Fetcher">
+<ProblemDescription>
+Write a Java 21 program that spawns 1,000 Virtual Threads using `Executors.newVirtualThreadPerTaskExecutor()`, where each thread simulates a 500ms API call, and verifies execution time is ~500ms rather than 500 seconds.
+</ProblemDescription>
+<ProblemSolution>
+```java
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+public class HighConcurrencyVirtualThreads {
+    public static void main(String[] args) {
+        long startTime = System.currentTimeMillis();
+
+        // High-concurrency executor using Virtual Threads
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (int i = 0; i < 1_000; i++) {
+                final int id = i;
+                executor.submit(() -> {
+                    // Simulated blocking API call
+                    Thread.sleep(500);
+                    return "Response " + id;
+                });
+            }
+        } // Auto-waits for completion
+
+        long duration = System.currentTimeMillis() - startTime;
+        System.out.println("Executed 1,000 tasks concurrently in: " + duration + " ms");
+    }
+}
+```
+</ProblemSolution>
+</Problem>

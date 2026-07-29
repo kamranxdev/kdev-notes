@@ -1,0 +1,162 @@
+---
+title: Database Triggers, Mutating Errors & Compound Triggers
+description: Master Oracle database triggers, row vs statement events, :NEW/:OLD bind variables, the Mutating Table Error (ORA-04091), and Compound Triggers.
+---
+
+## ⚡ Database Trigger Architecture
+
+A **Database Trigger** is a named PL/SQL block compiled and stored in the database dictionary that automatically fires (executes) when a specific DML event (`INSERT`, `UPDATE`, `DELETE`) occurs on a table or view:
+
+* **Analogy**: *An Automatic Building Security & Fire Alarm System.*
+  - **`BEFORE` Trigger**: The security guard at the gate inspecting your ID badge *before* granting entrance to the building.
+  - **`AFTER` Trigger**: The automated security logger recording your entry timestamp into the building access database *after* you swipe through.
+  - **`INSTEAD OF` Trigger**: A mail reception desk that accepts incoming package deliveries on behalf of a virtual suite unit.
+
+```
+                             DML Event Execution Pipeline
+                                          │
+    BEFORE STATEMENT ──► FOR EACH ROW (BEFORE) ──► DML UPDATE ──► FOR EACH ROW (AFTER) ──► AFTER STATEMENT
+```
+
+---
+
+## 🔁 Trigger Classification & Bind Variables (`:NEW` & `:OLD`)
+
+Triggers are classified by timing and operational scope:
+
+| Trigger Attribute | Options | Purpose |
+| :--- | :--- | :--- |
+| **Timing** | `BEFORE`, `AFTER`, `INSTEAD OF` | Controls whether trigger runs before DML, after DML, or in place of view DML. |
+| **Scope** | `FOR EACH ROW` (Row-level) or Statement-level | Row-level triggers execute once for *every single modified tuple*. Statement-level triggers execute *once per statement*. |
+
+### The `:NEW` and `:OLD` Pseudorecords
+Inside row-level triggers (`FOR EACH ROW`), PL/SQL provides two bind record variables to inspect modified column values:
+
+```sql
+CREATE OR REPLACE TRIGGER trg_audit_salary_change
+AFTER UPDATE OF salary ON employees
+FOR EACH ROW
+BEGIN
+   -- Compare :OLD value (before update) vs :NEW value (after update)
+   IF :OLD.salary != :NEW.salary THEN
+      INSERT INTO salary_audit (emp_id, old_sal, new_sal, changed_date)
+      VALUES (:OLD.employee_id, :OLD.salary, :NEW.salary, SYSDATE);
+   END IF;
+END;
+/
+```
+
+---
+
+## ☣️ The Mutating Table Error (`ORA-04091`)
+
+The **Mutating Table Error (`ORA-04091`)** occurs when a row-level trigger (`FOR EACH ROW`) attempts to execute a `SELECT` query or DML modification against the **very same table** that is currently being modified by the triggering SQL statement!
+
+* **Analogy**: *Repairing a moving car wheel while driving on the highway.* The car wheel (table) is actively spinning and changing shape. If an inspector tries to measure the exact wheel width mid-spin, the database server halts execution to prevent inconsistent read anomalies!
+
+```sql
+-- ❌ THROWS ORA-04091: Row-level trigger queries employees table while employees is mutating!
+CREATE OR REPLACE TRIGGER trg_check_max_salary
+BEFORE INSERT OR UPDATE ON employees
+FOR EACH ROW
+DECLARE
+   v_avg_salary NUMBER;
+BEGIN
+   -- ❌ ORA-04091: Cannot query 'employees' table inside a row-level trigger on 'employees'!
+   SELECT AVG(salary) INTO v_avg_salary FROM employees;
+   
+   IF :NEW.salary > v_avg_salary * 3 THEN
+      RAISE_APPLICATION_ERROR(-20002, 'Salary exceeds 3x department average.');
+   END IF;
+END;
+/
+```
+
+---
+
+## 🛠️ The Ultimate Solution: Compound Triggers
+
+Prior to Oracle 11g, resolving `ORA-04091` required creating temporary package global arrays. Oracle introduced **Compound Triggers** to group all 4 timing sections into a single trigger unit that shares in-memory state!
+
+* **Two-Phase Strategy**:
+  1. **Phase 1 (`AFTER EACH ROW`)**: Accumulate modified row values or IDs into an in-memory collection while rows are updating.
+  2. **Phase 2 (`AFTER STATEMENT`)**: Query the target table safely *after* all row updates complete and the table is no longer mutating!
+
+```sql
+CREATE OR REPLACE TRIGGER trg_compound_salary_check
+FOR INSERT OR UPDATE ON employees
+COMPOUND TRIGGER
+
+   -- 1. Declarative Section: Shared memory array across all timing blocks
+   TYPE t_id_list IS TABLE OF employees.employee_id%TYPE;
+   v_emp_ids t_id_list := t_id_list();
+   v_avg_sal NUMBER;
+
+   -- 2. Phase 1: Row-level timing block (Runs once per row; captures IDs safely)
+   AFTER EACH ROW IS
+   BEGIN
+      v_emp_ids.EXTEND;
+      v_emp_ids(v_emp_ids.COUNT) := :NEW.employee_id;
+   END AFTER EACH ROW;
+
+   -- 3. Phase 2: Statement-level timing block (Runs AFTER table completes mutating!)
+   AFTER STATEMENT IS
+   BEGIN
+      -- Safe to query table now because mutating state has finished!
+      SELECT AVG(salary) INTO v_avg_sal FROM employees;
+      
+      DBMS_OUTPUT.PUT_LINE('Post-Update Department Average Salary: $' || v_avg_sal);
+   END AFTER STATEMENT;
+
+END trg_compound_salary_check;
+/
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What causes Oracle to throw error ORA-04091: table is mutating, trigger/function may not see it?" options={["Executing a DROP TABLE command.", "Attempting to query or modify a table inside a row-level trigger on that exact same active table.", "Running out of PGA memory.", "Creating an INSTEAD OF trigger on a view."]} answerIndex={1}>
+`ORA-04091` is thrown when a row-level trigger (`FOR EACH ROW`) attempts to query or modify the target table while that same table is mid-update (**mutating**).
+</Quiz>
+
+<Quiz question="How does a Compound Trigger eliminate the Mutating Table Error?" options={["By converting row-level triggers into DDL commands.", "By splitting trigger logic into 4 timing sections, allowing row data to be captured during AFTER EACH ROW and evaluated safely during AFTER STATEMENT.", "By automatically committing transactions after every row.", "By disabling foreign key constraints."]} answerIndex={1}>
+A **Compound Trigger** separates row-level event capture (`AFTER EACH ROW`) from table evaluation (`AFTER STATEMENT`). It accumulates modified row IDs in memory while the table is updating and queries the table safely only after all row modifications complete.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: INSTEAD OF Trigger on Complex Join Views">
+<ProblemDescription>
+Given a non-updateable view `v_emp_dept` (`emp_id`, `emp_name`, `dept_name`), write an `INSTEAD OF INSERT` trigger that routes `INSERT` requests into the underlying `employees` and `departments` tables.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+CREATE OR REPLACE TRIGGER trg_instead_of_emp_dept
+INSTEAD OF INSERT ON v_emp_dept
+FOR EACH ROW
+DECLARE
+   v_dept_id departments.department_id%TYPE;
+BEGIN
+   -- 1. Locate or Insert Department
+   BEGIN
+      SELECT department_id INTO v_dept_id 
+      FROM departments 
+      WHERE department_name = :NEW.dept_name;
+   EXCEPTION
+      WHEN NO_DATA_FOUND THEN
+         INSERT INTO departments (department_name) 
+         VALUES (:NEW.dept_name) 
+         RETURNING department_id INTO v_dept_id;
+   END;
+
+   -- 2. Insert Employee linked to Department ID
+   INSERT INTO employees (employee_id, first_name, department_id)
+   VALUES (:NEW.emp_id, :NEW.emp_name, v_dept_id);
+END;
+/
+```
+</ProblemSolution>
+</Problem>

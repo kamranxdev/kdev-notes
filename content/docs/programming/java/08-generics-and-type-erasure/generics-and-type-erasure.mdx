@@ -1,0 +1,157 @@
+---
+title: Java Generics, Type Erasure Mechanics & The PECS Rule
+description: Deep technical guide to Java Generics, compile-time Type Erasure, bridge methods, Wildcards (? extends vs ? super), and the PECS Rule.
+---
+
+## 🔌 What are Java Generics?
+
+Introduced in Java 5, **Generics** provide strong compile-time type safety for classes, interfaces, and methods, allowing developers to parameterize types without resorting to raw `Object` casting.
+
+* **Analogy**: *Universal Adapter Plugs & Compile-Time Label Stickers.*
+  - **Pre-Generics (Raw `Object`)**: Storing items inside un-labeled cardboard boxes. You pull an item out and *hope* it's a stereo (`(Stereo) box.get()`); if someone put a toaster inside, your app crashes at runtime with a `ClassCastException`!
+  - **Generics (`List<Stereo>`)**: Applying strict color-coded label stickers onto boxes *at the factory*. If someone tries to put a toaster into a box labeled `<Stereo>`, the factory inspector (`javac` compiler) stops them **before** the shipment leaves the warehouse!
+
+```java
+// Compile-time Type Safety with Generics
+List<String> names = new ArrayList<>();
+names.add("Alice");
+// names.add(42); // ❌ Compile Error! Prevented by javac inspector!
+
+String first = names.get(0); // ✅ No explicit (String) cast needed!
+```
+
+---
+
+## 🧹 Type Erasure Mechanics
+
+Java implemented Generics via **Type Erasure** to maintain strict backward compatibility with legacy Java 1.4 bytecodes:
+
+> [!IMPORTANT]
+> **What Type Erasure Does**:
+> 1. Replaces all generic type parameters `<T>` with `Object` (or their upper bound `T extends Number` $\rightarrow$ `Number`).
+> 2. Inserts automatic explicit type casts when retrieving values.
+> 3. Generates synthetic **Bridge Methods** to preserve dynamic method overriding polymorphism.
+
+```java
+// What you write in Source Code:
+public class Box<T> {
+    private T value;
+    public void set(T value) { this.value = value; }
+    public T get() { return value; }
+}
+
+// What javac generates in Bytecode (Type Erasure):
+public class Box {
+    private Object value;
+    public void set(Object value) { this.value = value; }
+    public Object get() { return value; }
+}
+```
+
+---
+
+## 🏷️ Wildcards & The PECS Rule (`? extends` vs `? super`)
+
+Wildcards (`?`) allow flexible generic parameters. The **PECS Rule** governs when to use `extends` vs `super`:
+
+> [!TIP]
+> **PECS**: **P**roducer **E**xtends, **C**onsumer **S**uper
+> - **Producer Extends (`? extends T`)**: Use when your method **reads** (produces) data from a collection parameter.
+> - **Consumer Super (`? super T`)**: Use when your method **writes** (consumes) data into a collection parameter.
+
+```
+                                  The PECS Rule
+                                        │
+        ┌───────────────────────────────┴───────────────────────────────┐
+        ▼                                                               ▼
+Producer Extends (? extends Number)                             Consumer Super (? super Integer)
+Use when READING data FROM collection                           Use when WRITING data INTO collection
+List<? extends Number> list = new ArrayList<Integer>();          List<? super Integer> list = new ArrayList<Number>();
+Number num = list.get(0); // READ SAFE                          list.add(100); // WRITE SAFE
+// list.add(10); ❌ WRITE FORBIDDEN!                             // Integer val = list.get(0); ❌ READ UNCERTAIN!
+```
+
+```java
+import java.util.List;
+import java.util.ArrayList;
+
+public class PecsDemo {
+
+    // 1. Producer Extends: READS numbers from source list (Producer)
+    public static double sumOfList(List<? extends Number> list) {
+        double sum = 0.0;
+        for (Number n : list) {
+            sum += n.doubleValue(); // Safe to READ as Number!
+        }
+        return sum;
+    }
+
+    // 2. Consumer Super: WRITES integers into target list (Consumer)
+    public static void addIntegers(List<? super Integer> list) {
+        for (int i = 1; i <= 3; i++) {
+            list.add(i); // Safe to WRITE Integer!
+        }
+    }
+
+    public static void main(String[] args) {
+        List<Integer> intList = List.of(10, 20, 30);
+        System.out.println("Sum: " + sumOfList(intList));
+
+        List<Number> numList = new ArrayList<>();
+        addIntegers(numList);
+        System.out.println("Added Items: " + numList);
+    }
+}
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is Type Erasure in Java Generics?" options={["A tool that deletes Java source files.", "The process where javac removes all generic type parameters at compile-time, replacing T with Object or its upper bound to maintain backward compatibility with legacy JVM bytecode.", "A Garbage Collector phase.", "A feature that disables polymorphism."]} answerIndex={1}>
+**Type Erasure** is the compile-time translation process where the `javac` compiler removes all generic type parameters (`<T>`), replacing them with `Object` or their upper bound, ensuring full runtime compatibility with older JVM bytecodes.
+</Quiz>
+
+<Quiz question="According to the PECS rule, when should you use '? super T' as a generic wildcard?" options={["When you only need to read data from the collection.", "When your method writes (consumes) items into the collection parameter.", "When creating arrays of generic objects.", "When declaring sealed interface records."]} answerIndex={1}>
+According to **PECS** (Producer Extends, Consumer Super), you use **`? super T`** when your method **writes** (consumes) items into the collection parameter, ensuring the target collection can safely hold type `T` or its parent types.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Bounded Generic Maximum Element Finder">
+<ProblemDescription>
+Write a generic static method `public static <T extends Comparable<T>> T findMax(List<T> list)` that finds and returns the maximum element in a list of comparable elements.
+</ProblemDescription>
+<ProblemSolution>
+```java
+import java.util.List;
+
+public class GenericMath {
+    // Bounded Generic Method: T must implement Comparable<T>
+    public static <T extends Comparable<T>> T findMax(List<T> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+
+        T max = list.get(0);
+        for (T item : list) {
+            if (item.compareTo(max) > 0) {
+                max = item;
+            }
+        }
+        return max;
+    }
+
+    public static void main(String[] args) {
+        List<Integer> numbers = List.of(14, 89, 42, 99, 3);
+        System.out.println("Max Number: " + findMax(numbers)); // 99
+
+        List<String> names = List.of("Apple", "Banana", "Zebra", "Cherry");
+        System.out.println("Max String: " + findMax(names));   // Zebra
+    }
+}
+```
+</ProblemSolution>
+</Problem>

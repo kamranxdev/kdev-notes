@@ -1,0 +1,181 @@
+---
+title: Block Anatomy, Anchored Types & Control Flow
+description: Master PL/SQL block structure, variable scope, dynamic type anchoring (%TYPE and %ROWTYPE), and procedural control loops.
+---
+
+## 🧱 Anatomy of a PL/SQL Block
+
+PL/SQL code is structured into discrete, modular units called **Blocks**. Every block contains up to four distinct sections:
+
+* **Analogy**: *A Modular Prefabricated Building Section.*
+  - **`DECLARE`**: The Storage Room stocking labeled containers (variables & custom types).
+  - **`BEGIN`**: The Main Living Room where actions and work take place (executable logic).
+  - **`EXCEPTION`**: The First-Aid Paramedic Station handling unexpected emergencies.
+  - **`END;`**: The Exit Security Door concluding the module block.
+
+```sql
+DECLARE
+   -- 1. Declaration Section (Optional): Variables, Constants, Cursors, Types
+   v_emp_name   VARCHAR2(100);
+   c_tax_rate   CONSTANT NUMBER := 0.15;
+BEGIN
+   -- 2. Executable Section (Mandatory): SQL queries & procedural logic
+   SELECT first_name || ' ' || last_name INTO v_emp_name
+   FROM employees
+   WHERE employee_id = 101;
+   
+   DBMS_OUTPUT.PUT_LINE('Employee Name: ' || v_emp_name);
+EXCEPTION
+   -- 3. Exception Handler Section (Optional): Catches runtime errors
+   WHEN NO_DATA_FOUND THEN
+      DBMS_OUTPUT.PUT_LINE('Error: Employee 101 does not exist.');
+END; -- 4. Mandatory Block End Marker
+/
+```
+
+---
+
+## ⚓ Variable Anchoring: `%TYPE` and `%ROWTYPE`
+
+Hardcoding variable data types (e.g., `v_salary NUMBER(8, 2)`) introduces schema fragility. If a DBA alters the table column definition to `NUMBER(10, 2)`, your PL/SQL code breaks or throws truncation errors!
+
+PL/SQL provides **Dynamic Type Anchoring** to bind variables directly to underlying database catalog column or row schemas:
+
+* **Analogy**: *Building Blueprint Anchors.* Instead of measuring wall height with a rigid wooden stick (hardcoded type), you attach an elastic laser tape measure to the ceiling beam (`%TYPE`). If the architect raises the ceiling beam (`ALTER TABLE`), your tape measure automatically adjusts!
+
+```
+                                  Dynamic Type Anchors
+                                           │
+         ┌─────────────────────────────────┴─────────────────────────────────┐
+         ▼                                                                   ▼
+%TYPE (Column Level Anchor)                                         %ROWTYPE (Table / Record Level Anchor)
+Binds variable type to 1 specific table column                      Binds record variable to an entire table row
+v_emp_name employees.first_name%TYPE;                               r_emp employees%ROWTYPE;
+```
+
+```sql
+DECLARE
+   -- Column-Level Anchor: Inherits data type of employees.salary
+   v_salary     employees.salary%TYPE;
+   
+   -- Row-Level Anchor: Inherits entire record structure of employees table
+   r_employee   employees%ROWTYPE;
+BEGIN
+   SELECT * INTO r_employee
+   FROM employees
+   WHERE employee_id = 100;
+   
+   v_salary := r_employee.salary * 1.10;
+   
+   DBMS_OUTPUT.PUT_LINE('Updated Salary for ' || r_employee.first_name || ': $' || v_salary);
+END;
+/
+```
+
+---
+
+## 🔀 Procedural Control Flow & Loops
+
+PL/SQL provides standard procedural control structures to direct program execution:
+
+### 1. Conditional Branching (`IF-THEN-ELSIF` & `CASE`)
+
+```sql
+DECLARE
+   v_grade CHAR(1) := 'B';
+   v_msg   VARCHAR2(50);
+BEGIN
+   -- 1. IF-THEN-ELSIF Branching
+   IF v_grade = 'A' THEN
+      v_msg := 'Excellent';
+   ELSIF v_grade = 'B' THEN
+      v_msg := 'Good Job';
+   ELSE
+      v_msg := 'Needs Improvement';
+   END IF;
+
+   -- 2. CASE Expression
+   v_msg := CASE v_grade
+               WHEN 'A' THEN 'Outstanding'
+               WHEN 'B' THEN 'Commendable'
+               ELSE 'Unassigned'
+            END;
+END;
+/
+```
+
+---
+
+### 2. Iterative Control Loops
+
+PL/SQL supports three types of procedural loops:
+
+| Loop Structure | Operational Purpose | Exit Condition |
+| :--- | :--- | :--- |
+| **Basic `LOOP`** | Executes block repeatedly until explicit `EXIT WHEN` fires | Evaluated inside loop via `EXIT WHEN` condition |
+| **`WHILE` Loop** | Evaluates boolean condition before every iteration | Loops as long as condition evaluates to `TRUE` |
+| **`FOR` Loop** | Iterates over a defined integer range (or cursor set) | Automatically terminates when upper bound is reached |
+
+```sql
+DECLARE
+   v_counter INT := 1;
+BEGIN
+   -- 1. Basic Loop
+   LOOP
+      v_counter := v_counter + 1;
+      EXIT WHEN v_counter > 5;
+   END LOOP;
+
+   -- 2. WHILE Loop
+   WHILE v_counter <= 10 LOOP
+      v_counter := v_counter + 1;
+   END LOOP;
+
+   -- 3. FOR Integer Loop (Automatic loop index variable creation!)
+   FOR i IN 1..5 LOOP
+      DBMS_OUTPUT.PUT_LINE('Iteration Count: ' || i);
+   END LOOP;
+END;
+/
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is the primary architectural advantage of using employees.salary%TYPE over hardcoding NUMBER(8,2)?" options={["It speeds up disk I/O by 50%.", "It dynamically anchors the variable type to the database column dictionary, automatically adapting if the column data type is modified.", "It allows negative salary values.", "It converts PL/SQL into Java bytecode."]} answerIndex={1}>
+Using `%TYPE` anchors the variable's data type directly to the database dictionary schema. If the table column definition is altered, the PL/SQL variable automatically inherits the new data type without requiring code refactoring.
+</Quiz>
+
+<Quiz question="Which PL/SQL loop automatically declares its loop index variable and increments it on every iteration?" options={["Basic LOOP", "WHILE Loop", "FOR Loop", "CURSOR Loop"]} answerIndex={2}>
+A PL/SQL **`FOR` Loop** (e.g., `FOR i IN 1..10 LOOP`) automatically instantiates an internal integer index variable `i` for the duration of the loop and increments it on every iteration.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Dynamic Record Fetching with %ROWTYPE">
+<ProblemDescription>
+Write a PL/SQL anonymous block that fetches an entire row from the `departments` table for `department_id = 10` using a `%ROWTYPE` record variable, and prints the department name and manager ID.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+DECLARE
+   r_dept departments%ROWTYPE;
+BEGIN
+   -- Fetch full tuple into %ROWTYPE record
+   SELECT * INTO r_dept
+   FROM departments
+   WHERE department_id = 10;
+
+   DBMS_OUTPUT.PUT_LINE('Dept Name: ' || r_dept.department_name);
+   DBMS_OUTPUT.PUT_LINE('Manager ID: ' || NVL(TO_CHAR(r_dept.manager_id), 'Unassigned'));
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+      DBMS_OUTPUT.PUT_LINE('Department 10 not found.');
+END;
+/
+```
+</ProblemSolution>
+</Problem>

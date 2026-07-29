@@ -1,5 +1,5 @@
 ---
-title: SQL Engine Architecture & Command Categories
+title: SQL Engine Architecture & Command Taxonomy
 description: Detailed technical breakdown of database query processing stages (lexer, parser, CBO optimizer, execution engine, buffer pool, WAL) and SQL command taxonomy (DDL, DML, DCL, TCL).
 ---
 
@@ -196,31 +196,6 @@ Use the DDL `TRUNCATE TABLE` statement:
 ```sql
 -- DDL deallocates data pages instantly without row-by-row undo logging
 TRUNCATE TABLE staging_orders;
-```
-</ProblemSolution>
-</Problem>
-
-<Problem title="Problem: Partial Transaction Recovery with Savepoints">
-<ProblemDescription>
-Write a TCL transaction block that deducts $1,000 from `account_A`, sets a savepoint named `after_deduct`, attempts to credit `account_B`, and if an error occurs, rolls back *only* the credit to `account_B` while preserving the deduction on `account_A`.
-</ProblemDescription>
-<ProblemSolution>
-```sql
-BEGIN TRANSACTION;
-
--- Step 1: Deduct from account A
-UPDATE accounts SET balance = balance - 1000 WHERE account_id = 'A';
-
--- Step 2: Establish savepoint boundary
-SAVEPOINT after_deduct;
-
--- Step 3: Attempt credit to account B
-UPDATE accounts SET balance = balance + 1000 WHERE account_id = 'B';
-
--- If validation fails for account B, rollback selectively to savepoint:
--- ROLLBACK TO SAVEPOINT after_deduct;
-
-COMMIT;
 ```
 </ProblemSolution>
 </Problem>

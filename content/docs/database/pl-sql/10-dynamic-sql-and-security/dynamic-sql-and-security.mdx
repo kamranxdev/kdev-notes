@@ -1,0 +1,145 @@
+---
+title: Dynamic SQL, SQL Injection Defense & Security Rights
+description: Master Native Dynamic SQL (EXECUTE IMMEDIATE), bind variable optimization, SQL injection mitigation (DBMS_ASSERT), and Definer vs Invoker rights.
+---
+
+## ⚡ Native Dynamic SQL (`EXECUTE IMMEDIATE`)
+
+Static SQL statements are compiled and validated at build time. In contrast, **Dynamic SQL** allows PL/SQL programs to construct and execute dynamic SQL strings at runtime.
+
+* **Analogy**: *Custom Blueprint Assembly & Security VIP Clearances.*
+  - **Static SQL**: Ordering a fixed pre-printed menu item #4 from a fast-food restaurant.
+  - **Dynamic SQL**: Building a fully custom sandwich at a deli counter by assembling ingredients dynamically based on customer choices (`WHERE` clauses constructed on-the-fly).
+
+```sql
+DECLARE
+   v_table_name VARCHAR2(30) := 'employees';
+   v_count      NUMBER;
+   v_sql        VARCHAR2(500);
+BEGIN
+   -- Construct dynamic SQL string
+   v_sql := 'SELECT COUNT(*) FROM ' || DBMS_ASSERT.ENQUOTE_NAME(v_table_name);
+
+   -- Execute Native Dynamic SQL
+   EXECUTE IMMEDIATE v_sql INTO v_count;
+
+   DBMS_OUTPUT.PUT_LINE('Total Rows in ' || v_table_name || ': ' || v_count);
+END;
+/
+```
+
+---
+
+## 🛡️ Bind Variables (`USING` Clause) & SQL Injection Defense
+
+Never concatenate user-supplied input strings directly into dynamic SQL queries! String concatenation exposes your database to catastrophic **SQL Injection** attacks and destroys SGA Shared Pool cursor caching performance:
+
+```
+                            Dynamic SQL Execution Comparison
+                                            │
+        ┌───────────────────────────────────┴───────────────────────────────────┐
+        ▼                                                                       ▼
+❌ Concatenation (SQL Injection Vulnerable)                     ✅ Bind Variables (USING Clause)
+Constructs unique string; destroys cursor cache                 Reuses compiled cursor in SGA Shared Pool
+v_sql := 'WHERE name = ''' || p_input || '''';                  v_sql := 'WHERE name = :name';
+                                                                EXECUTE IMMEDIATE v_sql USING p_input;
+```
+
+```sql
+DECLARE
+   v_user_input VARCHAR2(100) := 'Alice';
+   v_salary     NUMBER;
+   v_sql        VARCHAR2(500);
+BEGIN
+   -- ✅ SAFE: Uses bind variable placeholder (:name) and USING clause
+   v_sql := 'SELECT salary FROM employees WHERE first_name = :name';
+
+   -- Reuses execution plan in SGA memory and neutralizes SQL injection!
+   EXECUTE IMMEDIATE v_sql INTO v_salary USING v_user_input;
+
+   DBMS_OUTPUT.PUT_LINE('Salary: $' || v_salary);
+END;
+/
+```
+
+---
+
+## 🔐 Security Rights Architecture: `AUTHID` Clause
+
+PL/SQL stored procedures run under one of two security authority models:
+
+| Security Mode | Declaration Syntax | Privilege Context | Table Resolution Context |
+| :--- | :--- | :--- | :--- |
+| **Definer's Rights (Default)** | `AUTHID DEFINER` | Executes using **Package Owner's** privileges | Resolves schema tables in Package Owner's schema |
+| **Invoker's Rights** | `AUTHID CURRENT_USER` | Executes using **Active Caller's** privileges | Resolves schema tables in Active Caller's schema |
+
+```
+                              AUTHID Security Models
+                                        │
+        ┌───────────────────────────────┴───────────────────────────────┐
+        ▼                                                               ▼
+AUTHID DEFINER (Default)                                        AUTHID CURRENT_USER (Invoker)
+Caller inherits Procedure Owner's grants                        Caller uses their OWN database grants
+Bypasses caller table grants; centralized API                   Enforces caller table grants; multi-tenant tools
+```
+
+```sql
+-- Creating an Invoker's Rights Utility Procedure
+CREATE OR REPLACE PROCEDURE purge_caller_staging_table (
+    p_table_name IN VARCHAR2
+) 
+AUTHID CURRENT_USER -- Executes using active caller's privileges!
+AS
+   v_clean_table VARCHAR2(30);
+BEGIN
+   -- Sanitize table name parameter using Oracle DBMS_ASSERT
+   v_clean_table := DBMS_ASSERT.SIMPLE_SQL_NAME(p_table_name);
+
+   EXECUTE IMMEDIATE 'TRUNCATE TABLE ' || v_clean_table;
+END;
+/
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="Why are bind variables (USING clause) mandatory when writing Native Dynamic SQL queries?" options={["Bind variables convert dynamic SQL into DDL.", "Bind variables prevent SQL Injection attacks and allow the SQL Engine to reuse compiled execution plans in SGA RAM.", "Bind variables eliminate the PL/SQL compiler.", "Bind variables disable table triggers."]} answerIndex={1}>
+Using bind variables (`USING`) parameterizes input values, neutralizing SQL Injection attacks and enabling the Cost-Based Optimizer to reuse pre-compiled execution plans in SGA Shared Pool RAM cache.
+</Quiz>
+
+<Quiz question="What is the primary difference between AUTHID DEFINER and AUTHID CURRENT_USER?" options={["AUTHID DEFINER requires C native compilation.", "AUTHID DEFINER runs using the procedure creator's privileges, while AUTHID CURRENT_USER runs using the active caller's privileges.", "AUTHID CURRENT_USER deletes database tables.", "AUTHID DEFINER only works on views."]} answerIndex={1}>
+`AUTHID DEFINER` (default) executes stored units with the security privileges of the owner who created them. **`AUTHID CURRENT_USER`** executes stored units using the active session caller's privileges.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Safe Dynamic Row Count with DBMS_ASSERT">
+<ProblemDescription>
+Write a stored function `get_table_count(p_table_name VARCHAR2)` that validates `p_table_name` using `DBMS_ASSERT.SQL_OBJECT_NAME` to prevent SQL injection, and returns the total row count using `EXECUTE IMMEDIATE`.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+CREATE OR REPLACE FUNCTION get_table_count (
+    p_table_name IN VARCHAR2
+) RETURN NUMBER AS
+   v_safe_table VARCHAR2(100);
+   v_count      NUMBER;
+BEGIN
+   -- 1. Sanitize input to guarantee table exists in data dictionary
+   v_safe_table := DBMS_ASSERT.SQL_OBJECT_NAME(p_table_name);
+
+   -- 2. Execute Dynamic SQL safely
+   EXECUTE IMMEDIATE 'SELECT COUNT(*) FROM ' || v_safe_table INTO v_count;
+
+   RETURN v_count;
+EXCEPTION
+   WHEN OTHERS THEN
+      RAISE_APPLICATION_ERROR(-20004, 'Invalid schema table name specified.');
+END;
+/
+```
+</ProblemSolution>
+</Problem>

@@ -5,10 +5,11 @@
   "pages": [
     "index",
     "01-architecture-and-ddl-dml",
-    "02-querying-joins-and-nulls",
-    "03-window-functions-and-analytics",
-    "04-performance-indexing-and-transactions",
-    "05-advanced-objects-json-and-partitioning",
+    "02-schema-design-and-normalization",
+    "03-querying-execution-order-and-nulls",
+    "04-joins-subqueries-and-ctes",
+    "05-window-functions-and-analytics",
+    "06-indexing-transactions-jsonb-and-partitioning",
     "---Official Documentation---",
     "external:[ExternalLink][PostgreSQL Documentation](https://www.postgresql.org/docs/)"
   ]

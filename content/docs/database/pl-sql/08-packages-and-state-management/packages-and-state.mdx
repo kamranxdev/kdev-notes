@@ -1,0 +1,175 @@
+---
+title: Package Architecture, Public APIs & State Management
+description: Master Oracle PL/SQL package specifications, package bodies, encapsulation, session state management, and PRAGMA SERIALLY_REUSABLE.
+---
+
+## 📦 Package Architecture: Specifications & Bodies
+
+A **Package** is an encapsulated schema object that groups logically related procedures, functions, variables, cursors, and custom types into a single named namespace.
+
+* **Analogy**: *A Sealed Hardware Microchip Module.*
+  - **Package Specification (Public API)**: The metal pins exposed on the outside of the microchip. Anyone can connect to these pins (`PUBLIC`), but they cannot see inside the sealed plastic casing.
+  - **Package Body (Private Implementation)**: The internal silicon wiring hidden inside the microchip casing (`PRIVATE`). You can refactor internal circuits without breaking external clients connected to the pins!
+
+```
+                                  Package Dual Architecture
+                                              │
+        ┌─────────────────────────────────────┴─────────────────────────────────────┐
+        ▼                                                                           ▼
+Package Specification (Public Interface)                             Package Body (Private Implementation)
+Declared via CREATE PACKAGE                                          Declared via CREATE PACKAGE BODY
+Public API procedure headers & types                                Contains full procedure bodies & private helpers
+Visible to external schema callers                                   Hidden from external schema callers
+```
+
+---
+
+## 🛠️ Building a Production Package
+
+### 1. Package Specification (Public API)
+
+```sql
+CREATE OR REPLACE PACKAGE emp_management_pkg AS
+   -- Public Types & Constants
+   c_company_code CONSTANT VARCHAR2(10) := 'CORP_GLOBAL';
+   
+   -- Public Procedure Headers
+   PROCEDURE hire_employee (
+      p_first_name IN VARCHAR2,
+      p_last_name  IN VARCHAR2,
+      p_salary     IN NUMBER
+   );
+
+   -- Public Function Header
+   FUNCTION get_dept_headcount (
+      p_dept_id IN NUMBER
+   ) RETURN NUMBER;
+END emp_management_pkg;
+/
+```
+
+---
+
+### 2. Package Body (Private Implementation & Initialization)
+
+```sql
+CREATE OR REPLACE PACKAGE BODY emp_management_pkg AS
+
+   -- Private Variable (Accessible ONLY inside package body)
+   g_audit_count PLS_INTEGER := 0;
+
+   -- Private Helper Procedure (Hidden from public spec!)
+   PROCEDURE log_audit (p_action IN VARCHAR2) IS
+   BEGIN
+      g_audit_count := g_audit_count + 1;
+      DBMS_OUTPUT.PUT_LINE('Audit #' || g_audit_count || ': ' || p_action);
+   END log_audit;
+
+   -- Public Procedure Implementation
+   PROCEDURE hire_employee (
+      p_first_name IN VARCHAR2,
+      p_last_name  IN VARCHAR2,
+      p_salary     IN NUMBER
+   ) IS
+   BEGIN
+      INSERT INTO employees (first_name, last_name, salary)
+      VALUES (p_first_name, p_last_name, p_salary);
+
+      log_audit('Hired: ' || p_first_name || ' ' || p_last_name);
+   END hire_employee;
+
+   -- Public Function Implementation
+   FUNCTION get_dept_headcount (p_dept_id IN NUMBER) RETURN NUMBER IS
+      v_count NUMBER;
+   BEGIN
+      SELECT COUNT(*) INTO v_count FROM employees WHERE department_id = p_dept_id;
+      RETURN v_count;
+   END get_dept_headcount;
+
+-- Optional Package Initialization Block (Fires ONCE per session on first access!)
+BEGIN
+   DBMS_OUTPUT.PUT_LINE('emp_management_pkg initialized for active session.');
+END emp_management_pkg;
+/
+```
+
+---
+
+## 🧠 Package Session State & Memory Optimization
+
+By default, global variables declared in a package specification or body persist across the **entire lifecycle of the user's database session** in private PGA memory:
+
+> [!CAUTION]
+> **Stateful Packages in Web Connection Pools**:
+> Stateless web applications (Java Spring Boot, Node.js, Python FastAPI) reuse database connections from a connection pool. If Package A stores session state in global package variables, Connection 1 reused by User B will see User A's leftover package state!
+
+### The Solution: `PRAGMA SERIALLY_REUSABLE`
+Tells the database server to reset package state and release package memory back to PGA **immediately at the end of every server call**:
+
+```sql
+CREATE OR REPLACE PACKAGE stateless_util_pkg AS
+   -- Instructs Oracle to deallocate package state immediately after each procedure call
+   PRAGMA SERIALLY_REUSABLE;
+
+   PROCEDURE process_data (p_id IN NUMBER);
+END stateless_util_pkg;
+/
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is the primary architectural benefit of separating a PL/SQL Package into a Specification and a Body?" options={["It speeds up disk reads by 90%.", "It provides strict encapsulation—allowing internal body code to be modified and recompiled without invalidating dependent calling programs.", "It converts PL/SQL into Java source code.", "It automatically commits all transactions."]} answerIndex={1}>
+Separating package specifications from bodies enforces encapsulation. You can modify, optimize, and recompile the **Package Body** without invalidating external schema objects that depend on the **Package Specification**.
+</Quiz>
+
+<Quiz question="When does a package Initialization Block execute?" options={["Every time any procedure inside the package is called.", "Exactly ONCE per database session during the first reference to any package object.", "Only when the DBA restarts the database server.", "Every time a DDL statement is executed."]} answerIndex={1}>
+A package Initialization Block (located at the bottom of the package body) executes **exactly once per database session** on the initial reference to any object inside that package.
+```sql
+BEGIN
+   -- Package initialization logic
+END pkg_name;
+```
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Encapsulated Package for Salary Adjustments">
+<ProblemDescription>
+Create a package specification and body `salary_pkg` containing a public procedure `increase_salary(p_emp_id INT, p_percent NUMBER)` that validates the percent is between 1 and 25, and a private function `is_valid_pct` that handles validation logic internally.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+-- 1. Package Specification
+CREATE OR REPLACE PACKAGE salary_pkg AS
+   PROCEDURE increase_salary(p_emp_id INT, p_percent NUMBER);
+END salary_pkg;
+/
+
+-- 2. Package Body
+CREATE OR REPLACE PACKAGE BODY salary_pkg AS
+   -- Private Helper Function
+   FUNCTION is_valid_pct(p_pct NUMBER) RETURN BOOLEAN IS
+   BEGIN
+      RETURN (p_pct >= 1 AND p_pct <= 25);
+   END is_valid_pct;
+
+   -- Public Procedure
+   PROCEDURE increase_salary(p_emp_id INT, p_percent NUMBER) IS
+   BEGIN
+      IF NOT is_valid_pct(p_percent) THEN
+         RAISE_APPLICATION_ERROR(-20003, 'Invalid salary increase percentage (1-25% allowed).');
+      END IF;
+
+      UPDATE employees 
+      SET salary = salary * (1 + (p_percent / 100)) 
+      WHERE employee_id = p_emp_id;
+   END increase_salary;
+END salary_pkg;
+/
+```
+</ProblemSolution>
+</Problem>

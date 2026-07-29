@@ -1,0 +1,171 @@
+---
+title: Window Functions, Analytics & Multidimensional Aggregations
+description: Comprehensive guide to SQL window functions, sliding frames (ROWS vs RANGE), ranking suite, offset metrics (LAG/LEAD), GROUPING SETS, ROLLUP, and CUBE.
+---
+
+## 🪟 What is a Window Function?
+
+A **Window Function** performs calculations across a subset of related query rows (a "window") without collapsing the result set into a single summary row. Unlike standard `GROUP BY` aggregations, window functions **preserve individual row identity**.
+
+* **Analogy**: *A Glass Floor Observation Deck in a Skyscraper.* Standing on the glass floor, you can look down and compute statistics about the visitors around you (*average height, ranking order*) while everyone remains standing in their exact individual spot on the floor.
+
+```
+                         GROUP BY vs Window Functions
+                                       │
+        ┌──────────────────────────────┴──────────────────────────────┐
+        ▼                                                             ▼
+Standard GROUP BY (Collapses Rows)                            Window Function (Preserves Rows)
+Row 1 ┐                                                       Row 1 ──► [Row 1 Data | Window Aggregate]
+Row 2 ├─► Collapsed to 1 Summary Row                          Row 2 ──► [Row 2 Data | Window Aggregate]
+Row 3 ┘                                                       Row 3 ──► [Row 3 Data | Window Aggregate]
+```
+
+---
+
+## 📐 Anatomy of a Window Function
+
+```sql
+FUNCTION_NAME() OVER (
+    PARTITION BY partition_column
+    ORDER BY sort_column ASC|DESC
+    ROWS|RANGE BETWEEN frame_start AND frame_end
+)
+```
+
+1. **`PARTITION BY`**: Divides the result set into independent data partitions (like mini `GROUP BY` buckets).
+2. **`ORDER BY`**: Defines row evaluation order inside each partition.
+3. **Frame Specification (`ROWS` vs `RANGE`)**: Controls the exact sliding boundary of rows included in calculation.
+
+```sql
+-- Running Total Calculation per Department
+SELECT emp_name, dept_id, salary,
+       SUM(salary) OVER(
+           PARTITION BY dept_id 
+           ORDER BY hire_date 
+           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+       ) AS running_dept_payroll
+FROM employees;
+```
+
+---
+
+### `ROWS` vs `RANGE` Frame Specification Comparison
+
+- **`ROWS`**: Evaluates frame boundaries based on physical row counts (e.g., `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW`).
+- **`RANGE`**: Evaluates frame boundaries based on logical value ranges in the `ORDER BY` column (e.g., `RANGE BETWEEN INTERVAL '7' DAY PRECEDING AND CURRENT ROW`).
+
+---
+
+## 🏆 The Ranking Functions Suite
+
+| Ranking Function | Tie Handling Behavior | Example Output on Ties (Scores: 100, 90, 90, 80) |
+| :--- | :--- | :--- |
+| **`ROW_NUMBER()`** | Sequential integer; ties broken arbitrarily | 1, 2, 3, 4 |
+| **`RANK()`** | Tied rows share same rank; **skips subsequent rank numbers** | 1, 2, 2, 4 |
+| **`DENSE_RANK()`** | Tied rows share same rank; **consecutive rank numbers (no gaps)** | 1, 2, 2, 3 |
+| **`NTILE(N)`** | Splits partition evenly into $N$ bucket numbers | 1, 1, 2, 2 (for `NTILE(2)`) |
+
+```sql
+SELECT emp_name, dept_id, salary,
+       ROW_NUMBER() OVER(PARTITION BY dept_id ORDER BY salary DESC) AS row_num,
+       RANK()       OVER(PARTITION BY dept_id ORDER BY salary DESC) AS rnk,
+       DENSE_RANK() OVER(PARTITION BY dept_id ORDER BY salary DESC) AS dense_rnk
+FROM employees;
+```
+
+---
+
+## ⏩ Offset Analytics: `LAG`, `LEAD`, `FIRST_VALUE`, `LAST_VALUE`
+
+Offset window functions allow you to access preceding or following row values without performing expensive self-joins:
+
+- **`LAG(col, offset, default)`**: Accesses data from $N$ rows prior to the current row.
+- **`LEAD(col, offset, default)`**: Accesses data from $N$ rows after the current row.
+
+```sql
+-- Month-over-Month (MoM) Revenue Growth Rate Analysis
+WITH monthly_sales AS (
+    SELECT DATE_TRUNC('month', order_date) AS sales_month,
+           SUM(order_total) AS total_revenue
+    FROM orders
+    GROUP BY DATE_TRUNC('month', order_date)
+)
+SELECT sales_month,
+       total_revenue,
+       LAG(total_revenue, 1) OVER(ORDER BY sales_month) AS prev_month_revenue,
+       ROUND(
+           ((total_revenue - LAG(total_revenue, 1) OVER(ORDER BY sales_month)) 
+           / NULLIF(LAG(total_revenue, 1) OVER(ORDER BY sales_month), 0)) * 100, 2
+       ) AS mom_growth_pct
+FROM monthly_sales;
+```
+
+---
+
+## 📊 Multidimensional Aggregations: `GROUPING SETS`, `ROLLUP` & `CUBE`
+
+In executive reporting, business queries require subtotals and grand totals across multiple dimensional combinations:
+
+* **Analogy**: *An Executive Financial Dashboard.* Displaying sales broken down by `[Region, Product]`, subtotals by `[Region]`, and the overall `[Grand Total]`.
+
+```sql
+-- Standard verbose approach: Unioning 3 separate GROUP BY queries (Requires 3 scans!)
+SELECT region, product, SUM(sales) FROM regional_sales GROUP BY region, product
+UNION ALL
+SELECT region, NULL, SUM(sales) FROM regional_sales GROUP BY region
+UNION ALL
+SELECT NULL, NULL, SUM(sales) FROM regional_sales;
+
+-- ✅ ELEGANT & HIGH PERFORMANCE: GROUPING SETS (Evaluates in 1 single scan pass!)
+SELECT region, product, SUM(sales) AS total_sales,
+       GROUPING(region) AS is_region_subtotal,
+       GROUPING(product) AS is_product_subtotal
+FROM regional_sales
+GROUP BY GROUPING SETS (
+    (region, product),  -- Detail rows
+    (region),           -- Region subtotals
+    ()                  -- Grand total
+);
+```
+
+---
+
+### `ROLLUP` vs `CUBE` Shortcuts
+
+- **`ROLLUP(A, B, C)`**: Generates hierarchical subtotal aggregations: `(A, B, C)`, `(A, B)`, `(A)`, and `()`.
+- **`CUBE(A, B, C)`**: Generates all $2^N$ possible cross-dimensional combinations: `(A,B,C)`, `(A,B)`, `(A,C)`, `(B,C)`, `(A)`, `(B)`, `(C)`, `()`.
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is the key difference between RANK() and DENSE_RANK() when evaluating tied values?" options={["RANK() skips rank numbers after ties, whereas DENSE_RANK() produces contiguous sequential ranks.", "DENSE_RANK() only works on integer primary keys.", "RANK() requires a ROWS BETWEEN frame specification.", "DENSE_RANK() collapses all tied rows into 1 single output row."]} answerIndex={0}>
+`RANK()` leaves gaps after tied values (e.g., ties at 2 result in ranks 1, 2, 2, 4), whereas `DENSE_RANK()` generates contiguous ranks without skipping numbers (1, 2, 2, 3).
+</Quiz>
+
+<Quiz question="Why is GROUP BY GROUPING SETS preferred over multiple UNION ALL aggregate queries?" options={["UNION ALL deletes dirty pages from memory.", "GROUPING SETS evaluates all requested grouping combinations in 1 single pass over the table, whereas UNION ALL scans the table multiple times.", "UNION ALL cannot handle numeric values.", "GROUPING SETS forces the query to execute as DDL."]} answerIndex={1}>
+`GROUPING SETS` allows the database engine to compute multiple aggregate levels in a single pass over the underlying table data, whereas `UNION ALL` forces multiple full table scans.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Top 2 Highest-Earning Employees Per Department">
+<ProblemDescription>
+Write a query against the `employees` table (`emp_id`, `emp_name`, `dept_id`, `salary`) that returns the top 2 highest-paid employees in each department using window ranking functions.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+WITH ranked_employees AS (
+    SELECT emp_id, emp_name, dept_id, salary,
+           DENSE_RANK() OVER(PARTITION BY dept_id ORDER BY salary DESC) AS salary_rank
+    FROM employees
+)
+SELECT emp_id, emp_name, dept_id, salary, salary_rank
+FROM ranked_employees
+WHERE salary_rank <= 2
+ORDER BY dept_id, salary_rank;
+```
+</ProblemSolution>
+</Problem>

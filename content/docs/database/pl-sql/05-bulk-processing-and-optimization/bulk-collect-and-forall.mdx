@@ -1,0 +1,163 @@
+---
+title: Bulk Processing - BULK COLLECT & FORALL Optimization
+description: Master ultra-fast PL/SQL bulk operations, PGA memory protection with the LIMIT clause, FORALL batch DML statements, and SAVE EXCEPTIONS error handling.
+---
+
+## 🛒 Eliminating Context Switches: Array Batching
+
+Executing `SELECT` queries or `UPDATE` DML statements row-by-row inside procedural loops forces the database to perform thousands of expensive **Engine Context Switches** between the PL/SQL engine and the SQL engine.
+
+PL/SQL provides **Bulk Operations** to transfer entire datasets between engines in single batched array payloads:
+
+* **Analogy**: *Single-Item Checkout vs Supermarket Bulk Shopping Cart.*
+  - **Row-by-Row Cursor Loop**: Carrying 100 items from the store shelves to your car by making 100 individual walking trips carrying 1 item per trip (100 Context Switches).
+  - **`BULK COLLECT` & `FORALL`**: Loading all 100 items into 1 large supermarket Shopping Cart and wheeling everything to your car in **1 single trip** (1 Context Switch)!
+
+```
+                    Row-by-Row vs. Bulk Operations
+                                  │
+    ┌─────────────────────────────┴─────────────────────────────┐
+    ▼                                                           ▼
+Row-by-Row Loop (100,000 Switches)             BULK COLLECT + FORALL (1 Switch)
+PL/SQL ◄── (Row 1) ──► SQL                     PL/SQL ◄── (Array Batch) ──► SQL
+PL/SQL ◄── (Row 2) ──► SQL
+PL/SQL ◄── (Row N) ──► SQL
+```
+
+---
+
+## 📦 `BULK COLLECT INTO` & Memory Protection (`LIMIT`)
+
+`BULK COLLECT` fetches query result rows directly into an in-memory PL/SQL collection in a single engine operation.
+
+> [!CAUTION]
+> **PGA Memory Overflow Hazard**:
+> Running `SELECT * BULK COLLECT INTO v_array FROM giant_table;` on a 50-million-row table loads all 50,000,000 tuples into private PGA RAM memory simultaneously, crashing the database server with Out-Of-Memory (OOM) errors!
+>
+> **Best Practice**: Always use an explicit `FETCH ... BULK COLLECT INTO ... LIMIT <n>` clause!
+
+```sql
+DECLARE
+   TYPE t_emp_list IS TABLE OF employees%ROWTYPE;
+   v_emps t_emp_list;
+   
+   CURSOR c_emps IS SELECT * FROM employees;
+   c_limit CONSTANT PLS_INTEGER := 1000; -- Safe batch size
+BEGIN
+   OPEN c_emps;
+   LOOP
+      -- Batches 1,000 rows per context switch, protecting PGA RAM!
+      FETCH c_emps BULK COLLECT INTO v_emps LIMIT c_limit;
+      EXIT WHEN v_emps.COUNT = 0;
+
+      -- Process batched array in memory
+      FOR i IN 1..v_emps.COUNT LOOP
+         DBMS_OUTPUT.PUT_LINE('Emp: ' || v_emps(i).first_name);
+      END LOOP;
+   END LOOP;
+   CLOSE c_emps;
+END;
+/
+```
+
+---
+
+## ⚡ `FORALL`: High-Speed Batch DML Execution
+
+While `BULK COLLECT` speeds up `SELECT` data fetching, **`FORALL`** speeds up `INSERT`, `UPDATE`, and `DELETE` operations by sending an entire collection array of bind variables to the SQL engine in a single batch pass:
+
+```sql
+DECLARE
+   TYPE t_id_list IS TABLE OF employees.employee_id%TYPE;
+   v_ids t_id_list := t_id_list(101, 102, 103, 104, 105);
+BEGIN
+   -- FORALL is NOT a loop! It sends the entire array to the SQL engine at once!
+   FORALL i IN 1..v_ids.COUNT
+      UPDATE employees 
+      SET salary = salary * 1.10 
+      WHERE employee_id = v_ids(i);
+
+   DBMS_OUTPUT.PUT_LINE('Total Rows Updated: ' || SQL%ROWCOUNT);
+END;
+/
+```
+
+---
+
+## 🛡️ Robust Bulk Error Handling: `SAVE EXCEPTIONS`
+
+By default, if row #50 inside a 1,000-item `FORALL` batch throws a constraint error (e.g., duplicate key `ORA-00001`), the entire `FORALL` statement aborts immediately, rolling back previous rows.
+
+Adding the **`SAVE EXCEPTIONS`** clause instructs the SQL engine to save failing row errors into the hidden **`SQL%BULK_EXCEPTIONS`** array, allowing valid rows to complete processing!
+
+```sql
+DECLARE
+   TYPE t_num_list IS TABLE OF NUMBER;
+   v_ids t_num_list := t_num_list(10, 20, NULL, 40); -- Row 3 will fail NOT NULL check
+   v_bulk_errors EXCEPTION;
+   PRAGMA EXCEPTION_INIT(v_bulk_errors, -24381);
+BEGIN
+   FORALL i IN 1..v_ids.COUNT SAVE EXCEPTIONS
+      INSERT INTO departments (department_id, department_name)
+      VALUES (v_ids(i), 'Dept_' || v_ids(i));
+
+EXCEPTION
+   WHEN v_bulk_errors THEN
+      DBMS_OUTPUT.PUT_LINE('Bulk Operation Completed with ' || SQL%BULK_EXCEPTIONS.COUNT || ' Errors:');
+      
+      FOR j IN 1..SQL%BULK_EXCEPTIONS.COUNT LOOP
+         DBMS_OUTPUT.PUT_LINE(
+            'Row Index: ' || SQL%BULK_EXCEPTIONS(j).ERROR_INDEX || 
+            ' | Error Code: ' || SQL%BULK_EXCEPTIONS(j).ERROR_CODE
+         );
+      END LOOP;
+END;
+/
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="Why is including a LIMIT clause mandatory when using BULK COLLECT inside a cursor loop on large production tables?" options={["LIMIT converts the query into DDL.", "LIMIT caps the number of rows fetched into PGA RAM per batch, preventing server Out-Of-Memory crashes.", "LIMIT forces the query to use a Full Table Scan.", "LIMIT automatically commits the transaction."]} answerIndex={1}>
+Using `LIMIT <n>` caps the array batch size allocated in PGA RAM memory per iteration, preventing massive datasets from consuming all available server RAM and crashing with OOM errors.
+</Quiz>
+
+<Quiz question="What is the key functional difference between a FOR loop and a FORALL statement in PL/SQL?" options={["FORALL only works on strings.", "FOR executes procedural code iteratively, whereas FORALL is a bulk binding keyword that sends an entire collection array to the SQL engine in 1 single context switch.", "FORALL requires C native compilation.", "FORALL disables foreign key triggers."]} answerIndex={1}>
+`FOR` is a procedural loop that executes code iteratively line-by-line. **`FORALL`** is not a loop; it is a bulk binding statement that passes an entire array of parameters to the SQL engine in **1 single context switch**.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: High-Speed Batch Salary Update with Memory Protection">
+<ProblemDescription>
+Write a PL/SQL block that uses `BULK COLLECT INTO` with a `LIMIT` of 500 to fetch `employee_id` values for `department_id = 50`, and updates their salaries by 5% using `FORALL` batch DML.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+DECLARE
+   CURSOR c_emp IS SELECT employee_id FROM employees WHERE department_id = 50;
+   
+   TYPE t_id_list IS TABLE OF employees.employee_id%TYPE;
+   v_ids t_id_list;
+BEGIN
+   OPEN c_emp;
+   LOOP
+      FETCH c_emp BULK COLLECT INTO v_ids LIMIT 500;
+      EXIT WHEN v_ids.COUNT = 0;
+
+      -- High-Speed Bulk Batch Update
+      FORALL i IN 1..v_ids.COUNT
+         UPDATE employees 
+         SET salary = salary * 1.05 
+         WHERE employee_id = v_ids(i);
+   END LOOP;
+   CLOSE c_emp;
+   COMMIT;
+END;
+/
+```
+</ProblemSolution>
+</Problem>

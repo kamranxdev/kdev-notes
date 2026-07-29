@@ -2,18 +2,18 @@
   "title": "Documentation",
   "pages": [
     "index",
-    "---[Globe]Web Development---",
+    "---Web Development---",
     "web-fundamentals",
     "web-frameworks",
-    "---[Smartphone]Mobile Development---",
+    "---Mobile Development---",
     "...(mobile-development)",
-    "---[Code2]Programming Languages---",
+    "---Programming Languages---",
     "...programming",
-    "---[Database]Databases---",
+    "---Databases---",
     "...database",
-    "---[Terminal]Systems---",
+    "---Systems---",
     "unix-linux",
-    "---[Workflow]API & Integration---",
+    "---API & Integration---",
     "rest-json-xml"
   ]
 }

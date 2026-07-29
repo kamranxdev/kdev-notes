@@ -1,0 +1,178 @@
+---
+title: In-Memory Collections & Composite Records
+description: Master PL/SQL composite records, associative arrays, nested tables, varrays, collection constructors, and collection methods.
+---
+
+## 📑 PL/SQL Composite Records
+
+A **Record** is a composite data structure that groups logically related scalar fields into a single named container unit (similar to a `struct` in C or an `Object` in JavaScript).
+
+* **Analogy**: *A Custom Medical Intake Form Index Card.* Instead of carrying separate loose sticky notes for Patient Name, Age, Blood Type, and Emergency Contact, you clip all fields together onto a single Index Card record (`r_patient`).
+
+```sql
+DECLARE
+   -- 1. Define custom Record Type
+   TYPE t_employee_summary IS RECORD (
+      emp_id     NUMBER(6),
+      full_name  VARCHAR2(100),
+      salary     NUMBER(8,2),
+      hire_date  DATE
+   );
+
+   -- 2. Instantiate Record Variable
+   r_emp t_employee_summary;
+BEGIN
+   r_emp.emp_id    := 1001;
+   r_emp.full_name := 'Alice Smith';
+   r_emp.salary    := 85000.00;
+   r_emp.hire_date := SYSDATE;
+
+   DBMS_OUTPUT.PUT_LINE('Employee: ' || r_emp.full_name || ' ($' || r_emp.salary || ')');
+END;
+/
+```
+
+---
+
+## 📦 The Collections Suite: Array Data Structures
+
+PL/SQL provides three single-dimensional array collection types for storing sets of homogeneous elements in memory:
+
+```
+                               PL/SQL Collections Suite
+                                          │
+        ┌─────────────────────────────────┼─────────────────────────────────┐
+        ▼                                 ▼                                 ▼
+Associative Arrays (Index-By)       Nested Tables                     Varrays (Variable-Size)
+PGA-only Key-Value Map              Unbounded Dynamic Array           Bounded Fixed-Capacity Array
+Indexed by Integer or VARCHAR2      Requires Constructor              Requires Constructor
+Auto-instantiated                   Stored in DB Table Column         Stored in DB Table Column
+```
+
+---
+
+### 1. Associative Arrays (Index-By Tables)
+* **Storage**: In-Memory only (PGA RAM). Cannot be stored as columns in database tables.
+* **Indexing**: Sparse array indexed by `PLS_INTEGER` or string keys (`VARCHAR2`).
+* **Initialization**: Auto-instantiated—no constructor required!
+
+```sql
+DECLARE
+   -- Key-Value Map: Indexed by VARCHAR2 string (like a HashMap)
+   TYPE t_capital_map IS TABLE OF VARCHAR2(100) INDEX BY VARCHAR2(50);
+   v_capitals t_capital_map;
+BEGIN
+   v_capitals('USA')    := 'Washington D.C.';
+   v_capitals('France') := 'Paris';
+   v_capitals('Japan')  := 'Tokyo';
+
+   DBMS_OUTPUT.PUT_LINE('Capital of France: ' || v_capitals('France'));
+END;
+/
+```
+
+---
+
+### 2. Nested Tables
+* **Storage**: In-Memory (PGA) or saved persistently in database schema table columns.
+* **Indexing**: Dense sequential integer subscripts (`1..N`), but can become sparse if elements are deleted.
+* **Initialization**: **Requires explicit constructor call (`TYPE()`)** before inserting elements!
+
+```sql
+DECLARE
+   -- Unbounded collection type
+   TYPE t_name_list IS TABLE OF VARCHAR2(100);
+   
+   -- 1. Instantiate via Constructor
+   v_names t_name_list := t_name_list('Alice', 'Bob', 'Charlie');
+BEGIN
+   -- 2. Use .EXTEND() to expand memory array allocation
+   v_names.EXTEND;
+   v_names(4) := 'David';
+
+   DBMS_OUTPUT.PUT_LINE('Total Elements: ' || v_names.COUNT);
+END;
+/
+```
+
+---
+
+### 3. Varrays (Variable-Size Arrays)
+* **Storage**: In-Memory or stored inline in database table columns.
+* **Indexing**: Bounded, dense sequential integer subscripts (`1..Limit`).
+* **Capacity**: Fixed maximum element limit defined at declaration time.
+
+```sql
+DECLARE
+   -- Bounded collection: Maximum 5 phone numbers allowed
+   TYPE t_phone_varray IS VARRAY(5) OF VARCHAR2(20);
+   v_phones t_phone_varray := t_phone_varray('555-0100', '555-0199');
+BEGIN
+   v_phones.EXTEND;
+   v_phones(3) := '555-0250';
+   
+   DBMS_OUTPUT.PUT_LINE('Current Count: ' || v_phones.COUNT || ' / Max: ' || v_phones.LIMIT);
+END;
+/
+```
+
+---
+
+## 🛠️ Collection Built-in Methods
+
+PL/SQL collection methods allow you to inspect and modify array elements dynamically:
+
+| Method | Purpose & Operational Result |
+| :--- | :--- |
+| **`.EXISTS(n)`** | Returns `TRUE` if element at subscript $n$ exists in collection |
+| **`.COUNT`** | Returns total number of active elements currently in collection |
+| **`.LIMIT`** | Returns maximum capacity limit (Returns `NULL` for Associative Arrays & Nested Tables) |
+| **`.FIRST` / `.LAST`** | Returns the smallest and largest active subscript index numbers |
+| **`.PRIOR(n)` / `.NEXT(n)`** | Returns subscript index immediately before or after index $n$ |
+| **`.EXTEND(n)`** | Appends $n$ null elements to the end of a Nested Table or Varray |
+| **`.TRIM(n)`** | Removes $n$ elements from the end of a collection |
+| **`.DELETE` / `.DELETE(n)`** | Clears entire collection or deletes element at subscript $n$ |
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="Which PL/SQL collection type automatically instantiates without requiring an explicit constructor call?" options={["Nested Tables", "Varrays", "Associative Arrays (Index-By Tables)", "Database Relational Tables"]} answerIndex={2}>
+**Associative Arrays** (Index-By tables) do not require constructor calls (`TYPE()`) or `.EXTEND()`. Elements are instantiated dynamically upon key assignment.
+</Quiz>
+
+<Quiz question="What happens if you attempt to assign an element to a Nested Table without calling a constructor or .EXTEND() first?" options={["The collection resizes automatically.", "Oracle throws an uninitialized collection error (ORA-06531: Reference to uninitialized collection).", "The element is saved into disk swap space.", "The transaction auto-commits."]} answerIndex={1}>
+Nested Tables and Varrays are null until instantiated via their constructor. Attempting to assign elements to an uninitialized collection throws `ORA-06531: Reference to uninitialized collection`.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Building a Key-Value Cache with Associative Arrays">
+<ProblemDescription>
+Write a PL/SQL block that uses an Associative Array indexed by employee ID (`PLS_INTEGER`) to store employee department names, populates 3 entries, and iterates through the collection using `.FIRST` and `.NEXT` methods to print each key-value pair.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+DECLARE
+   TYPE t_emp_dept_map IS TABLE OF VARCHAR2(100) INDEX BY PLS_INTEGER;
+   v_map t_emp_dept_map;
+   v_idx PLS_INTEGER;
+BEGIN
+   -- Populate Map
+   v_map(101) := 'Executive';
+   v_map(102) := 'IT Engineering';
+   v_map(103) := 'Finance';
+
+   -- Traverse Sparse Collection using .FIRST and .NEXT
+   v_idx := v_map.FIRST;
+   WHILE v_idx IS NOT NULL LOOP
+      DBMS_OUTPUT.PUT_LINE('Emp ID: ' || v_idx || ' -> Dept: ' || v_map(v_idx));
+      v_idx := v_map.NEXT(v_idx);
+   END LOOP;
+END;
+/
+```
+</ProblemSolution>
+</Problem>

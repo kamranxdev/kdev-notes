@@ -1,10 +1,6 @@
 {
-  "title": "Architecture & Schema Design",
-  "icon": "Table",
+  "title": "1. Engine Architecture & Taxonomy",
   "pages": [
-    "---[Database]Engine Architecture---",
-    "sql-engine-architecture",
-    "---[Table]Schema & Constraints---",
-    "schema-constraints-and-types"
+    "sql-engine-architecture"
   ]
 }

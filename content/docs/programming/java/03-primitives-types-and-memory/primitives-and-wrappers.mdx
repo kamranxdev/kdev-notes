@@ -1,0 +1,126 @@
+---
+title: Java Primitives, Reference Wrappers & Memory Overhead
+description: Technical comparison of Java's 8 primitive types vs object wrappers, memory layout overhead, auto-boxing hazards, and Integer caching (-128 to 127).
+---
+
+## 📦 Primitives vs. Reference Wrapper Objects
+
+Java maintains a split type system comprising **8 Primitive Types** (stored as raw binary values) and **Reference Objects** (instances of classes inherited from `java.lang.Object`).
+
+* **Analogy**: *Raw Loose Coins vs Sealed Wooden Collector Boxes.*
+  - **Primitive (`int x = 42`)**: A raw 25-cent quarter coin sitting directly in your pocket (Stack memory). Instant access, zero wrapper overhead.
+  - **Wrapper Object (`Integer x = 42`)**: Wrapping that single 25-cent coin inside a heavy velvet-lined wooden collector box (Heap Object) complete with serial numbers, manual booklets, and security seals (16-byte Object Header).
+
+```
+                      Primitive vs Object Memory Layout
+                                      │
+        ┌─────────────────────────────┴─────────────────────────────┐
+        ▼                                                           ▼
+Primitive (int x = 42)                               Reference Object (Integer x = 42)
+┌──────────────┐                                     Stack: x ──► Heap Pointer
+│ 4 Bytes (42) │                                                   │
+└──────────────┘                                                   ▼
+Fast, Stack inline                                   ┌──────────────────────────────────┐
+                                                     │ 16-Byte Object Header (Mark/Klass)│
+                                                     │ 4-Byte Payload Value (42)        │
+                                                     └──────────────────────────────────┘
+```
+
+---
+
+## 🔢 The 8 Primitive Types Reference Matrix
+
+| Primitive Type | Size (Bits / Bytes) | Min Value | Max Value | Default Value | Wrapper Class |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`byte`** | 8 bits / 1 Byte | $-128$ | $127$ | `0` | `java.lang.Byte` |
+| **`short`** | 16 bits / 2 Bytes | $-32,768$ | $32,767$ | `0` | `java.lang.Short` |
+| **`int`** | 32 bits / 4 Bytes | $-2^{31}$ | $2^{31} - 1$ | `0` | `java.lang.Integer` |
+| **`long`** | 64 bits / 8 Bytes | $-2^{63}$ | $2^{63} - 1$ | `0L` | `java.lang.Long` |
+| **`float`** | 32 bits / 4 Bytes | IEEE 754 | IEEE 754 | `0.0f` | `java.lang.Float` |
+| **`double`** | 64 bits / 8 Bytes | IEEE 754 | IEEE 754 | `0.0d` | `java.lang.Double` |
+| **`char`** | 16 bits / 2 Bytes | `\u0000` ($0$) | `\uffff` ($65,535$) | `\u0000` | `java.lang.Character` |
+| **`boolean`** | JVM Dependent | `false` | `true` | `false` | `java.lang.Boolean` |
+
+---
+
+## ⚡ Auto-Boxing, Unboxing & Hidden Hazards
+
+**Auto-boxing** is the automatic conversion performed by the `javac` compiler between primitive types and their corresponding object wrapper classes (e.g., `int` to `Integer`).
+
+```java
+// What you write:
+Integer a = 100; // Auto-boxing
+int b = a;       // Auto-unboxing
+
+// What compiler generates:
+Integer a = Integer.valueOf(100);
+int b = a.intValue();
+```
+
+> [!CAUTION]
+> **Hazard 1: Hidden `NullPointerException` on Unboxing**:
+> Attempting to unbox a wrapper object containing `null` throws a runtime `NullPointerException`!
+
+```java
+Integer count = null;
+// Throws NullPointerException! Compiler generates: int x = count.intValue();
+int x = count;
+```
+
+> [!WARNING]
+> **Hazard 2: Integer Cache Trap (`-128` to `127`)**:
+> The JVM caches `Integer` instances for values between **`-128` and `127`**. Comparing wrappers with `==` checks reference equality, producing surprising results!
+
+```java
+public class IntegerCacheDemo {
+    public static void main(String[] args) {
+        Integer a = 100;
+        Integer b = 100;
+        System.out.println(a == b); // TRUE (Both point to cached JVM Integer object!)
+
+        Integer x = 200;
+        Integer y = 200;
+        System.out.println(x == y); // FALSE (Points to two separate Heap objects!)
+        System.out.println(x.equals(y)); // TRUE (Always use .equals for objects!)
+    }
+}
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="Why does comparing Integer x = 200 and Integer y = 200 with 'x == y' return false, while x = 100 and y = 100 returns true?" options={["200 is a negative number.", "The JVM caches Integer objects in the range -128 to 127; values outside this range instantiate distinct Heap objects, making reference equality (==) evaluate to false.", "100 is an invalid integer.", "Integer caching only works in C mode."]} answerIndex={1}>
+The JVM caches `Integer` instances for values from **`-128` to `127`**. `100` points to the same cached singleton instance in memory, whereas `200` instantiates two separate `Integer` objects on the Heap. Always use `.equals()` to compare wrapper object values!
+</Quiz>
+
+<Quiz question="What happens when auto-unboxing a null wrapper variable (e.g., Integer val = null; int x = val;)?" options={["x becomes 0.", "The compiler converts null into false.", "The JVM throws a NullPointerException because compiler code invokes val.intValue() on a null pointer.", "It compiles into DDL."]} answerIndex={2}>
+Auto-unboxing converts `int x = val;` into `int x = val.intValue();`. If `val` is `null`, invoking `.intValue()` on a null reference throws a runtime `NullPointerException`.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Defensive Auto-Unboxing Calculator">
+<ProblemDescription>
+Write a method `public static int safeSum(Integer a, Integer b)` that safely calculates the sum of two nullable `Integer` wrappers, treating `null` arguments as `0` without throwing a `NullPointerException`.
+</ProblemDescription>
+<ProblemSolution>
+```java
+public class SafeCalculator {
+    public static int safeSum(Integer a, Integer b) {
+        int valA = (a != null) ? a : 0;
+        int valB = (b != null) ? b : 0;
+        return valA + valB;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Result 1: " + safeSum(10, 20));  // 30
+        System.out.println("Result 2: " + safeSum(null, 50)); // 50
+        System.out.println("Result 3: " + safeSum(null, null));// 0
+    }
+}
+```
+</ProblemSolution>
+</Problem>

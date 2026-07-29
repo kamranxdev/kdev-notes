@@ -1,0 +1,132 @@
+---
+title: Autonomous Transactions & Independent Audit Logging
+description: Master PRAGMA AUTONOMOUS_TRANSACTION, sub-transaction boundaries, independent audit logging, and savepoint control in Oracle PL/SQL.
+---
+
+## 🔒 Main Transactions vs. Autonomous Transactions
+
+In standard database execution, all DML statements executed within a PL/SQL block belong to the caller's **Main Transaction**. If an error occurs and the caller issues a `ROLLBACK`, every modification made by the block is completely undone.
+
+However, enterprise applications require logging audit trails or security failure events **even when the main transaction fails and rolls back**!
+
+Oracle provides **Autonomous Transactions** (`PRAGMA AUTONOMOUS_TRANSACTION`) to spin off an independent sub-transaction branch that executes, commits, or rolls back without affecting the parent main transaction:
+
+* **Analogy**: *An Independent Off-the-Record Security Incident Scratchpad.*
+  - **Main Transaction**: A loan application process. If credit validation fails, the entire application paperwork is shredded (`ROLLBACK`).
+  - **Autonomous Transaction**: The security camera recording log. Even if the loan paperwork is shredded, the security camera footage of the attempted application is saved into non-volatile disk storage (`COMMIT`) independently!
+
+```
+                       Main vs Autonomous Transaction Trajectory
+                                          │
+    Main Transaction (Active) ──► Invoke Autonomous Sub-Tx ──► Autonomous Suspend & Return
+               │                                                          │
+      [DML 1: Balance -500]                                     [INSERT INTO audit_log]
+               │                                                          │
+       (Main ROLLBACK)                                             (Explicit COMMIT)
+    Balance restored to $1,000                                 Audit log persisted on disk!
+```
+
+---
+
+## 🛠️ Implementing `PRAGMA AUTONOMOUS_TRANSACTION`
+
+To declare an autonomous block, add `PRAGMA AUTONOMOUS_TRANSACTION;` in the declaration section:
+
+> [!IMPORTANT]
+> **Mandatory Autonomous Rule**:
+> An autonomous block **MUST** issue an explicit `COMMIT` or `ROLLBACK` before completing execution. Failing to commit or rollback before reaching `END;` throws error `ORA-06519: active autonomous transaction detected and rolled back`!
+
+```sql
+CREATE OR REPLACE PROCEDURE log_error_autonomous (
+    p_procedure_name IN VARCHAR2,
+    p_error_code     IN NUMBER,
+    p_error_message  IN VARCHAR2
+) AS
+   -- Instructs Oracle to execute this procedure in an independent transaction branch
+   PRAGMA AUTONOMOUS_TRANSACTION;
+BEGIN
+   -- 1. Insert audit log record
+   INSERT INTO error_logs (log_id, procedure_name, error_code, error_message, logged_at)
+   VALUES (seq_log_id.NEXTVAL, p_procedure_name, p_error_code, p_error_message, SYSDATE);
+
+   -- 2. MANDATORY: Commit sub-transaction independently!
+   COMMIT;
+END;
+/
+```
+
+---
+
+## 🔄 Practical Audit Logging Pattern
+
+Here is how autonomous logging preserves critical security audit records even when the main business transaction fails:
+
+```sql
+DECLARE
+   v_balance NUMBER := 100;
+BEGIN
+   -- Step 1: Main Transaction DML
+   UPDATE accounts SET balance = balance - 500 WHERE account_id = 101;
+   v_balance := v_balance - 500;
+
+   -- Step 2: Invariant Check Fails
+   IF v_balance < 0 THEN
+      -- Log failure into autonomous logger (COMMITS log record to disk!)
+      log_error_autonomous('Transfer_Proc', -20001, 'Insufficient funds for account 101.');
+      
+      -- Throw error, forcing Main Transaction to ROLLBACK
+      RAISE_APPLICATION_ERROR(-20001, 'Transfer rejected: Insufficient balance.');
+   END IF;
+
+EXCEPTION
+   WHEN OTHERS THEN
+      -- Main Transaction rolls back balance update, but error_logs record is SAFE on disk!
+      ROLLBACK;
+      DBMS_OUTPUT.PUT_LINE('Main Transaction Rolled Back safely.');
+END;
+/
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What happens if an autonomous PL/SQL procedure reaches END; without issuing an explicit COMMIT or ROLLBACK?" options={["The database automatically commits all changes.", "Oracle throws ORA-06519: active autonomous transaction detected and rolled back.", "The entire database restarts.", "The table is dropped."]} answerIndex={1}>
+An autonomous block operates in an independent transaction context. It **must** explicitly terminate its transaction using `COMMIT` or `ROLLBACK`. Reaching `END;` with an active uncommitted state throws `ORA-06519`.
+</Quiz>
+
+<Quiz question="Why are Autonomous Transactions used when building database error logging routines?" options={["To increase table index scan speeds.", "To ensure error log records are committed permanently to disk even if the parent business transaction fails and issues a ROLLBACK.", "To disable foreign key triggers.", "To convert PL/SQL into JavaScript."]} answerIndex={1}>
+`PRAGMA AUTONOMOUS_TRANSACTION` allows the error logger to issue an independent `COMMIT`, guaranteeing that critical diagnostic log records survive even when the parent business transaction encounters an exception and executes `ROLLBACK`.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Autonomous Transaction Counter">
+<ProblemDescription>
+Create a procedure `increment_api_access_count(p_api_name VARCHAR2)` that updates a global usage counter table `api_usage_stats` in an autonomous transaction, ensuring the access count is preserved regardless of caller rollback.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+CREATE OR REPLACE PROCEDURE increment_api_access_count (
+    p_api_name IN VARCHAR2
+) AS
+   PRAGMA AUTONOMOUS_TRANSACTION;
+BEGIN
+   UPDATE api_usage_stats 
+   SET call_count = call_count + 1, last_called = SYSDATE 
+   WHERE api_name = p_api_name;
+
+   IF SQL%ROWCOUNT = 0 THEN
+      INSERT INTO api_usage_stats (api_name, call_count, last_called)
+      VALUES (p_api_name, 1, SYSDATE);
+   END IF;
+
+   -- Mandatory autonomous commit
+   COMMIT;
+END;
+/
+```
+</ProblemSolution>
+</Problem>

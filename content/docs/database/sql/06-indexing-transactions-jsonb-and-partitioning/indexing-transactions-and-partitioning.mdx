@@ -1,0 +1,219 @@
+---
+title: Database Indexing, ACID Isolation, JSONB & Big Data Partitioning
+description: Master B-Tree index structures, sargability rewrites, EXPLAIN ANALYZE, MVCC transaction isolation levels, JSONB GIN indexes, materialized views, and table partitioning.
+---
+
+## 📖 B-Tree Index Mechanics & Tuning
+
+A **B-Tree (Balanced Tree) Index** is a self-balancing search tree data structure that allows database engines to locate target tuples in $O(\log N)$ time instead of scanning every block ($O(N)$ full table scan).
+
+* **Analogy**: *A Library Card Catalog vs Scanning Every Page.*
+  - **Full Table Scan ($O(N)$)**: Walking into a 1-million-book library and reading every single page of every book until you locate a target quote.
+  - **B-Tree Index Scan ($O(\log N)$)**: Checking the card catalog index at the entrance, walking directly to Isle 4, Shelf B, and pulling the exact target book.
+
+```
+                            B-Tree Index Root Node
+                                      │
+                 ┌────────────────────┴────────────────────┐
+                 ▼                                         ▼
+         Internal Node [100, 500]                 Internal Node [600, 900]
+         ┌───────┴───────┐                         ┌───────┴───────┐
+         ▼               ▼                         ▼               ▼
+    Leaf Node       Leaf Node                 Leaf Node       Leaf Node
+  [Keys 1..99]    [Keys 100..499]           [Keys 500..599] [Keys 600..900]
+  (Tuple Pointers) (Tuple Pointers)         (Tuple Pointers) (Tuple Pointers)
+```
+
+---
+
+### Clustered Index vs. Non-Clustered Index
+
+- **Clustered Index**: Physical table data rows are sorted and stored directly in the leaf nodes of the index tree. A table can possess **only ONE Clustered Index** (usually the Primary Key).
+- **Non-Clustered Index**: A separate physical structure containing sorted index key columns alongside **Row Identifiers (RID / Pointer)** linking back to physical heap table pages.
+
+---
+
+### 🚫 Sargability (Search Argumentable) Anti-Patterns
+
+A query is **Sargable** if the optimizer can leverage a B-Tree index scan. Wrapping indexed columns inside functions or applying arithmetic operators invalidates index scans, forcing expensive Full Table Scans!
+
+```sql
+-- ❌ NON-SARGABLE: Applying UPPER() function on column forces FULL TABLE SCAN!
+SELECT * FROM users WHERE UPPER(email) = 'ALICE@EXAMPLE.COM';
+
+-- ✅ SARGABLE REWRITE 1: Compare raw column value
+SELECT * FROM users WHERE email = 'alice@example.com';
+
+-- ✅ SARGABLE REWRITE 2: Build an Expression Index specifically for UPPER(email)
+CREATE INDEX idx_users_upper_email ON users(UPPER(email));
+```
+
+```sql
+-- ❌ NON-SARGABLE: Arithmetic operation on indexed column 'created_at'
+SELECT * FROM orders WHERE DATE_TRUNC('year', created_at) = '2026-01-01';
+
+-- ✅ SARGABLE REWRITE: Use range bounds on raw column
+SELECT * FROM orders 
+WHERE created_at >= '2026-01-01 00:00:00' AND created_at < '2027-01-01 00:00:00';
+```
+
+---
+
+## 🔒 ACID Transactions, MVCC & Isolation Levels
+
+An **ACID Transaction** guarantees that a sequence of database operations executes as a single, atomic, consistent, isolated, and durable work unit:
+
+```
+                            ACID System Guarantees
+                                      │
+        ┌───────────────────┬─────────┴─────────┬───────────────────┐
+        ▼                   ▼                   ▼                   ▼
+   Atomicity           Consistency          Isolation           Durability
+  All or nothing       Validates schema    Concurrently isolated  WAL log guarantees
+ (COMMIT / ROLLBACK)   invariants/FK rules  snapshots (MVCC)      persistence on disk
+```
+
+---
+
+### Multi-Version Concurrency Control (MVCC)
+
+Modern databases (PostgreSQL, MySQL InnoDB, Oracle) implement **MVCC** to allow concurrent readers and writers without blocking each other ("Readers never block writers; writers never block readers").
+
+Every table tuple header contains internal metadata fields (`xmin` / `xmax` or transaction IDs):
+- `xmin`: The transaction ID that inserted the row version.
+- `xmax`: The transaction ID that deleted or updated (superseded) the row version.
+
+---
+
+### Concurrency Anomalies & Isolation Matrix
+
+| Isolation Level | Dirty Read | Non-Repeatable Read | Phantom Read | Serialization Anomaly / Write Skew | Engine Mechanism |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Read Uncommitted** | Permitted | Permitted | Permitted | Permitted | No read locks acquired |
+| **Read Committed** (Default Postgres/Oracle) | Prevented | Permitted | Permitted | Permitted | Statement-level snapshot |
+| **Repeatable Read** (Default MySQL InnoDB) | Prevented | Prevented | Permitted (Prevented in InnoDB) | Permitted | Transaction-level snapshot |
+| **Serializable** | Prevented | Prevented | Prevented | Prevented | Strict Predicate Locking / SSI |
+
+---
+
+## 📄 Semi-Structured `JSONB` & GIN Indexing
+
+PostgreSQL provides native support for semi-structured data using **`JSONB`** (Binary JSON). Unlike text `JSON`, `JSONB` decomposes keys and values into a binary layout, eliminating parsing overhead during queries.
+
+```sql
+CREATE TABLE user_profiles (
+    user_id     INT PRIMARY KEY,
+    attributes  JSONB NOT NULL
+);
+
+INSERT INTO user_profiles VALUES 
+(1, '{"name": "Alice", "role": "admin", "skills": ["SQL", "Python"]}'),
+(2, '{"name": "Bob", "role": "developer", "skills": ["Java", "Docker"]}');
+```
+
+```sql
+-- Querying JSONB using arrow operators
+SELECT user_id,
+       attributes->>'name' AS user_name,  -- ->> returns text
+       attributes->'skills' AS skills_arr -- -> returns jsonb object
+FROM user_profiles
+WHERE attributes @> '{"role": "admin"}'; -- @> containment operator
+```
+
+---
+
+### GIN (Generalized Inverted Index) for JSONB
+
+Standard B-Tree indexes cannot index internal JSON key-value pairs efficiently. A **GIN Index** builds an inverted lookup index mapping every nested key and array element to row pointers:
+
+```sql
+-- Create GIN index on entire JSONB document
+CREATE INDEX idx_user_attributes_gin ON user_profiles USING GIN (attributes);
+```
+
+---
+
+## 🗂️ Views, Materialized Views & Big Data Table Partitioning
+
+### 1. Virtual Views vs. Materialized Views
+
+- **Virtual View (`CREATE VIEW`)**: A stored SQL query string. Does not store data physically on disk. Re-evaluates the underlying query on every access.
+- **Materialized View (`CREATE MATERIALIZED VIEW`)**: Executes the underlying query and **persists the query result set to disk** as a physical table snapshot.
+
+```sql
+CREATE MATERIALIZED VIEW mv_daily_sales_summary AS
+SELECT DATE_TRUNC('day', order_date) AS sales_day,
+       SUM(order_total) AS daily_revenue,
+       COUNT(*) AS total_orders
+FROM orders
+GROUP BY DATE_TRUNC('day', order_date);
+
+-- Refreshing Materialized View concurrently without blocking readers!
+CREATE UNIQUE INDEX idx_mv_daily_sales_day ON mv_daily_sales_summary(sales_day);
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_daily_sales_summary;
+```
+
+---
+
+### 2. Big Data Table Partitioning
+
+Partitioning splits a massive table (e.g., 500 million rows) into smaller, manageable physical child tables (**Partitions**) while preserving a single logical table interface.
+
+```
+                              Range Partitioning
+                                      │
+                ┌─────────────────────┼─────────────────────┐
+                ▼                     ▼                     ▼
+        Partition 2024        Partition 2025        Partition 2026
+       orders_2024 (Table)   orders_2025 (Table)   orders_2026 (Table)
+```
+
+```sql
+-- Creating a Range-Partitioned Parent Table
+CREATE TABLE orders (
+    order_id     BIGINT NOT NULL,
+    order_date   DATE NOT NULL,
+    order_total  NUMERIC(10, 2)
+) PARTITION BY RANGE (order_date);
+
+-- Creating Child Partitions
+CREATE TABLE orders_2025 PARTITION OF orders
+    FOR VALUES FROM ('2025-01-01') TO ('2026-01-01');
+
+CREATE TABLE orders_2026 PARTITION OF orders
+    FOR VALUES FROM ('2026-01-01') TO ('2027-01-01');
+```
+
+> [!TIP]
+> **Partition Pruning**:
+> When a query executes with `WHERE order_date >= '2026-06-01'`, the database optimizer performs **Partition Pruning**, skipping partitions for 2024 and 2025 entirely and scanning only `orders_2026`!
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="Why does wrapping an indexed column in a function (e.g. WHERE UPPER(email) = 'ALICE@GMAIL.COM') force a Full Table Scan?" options={["Functions delete B-Tree indexes.", "The B-Tree index stores raw email strings in sorted order; it does not store the pre-computed outputs of UPPER(email), making standard index traversal impossible.", "UPPER() only works on integer primary keys.", "Functions convert SQL queries into DDL."]} answerIndex={1}>
+B-Tree indexes store raw column values in sorted order. Applying a function like `UPPER(email)` alters the evaluation key, preventing the optimizer from traversing the sorted index tree unless an **Expression Index** is explicitly built for `UPPER(email)`.
+</Quiz>
+
+<Quiz question="What is the primary benefit of REFRESH MATERIALIZED VIEW CONCURRENTLY in PostgreSQL?" options={["It deletes dirty pages from RAM.", "It refreshes the physical snapshot data on disk without placing exclusive read-locks on the Materialized View, allowing readers to query stale data until refresh completes.", "It converts JSONB data into B-Tree indexes.", "It automatically partitions child tables."]} answerIndex={1}>
+`CONCURRENTLY` uses a temporary delta comparison (requiring a unique index) to refresh the physical materialized view snapshot without acquiring an exclusive table lock, allowing concurrent `SELECT` queries to continue running uninterrupted.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Optimizing a JSONB Containment Search">
+<ProblemDescription>
+You store 10 million telemetry event records in an `events` table (`event_id`, `payload JSONB`). Queries filtering on `WHERE payload @> '{"status": "CRITICAL"}'` take 14 seconds due to sequential full table scans. Write the exact index creation SQL statement to optimize this query to sub-millisecond speeds.
+</ProblemDescription>
+<ProblemSolution>
+Build a GIN (Generalized Inverted Index) on the `payload` JSONB column:
+
+```sql
+-- GIN index unpacks JSONB key-value containment pairs into inverted lookups
+CREATE INDEX idx_events_payload_gin ON events USING GIN (payload);
+```
+</ProblemSolution>
+</Problem>

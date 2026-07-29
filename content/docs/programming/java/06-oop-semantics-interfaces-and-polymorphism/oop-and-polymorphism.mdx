@@ -1,0 +1,169 @@
+---
+title: Object-Oriented Principles, Interfaces & Polymorphism
+description: Master Java's 4 Pillars of OOP (Encapsulation, Abstraction, Inheritance, Polymorphism), dynamic method dispatch, Abstract classes vs Interfaces, and pattern matching for instanceof.
+---
+
+## 🏛️ The 4 Pillars of Object-Oriented Programming
+
+Java is designed around 4 core Object-Oriented Programming (OOP) paradigms:
+
+* **Analogy**: *Architectural Prefab Modules & Universal Blueprint Contracts.*
+  - **Encapsulation**: Encasing engine wiring inside a sealed car hood. Drivers use exposed steering wheel pedals (`public methods`) without touching internal fuel injectors (`private fields`).
+  - **Abstraction**: A TV remote control. You press the "Power On" button (`abstract interface`) without needing to understand radio frequency circuitry.
+  - **Inheritance**: A basic Sedan car model serving as the foundation for a specialized Electric Sedan model (`extends`).
+  - **Polymorphism**: Universal USB-C plugs. You can plug in a phone, laptop, or camera (`Vehicle v`); calling `.charge()` (`v.startEngine()`) executes the specific battery logic for that device!
+
+```
+                                  4 Pillars of OOP
+                                         │
+        ┌───────────────────┬────────────┴────────────┬───────────────────┐
+        ▼                   ▼                         ▼                   ▼
+  Encapsulation        Abstraction               Inheritance          Polymorphism
+Private Fields +     Interfaces &             Reuses Parent Code   Dynamic Method Dispatch
+Public Accessors     Abstract Classes         via extends          via @Override
+```
+
+---
+
+## 🔀 Polymorphism: Overloading vs. Overriding
+
+| Metric | Method Overloading (Compile-Time / Static) | Method Overriding (Runtime / Dynamic) |
+| :--- | :--- | :--- |
+| **Method Signature** | Same method name; **different parameter lists** | Same method name; **identical parameter lists & return types** |
+| **Class Scope** | Defined within the **same class** | Defined in **Child subclass** overriding Parent class method |
+| **Binding Time** | Resolved at **Compile-Time** by `javac` | Resolved at **Runtime** by JVM via vtable (Virtual Table) dispatch |
+| **Annotation** | None | Marked with **`@Override`** |
+
+```java
+// Method Overriding & Dynamic Polymorphism Demo
+class Vehicle {
+    public void startEngine() {
+        System.out.println("Generic Vehicle Engine Started.");
+    }
+}
+
+class ElectricCar extends Vehicle {
+    @Override
+    public void startEngine() {
+        System.out.println("Silent Electric Motor Started.");
+    }
+}
+
+public class PolymorphismDemo {
+    public static void main(String[] args) {
+        Vehicle myVehicle = new ElectricCar();
+        // Dynamic Method Dispatch: Executes ElectricCar's overridden startEngine() at runtime!
+        myVehicle.startEngine(); // Output: Silent Electric Motor Started.
+    }
+}
+```
+
+---
+
+## 📑 Abstract Classes vs. Interfaces
+
+```
+                        Abstract Classes vs Interfaces
+                                      │
+        ┌─────────────────────────────┴─────────────────────────────┐
+        ▼                                                           ▼
+Abstract Class (IS-A Relationship)                           Interface (CAN-DO Capability)
+Supports state (instance fields)                             Stateless contracts (Java 8+ default/static methods)
+Single inheritance (extends 1 class)                         Multiple inheritance (implements N interfaces)
+```
+
+```java
+// Interface with Default & Static Methods (Java 8+)
+interface PaymentGateway {
+    // Abstract contract method
+    void processPayment(double amount);
+
+    // Default method (Provides fallback implementation!)
+    default void logTransaction(String txId) {
+        System.out.println("Default Audit Log TX: " + txId);
+    }
+
+    // Static helper method
+    static boolean isValidAmount(double amount) {
+        return amount > 0;
+    }
+}
+```
+
+---
+
+## 🔍 Modern Pattern Matching for `instanceof` (Java 16+)
+
+Prior to Java 16, casting an object required verbose type checking and explicit casting. **Pattern Matching for `instanceof`** combines testing and casting into a single clean operation:
+
+```java
+public class PatternMatchingDemo {
+    public static void processShape(Object shape) {
+        // Modern Java 16+ Pattern Matching for instanceof!
+        if (shape instanceof String s) {
+            System.out.println("String Length: " + s.length());
+        } else if (shape instanceof Integer i && i > 100) {
+            System.out.println("Large Integer: " + i);
+        }
+    }
+
+    public static void main(String[] args) {
+        processShape("Hello World");
+        processShape(500);
+    }
+}
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="How does the JVM resolve overridden method calls at runtime during dynamic polymorphism?" options={["Overridden methods are compiled into C functions.", "The JVM uses a Virtual Method Table (vtable) associated with the actual runtime object instance on the Heap to dispatch the correct method implementation.", "Overridden methods are executed by the ClassLoader.", "The compiler deletes parent class code."]} answerIndex={1}>
+During dynamic polymorphism, the JVM uses the object's **vtable (Virtual Method Table)** at runtime to determine the concrete class instance residing on the Heap and dispatches its overridden method implementation.
+</Quiz>
+
+<Quiz question="What is the primary difference regarding state storage between an Abstract Class and an Interface in Java?" options={["Interfaces can store mutable non-final instance variables.", "Abstract classes can hold mutable state (instance fields), whereas Interfaces are stateless contracts (only containing public static final constants).", "Abstract classes cannot have constructors.", "Interfaces require C native mode."]} answerIndex={1}>
+**Abstract classes** can declare instance fields to hold mutable state across subclasses. **Interfaces** cannot hold instance state (all fields inside interfaces are implicitly `public static final` constants).
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Polymorphic Payment Processing System">
+<ProblemDescription>
+Design an interface `PaymentProcessor` with a method `pay(double amount)`. Implement two classes `CreditCardPayment` and `PayPalPayment`. Write a static method `executePayment(PaymentProcessor processor, double amount)` that processes payments polymorphically.
+</ProblemDescription>
+<ProblemSolution>
+```java
+interface PaymentProcessor {
+    void pay(double amount);
+}
+
+class CreditCardPayment implements PaymentProcessor {
+    @Override
+    public void pay(double amount) {
+        System.out.println("Paid $" + amount + " via Credit Card.");
+    }
+}
+
+class PayPalPayment implements PaymentProcessor {
+    @Override
+    public void pay(double amount) {
+        System.out.println("Paid $" + amount + " via PayPal.");
+    }
+}
+
+public class PaymentSystem {
+    public static void executePayment(PaymentProcessor processor, double amount) {
+        processor.pay(amount); // Polymorphic method call
+    }
+
+    public static void main(String[] args) {
+        executePayment(new CreditCardPayment(), 150.00);
+        executePayment(new PayPalPayment(), 89.99);
+    }
+}
+```
+</ProblemSolution>
+</Problem>

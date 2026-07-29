@@ -4,10 +4,18 @@
   "root": true,
   "pages": [
     "index",
-    "01-core-architecture-and-blocks",
-    "02-collections-and-cursors",
-    "03-bulk-processing-and-triggers",
-    "04-packages-transactions-and-tuning",
+    "01-engine-architecture-and-compilation",
+    "02-blocks-variables-and-control-flow",
+    "03-collections-and-records",
+    "04-cursors-and-ref-cursors",
+    "05-bulk-processing-and-optimization",
+    "06-exception-handling-and-diagnostics",
+    "07-triggers-and-compound-triggers",
+    "08-packages-and-state-management",
+    "09-transactions-and-autonomous-logging",
+    "10-dynamic-sql-and-security",
+    "11-performance-tuning-and-caching",
+    "12-pipelined-functions-and-object-types",
     "---Official Documentation---",
     "external:[ExternalLink][Oracle PL/SQL Reference](https://docs.oracle.com/en/database/oracle/oracle-database/)"
   ]

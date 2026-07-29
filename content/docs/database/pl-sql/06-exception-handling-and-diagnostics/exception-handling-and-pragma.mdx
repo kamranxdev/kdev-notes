@@ -1,0 +1,168 @@
+---
+title: Exception Handling, PRAGMA EXCEPTION_INIT & Diagnostics
+description: Master PL/SQL exception handling, predefined vs user-defined errors, PRAGMA EXCEPTION_INIT mapping, custom error codes, and backtrace diagnostics.
+---
+
+## 🚑 Exception Handling Architecture
+
+In PL/SQL, any runtime warning or error condition triggers an **Exception**. When an exception fires, normal procedural execution halts immediately, and control transfers to the block's `EXCEPTION` section:
+
+* **Analogy**: *Hospital Emergency Paramedics & Fire Alarm Boxes.*
+  - **Normal Block (`BEGIN`)**: Everyday office operations running smoothly.
+  - **Exception Trigger (`RAISE`)**: Pulling the red fire alarm lever when smoke is detected.
+  - **Exception Handler (`EXCEPTION`)**: Paramedics and firefighters rushing in to handle the specific emergency without letting the whole building collapse!
+
+```
+                    Exception Execution Trajectory
+                                  │
+    BEGIN ──► Error Occurs ──► Execution Suspended ──► EXCEPTION Block ──► END
+```
+
+---
+
+## 🏷️ Predefined vs. User-Defined Exceptions
+
+PL/SQL provides predefined exception names for common Oracle database errors:
+
+### 1. Common Predefined Exceptions
+
+| Exception Name | Oracle Error Code | Trigger Condition |
+| :--- | :--- | :--- |
+| **`NO_DATA_FOUND`** | `ORA-01403` | A `SELECT INTO` query returns zero rows. |
+| **`TOO_MANY_ROWS`** | `ORA-01422` | A `SELECT INTO` query returns more than 1 single row. |
+| **`ZERO_DIVIDE`** | `ORA-01476` | Attempted division by zero ($x / 0$). |
+| **`DUP_VAL_ON_INDEX`** | `ORA-00001` | Attempted insertion of duplicate value into a `UNIQUE` index column. |
+| **`VALUE_ERROR`** | `ORA-06502` | Arithmetic, conversion, or string truncation size mismatch error. |
+
+```sql
+DECLARE
+   v_name employees.first_name%TYPE;
+BEGIN
+   -- Throws TOO_MANY_ROWS if department 30 has 5 employees!
+   SELECT first_name INTO v_name FROM employees WHERE department_id = 30;
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+      DBMS_OUTPUT.PUT_LINE('No employee found in department 30.');
+   WHEN TOO_MANY_ROWS THEN
+      DBMS_OUTPUT.PUT_LINE('Error: Multiple employees returned for single-row INTO variable!');
+   WHEN OTHERS THEN
+      DBMS_OUTPUT.PUT_LINE('Unhandled Error: ' || SQLERRM);
+END;
+/
+```
+
+---
+
+### 2. User-Defined Exceptions & `PRAGMA EXCEPTION_INIT`
+
+You can declare custom business logic exceptions or bind unnamed Oracle error codes using `PRAGMA EXCEPTION_INIT`:
+
+```sql
+DECLARE
+   -- 1. Declare User-Defined Exception
+   e_invalid_salary EXCEPTION;
+   
+   -- 2. Bind unnamed Oracle Error (ORA-02292: FK Child Record Exists)
+   e_fk_violation EXCEPTION;
+   PRAGMA EXCEPTION_INIT(e_fk_violation, -2292);
+   
+   v_salary NUMBER := -500;
+BEGIN
+   -- Validate Business Invariant
+   IF v_salary <= 0 THEN
+      RAISE e_invalid_salary;
+   END IF;
+   
+   DELETE FROM departments WHERE department_id = 10;
+EXCEPTION
+   WHEN e_invalid_salary THEN
+      DBMS_OUTPUT.PUT_LINE('Business Error: Salary cannot be negative!');
+   WHEN e_fk_violation THEN
+      DBMS_OUTPUT.PUT_LINE('Referential Error: Cannot delete department with active child employees.');
+END;
+/
+```
+
+---
+
+## 📢 Raising Custom Application Errors
+
+Use **`RAISE_APPLICATION_ERROR(error_number, message)`** to send custom error messages back to application clients (Java, Node.js, Python API drivers):
+
+> [!IMPORTANT]
+> **Custom Error Code Range**:
+> User application error numbers **MUST** reside within the reserved range: **`-20000` to `-20999`**.
+
+```sql
+CREATE OR REPLACE PROCEDURE update_employee_salary (
+    p_emp_id IN INT,
+    p_salary IN NUMBER
+) AS
+BEGIN
+   IF p_salary > 500000 THEN
+      -- Halts transaction and returns custom error code ORA-20001 to caller
+      RAISE_APPLICATION_ERROR(-20001, 'Salary exceeds maximum executive threshold of $500,000.');
+   END IF;
+
+   UPDATE employees SET salary = p_salary WHERE employee_id = p_emp_id;
+END;
+/
+```
+
+---
+
+## 🩺 Diagnostic Functions & Exception Propagation
+
+- `SQLCODE`: Returns the numeric Oracle error code (`0` for success, negative integer for errors).
+- `SQLERRM`: Returns the descriptive text message associated with `SQLCODE`.
+- `DBMS_UTILITY.FORMAT_ERROR_BACKTRACE`: Displays the exact source code line number where the error originally occurred!
+
+```sql
+EXCEPTION
+   WHEN OTHERS THEN
+      DBMS_OUTPUT.PUT_LINE('Error Code: ' || SQLCODE);
+      DBMS_OUTPUT.PUT_LINE('Error Msg:  ' || SQLERRM);
+      DBMS_OUTPUT.PUT_LINE('Line Trace: ' || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is the allowed numeric error code range for custom errors raised via RAISE_APPLICATION_ERROR?" options={["-1 to -999", "-20000 to -20999", "100 to 500", "-5000 to -6000"]} answerIndex={1}>
+Oracle reserves the error code range **`-20000` to `-20999`** specifically for user-defined application errors raised via `RAISE_APPLICATION_ERROR`.
+</Quiz>
+
+<Quiz question="What is the primary function of PRAGMA EXCEPTION_INIT in PL/SQL?" options={["It converts all exceptions into DDL commands.", "It binds an unnamed numeric Oracle error code (like ORA-02292) to a user-declared exception name for readable handling.", "It deletes dirty pages from SGA memory.", "It encrypts stored procedures."]} answerIndex={1}>
+`PRAGMA EXCEPTION_INIT` instructs the compiler to bind a named exception variable to a specific numeric Oracle error code, allowing you to catch unnamed Oracle database errors cleanly in `WHEN` blocks.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Defensive Exception Trapping in Stored Procedure">
+<ProblemDescription>
+Create a stored function `get_emp_salary(p_emp_id INT)` that returns an employee's salary. If `p_emp_id` does not exist, return `0.00` instead of letting `NO_DATA_FOUND` crash the caller.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+CREATE OR REPLACE FUNCTION get_emp_salary (
+    p_emp_id IN INT
+) RETURN NUMBER AS
+   v_salary employees.salary%TYPE;
+BEGIN
+   SELECT salary INTO v_salary
+   FROM employees
+   WHERE employee_id = p_emp_id;
+
+   RETURN v_salary;
+EXCEPTION
+   WHEN NO_DATA_FOUND THEN
+      -- Trap error defensively and return safe fallback
+      RETURN 0.00;
+END;
+/
+```
+</ProblemSolution>
+</Problem>

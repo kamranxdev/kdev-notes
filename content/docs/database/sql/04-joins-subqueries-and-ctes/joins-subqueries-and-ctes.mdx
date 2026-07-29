@@ -1,0 +1,207 @@
+---
+title: SQL Joins, Physical Join Algorithms, Subqueries & Recursive CTEs
+description: Master relational join types, physical join algorithms (Nested Loop, Hash Join, Sort-Merge), correlated subqueries, EXISTS vs IN performance, and Recursive CTEs.
+---
+
+## 🔗 Visualizing Relational Joins
+
+SQL joins allow you to combine records from two or more tables based on a shared logical key predicate:
+
+* **Analogy**: *Multi-Department Corporate Security Access Badges.*
+  - **`INNER JOIN`**: Security gates that require valid access badges in **both** Building A and Building B.
+  - **`LEFT OUTER JOIN`**: Every badge holder from Building A passes through. If they also hold a badge for Building B, B details are attached; otherwise, Building B fields are stamped `NULL`.
+  - **`FULL OUTER JOIN`**: All badge holders from both Building A and Building B pass through.
+  - **`CROSS JOIN`**: Speed-dating matching—every single person in Room A is paired with every single person in Room B ($M \times N$ combination).
+
+```
+   INNER JOIN                 LEFT JOIN                  FULL OUTER JOIN
+   ┌───┬───┐                  ┌───┬───┐                  ┌───┬───┐
+   │ A │ B │                  │ A │ B │                  │ A │ B │
+   ├───┼───┤                  ├───┼───┤                  ├───┼───┤
+   │ ● │ ● │                  │ ● │ ● │                  │ ● │ ● │
+   └───┴───┘                  │ ● │   │                  │ ● │   │
+                              └───┴───┘                  │   │ ● │
+                                                         └───┴───┘
+```
+
+```sql
+-- INNER JOIN: Only matching rows
+SELECT e.emp_name, d.dept_name
+FROM employees e
+INNER JOIN departments d ON e.dept_id = d.dept_id;
+
+-- LEFT JOIN: All employees, even those unassigned to a department
+SELECT e.emp_name, COALESCE(d.dept_name, 'Unassigned') AS dept_name
+FROM employees e
+LEFT JOIN departments d ON e.dept_id = d.dept_id;
+```
+
+---
+
+## ⚙️ Physical Join Algorithms Deep Dive
+
+The Cost-Based Query Optimizer (CBO) selects one of three physical algorithms to execute join operations in memory:
+
+```
+                              Physical Join Algorithms
+                                         │
+        ┌────────────────────────────────┼────────────────────────────────┐
+        ▼                                ▼                                ▼
+  Nested Loop Join                   Hash Join                     Sort-Merge Join
+Outer Loop A ──► Inner Loop B     Build Hash Table(A) ──► Probe(B)   Sort A & B ──► Merge Scan
+Best for small indexed datasets    Best for large equality joins   Best for pre-sorted range joins
+```
+
+### 1. Nested Loop Join
+- **Mechanics**: Iterates through the outer (driving) table row-by-row. For every outer row, it performs a search scan on the inner table.
+- **Time Complexity**: `O(M × N)` without index; `O(M log N)` when the inner table join key is indexed.
+- **Optimal Conditions**: Small outer dataset with an indexed inner table.
+
+### 2. Hash Join
+- **Mechanics**: Executed in two phases:
+  1. **Build Phase**: Reads the smaller table into memory (`work_mem`) and constructs an in-memory Hash Table using the join key as hash keys.
+  2. **Probe Phase**: Scans the larger table row-by-row, hashing its join key to instantly probe the in-memory Hash Table for matches.
+- **Time Complexity**: `O(M + N)`.
+- **Optimal Conditions**: Large un-indexed datasets joining on equality predicates (`=`).
+
+### 3. Sort-Merge Join
+- **Mechanics**: Sorts both tables on the join keys (if not pre-sorted by an index), then scans both tables in parallel using two pointers to merge matching keys.
+- **Time Complexity**: `O(M log M + N log N)` (or `O(M + N)` if pre-sorted).
+- **Optimal Conditions**: Datasets pre-sorted by B-Tree indexes or joining on range inequalities (`<`, `>=`).
+
+---
+
+## 🔎 Subqueries: `EXISTS` vs `IN`
+
+- **Scalar Subquery**: Returns a single value (1 row, 1 column).
+- **Correlated Subquery**: References columns from the outer query, executing once per outer row candidate.
+
+```sql
+-- Correlated Subquery: Find employees earning above their department average
+SELECT e1.emp_name, e1.salary, e1.dept_id
+FROM employees e1
+WHERE e1.salary > (
+    SELECT AVG(e2.salary) 
+    FROM employees e2 
+    WHERE e2.dept_id = e1.dept_id
+);
+```
+
+### Performance Benchmark: `EXISTS` vs `IN`
+
+```sql
+-- 1. Using IN (Evaluates subquery result set before comparing)
+SELECT * FROM products 
+WHERE category_id IN (SELECT category_id FROM promo_categories);
+
+-- 2. Using EXISTS (Short-circuits immediately upon finding the first match!)
+SELECT p.* FROM products p
+WHERE EXISTS (
+    SELECT 1 FROM promo_categories pc WHERE pc.category_id = p.category_id
+);
+```
+
+> [!TIP]
+> `EXISTS` short-circuits evaluation as soon as a single matching record is located in the inner table, making it significantly faster than `IN` when subqueries return large result sets.
+
+---
+
+## 🌳 Common Table Expressions (CTEs) & Recursive CTEs
+
+A **Common Table Expression (CTE)** defines a named temporary result set declared using the `WITH` clause.
+
+* **Analogy**: *A Temporary Whiteboard.* You write down intermediate calculation tables on a whiteboard during a meeting (`WITH cte AS (...)`), reference them in your final report (`SELECT * FROM cte`), and wipe the whiteboard clean when the query completes.
+
+```sql
+-- Non-Recursive CTE for readable aggregation
+WITH dept_spending AS (
+    SELECT dept_id, SUM(salary) AS total_payroll
+    FROM employees
+    GROUP BY dept_id
+)
+SELECT d.dept_name, s.total_payroll
+FROM departments d
+JOIN dept_spending s ON d.dept_id = s.dept_id
+WHERE s.total_payroll > 500000;
+```
+
+---
+
+### Masterclass: Recursive CTEs for Hierarchical Tree Traversal
+
+Recursive CTEs iterate recursively to traverse parent-child tree structures (e.g., organizational management hierarchies, bill-of-materials, category trees).
+
+```sql
+-- Employee Management Hierarchy Tree Traversal
+WITH RECURSIVE org_chart AS (
+    -- 1. Anchor Member: Find the CEO (top parent with no manager)
+    SELECT emp_id, emp_name, manager_id, 1 AS depth_level
+    FROM employees
+    WHERE manager_id IS NULL
+    
+    UNION ALL
+    
+    -- 2. Recursive Member: Join employees table with org_chart CTE
+    SELECT e.emp_id, e.emp_name, e.manager_id, o.depth_level + 1
+    FROM employees e
+    JOIN org_chart o ON e.manager_id = o.emp_id
+)
+SELECT emp_id, REPEAT('  ', depth_level - 1) || emp_name AS org_hierarchy, depth_level
+FROM org_chart
+ORDER BY depth_level;
+```
+
+---
+
+## 🔀 Set Operations
+
+Set operations combine result sets from two or more queries into a single output table (both queries must share identical column counts and compatible data types):
+
+| Set Operator | Operational Purpose | Duplicate Elimination |
+| :--- | :--- | :--- |
+| **`UNION`** | Combines rows from both queries; removes duplicate tuples | **Yes** (Requires sorting/hash deduplication) |
+| **`UNION ALL`** | Combines rows from both queries; preserves all duplicates | **No** (Extremely fast append) |
+| **`INTERSECT`** | Returns only rows present in **both** query result sets | **Yes** |
+| **`EXCEPT` / `MINUS`** | Returns rows from query 1 that are **not present** in query 2 | **Yes** |
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="Why is Hash Join typically selected by the optimizer for large unindexed equality joins over Nested Loop Join?" options={["Hash Join sorts the entire database on disk.", "Hash Join operates in linear O(M + N) time by building an in-memory hash table of the smaller dataset and probing it once.", "Hash Join requires zero RAM memory.", "Nested Loop Join only works on primary key columns."]} answerIndex={1}>
+`Hash Join` builds an in-memory hash table of the smaller table in `O(M)` time and probes it using the larger table in `O(N)` time, achieving overall linear `O(M + N)` execution compared to quadratic `O(M × N)` nested loop scans.
+</Quiz>
+
+<Quiz question="What are the mandatory components required to write a valid Recursive CTE in SQL?" options={["An Anchor Member query, UNION ALL, a Recursive Member query joining the CTE, and a termination condition.", "A GROUP BY clause and an ORDER BY clause.", "Only a SELECT statement with a WHERE manager_id IS NULL filter.", "A TRUNCATE statement followed by a COMMIT."]} answerIndex={0}>
+A valid Recursive CTE requires an **Anchor Member** (initial seed query), a **`UNION ALL`** operator, and a **Recursive Member** that joins the CTE recursively back to the target table until no further matching rows are returned (termination condition).
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Recursive Category Tree Traversal">
+<ProblemDescription>
+Given a `categories` table (`category_id`, `category_name`, `parent_id`), write a Recursive CTE to build a breadcrumb hierarchy path string (e.g., `"Electronics > Computers > Laptops"`) for every subcategory.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+WITH RECURSIVE category_path AS (
+    -- Anchor Member: Root categories (parent_id IS NULL)
+    SELECT category_id, category_name, category_name::TEXT AS path
+    FROM categories
+    WHERE parent_id IS NULL
+    
+    UNION ALL
+    
+    -- Recursive Member: Join child categories to parent CTE path
+    SELECT c.category_id, c.category_name, (cp.path || ' > ' || c.category_name)::TEXT
+    FROM categories c
+    JOIN category_path cp ON c.parent_id = cp.category_id
+)
+SELECT category_id, path AS category_breadcrumb
+FROM category_path
+ORDER BY path;
+```
+</ProblemSolution>
+</Problem>

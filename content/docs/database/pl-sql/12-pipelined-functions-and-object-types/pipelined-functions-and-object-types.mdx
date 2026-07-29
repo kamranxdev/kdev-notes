@@ -1,0 +1,173 @@
+---
+title: Pipelined Table Functions & Object-Oriented PL/SQL
+description: Master high-throughput streaming Pipelined Table Functions (PIPE ROW), object-oriented PL/SQL types, member methods, and type inheritance.
+---
+
+## 🌊 Pipelined Table Functions (`PIPE ROW`)
+
+A **Pipelined Table Function** is a high-performance PL/SQL function that returns a collection result set as a virtual database table stream (`TABLE()`), returning rows **one-by-one as they are produced** rather than waiting for the entire collection to complete processing in memory!
+
+* **Analogy**: *An Assembly Line Water Conveyor Hose vs A Giant Bucket.*
+  - **Standard Function**: Filling a 10,000-gallon water tank completely before dumping the entire bucket onto the floor (High PGA RAM consumption, slow initial response).
+  - **Pipelined Function (`PIPE ROW`)**: Opening a continuous water hose stream. As fast as each water drop is processed (`PIPE ROW`), it streams out to the consumer immediately!
+
+```
+                       Standard vs. Pipelined Table Functions
+                                          │
+        ┌─────────────────────────────────┴─────────────────────────────────┐
+        ▼                                                                   ▼
+Standard Function (Batched Return)                                 Pipelined Function (PIPE ROW Streaming)
+Processes all 1,000,000 rows in PGA memory                         Streams Row 1 ──► SQL Query Consumer
+Waits for full completion ──► Returns collection                   Streams Row 2 ──► SQL Query Consumer
+High PGA memory footprint; high initial latency                    Sub-second time-to-first-row latency!
+```
+
+---
+
+## 🛠️ Implementing a Pipelined Table Function
+
+To build a pipelined function, declare the function with the **`PIPELINED`** keyword and emit individual tuples using **`PIPE ROW(record)`**:
+
+```sql
+-- 1. Create Schema Object Types
+CREATE OR REPLACE TYPE t_num_array IS TABLE OF NUMBER;
+/
+
+-- 2. Create Pipelined Function
+CREATE OR REPLACE FUNCTION generate_series (
+    p_start IN NUMBER,
+    p_end   IN NUMBER
+) RETURN t_num_array PIPELINED AS
+BEGIN
+   FOR i IN p_start..p_end LOOP
+      -- Emits single tuple row to SQL caller immediately!
+      PIPE ROW(i);
+   END LOOP;
+
+   -- Empty RETURN statement concludes the pipeline stream
+   RETURN;
+END;
+/
+```
+
+### Querying Pipelined Functions in SQL
+Pipelined functions can be queried directly inside standard SQL `FROM` clauses using the **`TABLE()`** operator:
+
+```sql
+-- Querying pipelined function stream like a physical database table!
+SELECT column_value AS generated_number 
+FROM TABLE(generate_series(1, 5));
+```
+
+---
+
+## 🤖 Object-Oriented PL/SQL (`CREATE TYPE`)
+
+PL/SQL supports object-oriented programming (OOP) paradigms through **Object Types**. An Object Type encapsulates data attributes, constructor methods, member functions, and inheritance hierarchies:
+
+```sql
+-- 1. Declare Object Type Specification (NOT FINAL allows sub-type inheritance!)
+CREATE OR REPLACE TYPE person_obj AS OBJECT (
+   person_id   NUMBER,
+   first_name  VARCHAR2(50),
+   last_name   VARCHAR2(50),
+
+   -- Member Method Header
+   MEMBER FUNCTION get_full_name RETURN VARCHAR2
+) NOT FINAL;
+/
+
+-- 2. Declare Object Type Body
+CREATE OR REPLACE TYPE BODY person_obj AS
+   MEMBER FUNCTION get_full_name RETURN VARCHAR2 IS
+   BEGIN
+      RETURN SELF.first_name || ' ' || SELF.last_name;
+   END get_full_name;
+END;
+/
+```
+
+---
+
+### Object Inheritance (`UNDER` Clause) & Method Overriding
+
+```sql
+-- Sub-type inheriting from person_obj parent type
+CREATE OR REPLACE TYPE employee_obj UNDER person_obj (
+   salary     NUMBER(10,2),
+   job_title  VARCHAR2(50),
+
+   -- Overriding Parent Member Function
+   OVERRIDING MEMBER FUNCTION get_full_name RETURN VARCHAR2
+);
+/
+
+CREATE OR REPLACE TYPE BODY employee_obj AS
+   OVERRIDING MEMBER FUNCTION get_full_name RETURN VARCHAR2 IS
+   BEGIN
+      RETURN SELF.last_name || ', ' || SELF.first_name || ' (' || SELF.job_title || ')';
+   END get_full_name;
+END;
+/
+```
+
+```sql
+-- Instantiating Object Types in PL/SQL
+DECLARE
+   v_emp employee_obj;
+BEGIN
+   -- Automatic Constructor Call
+   v_emp := employee_obj(101, 'Alice', 'Smith', 95000, 'Lead Architect');
+
+   DBMS_OUTPUT.PUT_LINE('Employee: ' || v_emp.get_full_name());
+END;
+/
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is the primary architectural advantage of a Pipelined Table Function (PIPE ROW) over a standard collection function?" options={["It encrypts table data on disk.", "It streams rows out one-by-one as they are produced, drastically reducing time-to-first-row latency and PGA memory consumption.", "It converts PL/SQL into Java bytecode.", "It auto-commits all transactions."]} answerIndex={1}>
+Pipelined table functions (`PIPELINED` and `PIPE ROW`) stream result tuples out to the SQL caller **one-by-one as they are generated**, drastically reducing memory allocation in PGA RAM and delivering sub-second time-to-first-row latency.
+</Quiz>
+
+<Quiz question="Which keyword is required when creating an Object Type specification to allow child sub-types to inherit from it?" options={["PUBLIC", "NOT FINAL", "SERIALLY_REUSABLE", "DETERMINISTIC"]} answerIndex={1}>
+In object-oriented PL/SQL, an Object Type specification must be declared with the **`NOT FINAL`** keyword to permit child sub-types to inherit from it using the `UNDER` clause.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: ETL Streaming Pipelined Function">
+<ProblemDescription>
+Create a pipelined function `stream_dept_salaries(p_dept_id INT)` that reads employees in `p_dept_id` and pipes records containing `employee_id` and double salary values.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+-- 1. Create Record Type and Collection Type
+CREATE OR REPLACE TYPE emp_sal_rec AS OBJECT (
+   emp_id     NUMBER,
+   double_sal NUMBER
+);
+/
+
+CREATE OR REPLACE TYPE emp_sal_table IS TABLE OF emp_sal_rec;
+/
+
+-- 2. Create Pipelined Function
+CREATE OR REPLACE FUNCTION stream_dept_salaries (
+    p_dept_id IN INT
+) RETURN emp_sal_table PIPELINED AS
+BEGIN
+   FOR r IN (SELECT employee_id, salary FROM employees WHERE department_id = p_dept_id) LOOP
+      -- Pipe row object directly to caller
+      PIPE ROW(emp_sal_rec(r.employee_id, r.salary * 2));
+   END LOOP;
+   RETURN;
+END;
+/
+```
+</ProblemSolution>
+</Problem>

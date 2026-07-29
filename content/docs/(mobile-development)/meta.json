@@ -2,9 +2,7 @@
   "title": "Mobile Development",
   "icon": "Smartphone",
   "pages": [
-    "---[Smartphone]Native---",
     "android",
-    "---[Globe]Cross-Platform---",
     "cross-platform"
   ]
 }

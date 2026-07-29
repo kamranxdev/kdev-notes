@@ -1,0 +1,130 @@
+---
+title: Java Collections Framework & HashMap Internals
+description: Deep technical guide to Java Collections internals, ArrayList resizing formulas, HashMap bucket indexing, Treeification at threshold 8, and ConcurrentHashMap CAS locks.
+---
+
+## 🗄️ Java Collections Framework Architecture
+
+The **Java Collections Framework** provides standardized interfaces and data structures for storing and manipulating groups of objects:
+
+* **Analogy**: *Smart Warehouse Sorting Bins & Automated Mail Cubbies.*
+  - **`ArrayList`**: An expandable row of contiguous lockers. Fast random access by locker index number ($O(1)$), but inserting an item into Locker #2 requires sliding all subsequent lockers to the right ($O(N)$).
+  - **`LinkedList`**: A chain of treasure hunt clues. Locker A holds a key pointing to Locker B. Easy to insert items anywhere, but finding Locker #500 requires following 500 clue cards ($O(N)$).
+  - **`HashMap`**: An automated mailroom cubby system. You run a key through a barcode scanner (`hashCode()`), which immediately points to Cubby #7 ($O(1)$ lookup)!
+
+```
+                             Java Collections Hierarchy
+                                         │
+        ┌────────────────────────────────┴────────────────────────────────┐
+        ▼                                                                 ▼
+    Collection                                                           Map
+    ├── List (ArrayList, LinkedList)                                     ├── HashMap
+    ├── Set (HashSet, TreeSet)                                           ├── ConcurrentHashMap
+    └── Queue / Deque (ArrayDeque, PriorityQueue)                        └── TreeMap
+```
+
+---
+
+## ⚡ `ArrayList` vs. `LinkedList` Internals
+
+### `ArrayList` Dynamic Resizing Formula
+`ArrayList` is backed by an internal `Object[] elementData` array. When the array capacity is exceeded, it automatically resizes by allocating a new array using the 50% expansion formula:
+
+```java
+int newCapacity = oldCapacity + (oldCapacity >> 1); // Grows by 1.5x (50%)
+```
+
+| Metric | `ArrayList` | `LinkedList` |
+| :--- | :--- | :--- |
+| **Backing Structure** | Contiguous Dynamic `Object[]` Array | Doubly-Linked Nodes (`Node<E>`) |
+| **Random Access (`get(i)`)** | **$O(1)$** (Direct memory offset index) | **$O(N)$** (Requires sequential node traversal) |
+| **Middle Insertion/Deletion** | **$O(N)$** (Requires copying/shifting array bytes) | **$O(1)$** (Once node reference is located) |
+| **Memory Overhead** | Low (Minimal array overhead) | High (Every element allocates a `Node` object) |
+
+---
+
+## 🗺️ `HashMap` Deep Dive Internals
+
+`HashMap` stores key-value pairs using **Separate Chaining Hash Buckets**:
+
+```
+                       HashMap Bucket Array & Treeification
+                                        │
+    Hash Index = (n - 1) & hash(key)
+    
+    Bucket 0 ──► [Node A] ──► [Node B] (Singly Linked List)
+    Bucket 1 ──► NULL
+    Bucket 2 ──► [Red-Black Tree Root] (Treeified because count > 8!)
+```
+
+### 1. Hash Bucket Index Calculation
+```java
+// Step 1: Compute Bit-Spread Hash
+static final int hash(Object key) {
+    int h;
+    return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+}
+
+// Step 2: Calculate Bucket Array Index via Bitwise AND
+int index = (tableLength - 1) & hash(key);
+```
+
+### 2. Collision Resolution & Treeification (Java 8+)
+- **Initial Bucket Chaining**: Colliding keys are stored in a Singly Linked List inside the bucket.
+- **Treeification Threshold**: If a single bucket's collision chain exceeds **8 entries** (and total table capacity $\ge 64$), the bucket's linked list is transformed (**treeified**) into a **Red-Black Tree**!
+- **Performance Impact**: Worst-case search complexity drops from $O(N)$ down to **$O(\log N)$**, protecting applications against Hash Collision Denial-of-Service (DoS) attacks.
+- **Re-binning Threshold**: If tree elements drop below **6 entries** during deletion, the tree is untreeified back into a linked list.
+
+---
+
+## 🔒 `ConcurrentHashMap` Concurrency Mechanics
+
+Unlike legacy `Hashtable` or `Collections.synchronizedMap()` (which acquire a global table lock), **`ConcurrentHashMap`** uses fine-grained locking:
+
+1. **CAS (Compare-And-Swap)**: Inserting into an empty hash bucket uses non-blocking atomic CPU **CAS** operations.
+2. **Synchronized Bucket Node Locks**: When a collision occurs, it locks **only the head node of that specific bucket**, allowing concurrent threads to read and write to other buckets simultaneously without contention!
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What happens inside a Java 8 HashMap when a bucket's collision linked list length exceeds 8 entries?" options={["The HashMap throws a ConcurrentModificationException.", "The linked list is converted (treeified) into a Red-Black Tree, improving lookup complexity from O(N) to O(log N).", "The HashMap deletes the oldest entries.", "The entire HashMap is converted into an ArrayList."]} answerIndex={1}>
+In Java 8+, when a single bucket's collision chain surpasses **8 entries** (and total capacity $\ge 64$), the bucket's linked list is **treeified into a Red-Black Tree**, improving worst-case lookup time from $O(N)$ to **$O(\log N)$**.
+</Quiz>
+
+<Quiz question="What is the dynamic capacity expansion formula for ArrayList in Java?" options={["Doubles capacity (2.0x).", "Expands capacity by 50% using: newCapacity = oldCapacity + (oldCapacity >> 1).", "Increases capacity by a fixed 10 elements.", "Allocates a new Metaspace region."]} answerIndex={1}>
+When `ArrayList` exceeds its capacity, it allocates a new array using the **50% expansion formula**: `newCapacity = oldCapacity + (oldCapacity >> 1)` (1.5x current capacity).
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Word Frequency Counter using HashMap">
+<ProblemDescription>
+Write a Java program that reads an array of words and uses `HashMap.merge()` to compute the occurrence frequency of each word in linear $O(N)$ time.
+</ProblemDescription>
+<ProblemSolution>
+```java
+import java.util.Map;
+import java.util.HashMap;
+
+public class WordFrequency {
+    public static void main(String[] args) {
+        String[] words = {"apple", "banana", "apple", "cherry", "banana", "apple"};
+
+        Map<String, Integer> frequencyMap = new HashMap<>();
+
+        for (String word : words) {
+            // Elegant O(1) frequency count update using Map.merge()
+            frequencyMap.merge(word, 1, Integer::sum);
+        }
+
+        frequencyMap.forEach((word, count) -> 
+            System.out.println(word + " -> " + count)
+        );
+    }
+}
+```
+</ProblemSolution>
+</Problem>

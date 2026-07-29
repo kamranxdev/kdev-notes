@@ -1,5 +1,5 @@
 ---
-title: SQL Engineering Hub (The Masterclass Manual)
+title: "SQL Engineering Hub (The Masterclass Manual)"
 description: An analogy-driven, professional-grade guide to SQL architecture, query lifecycle, schema design, analytic window functions, indexing performance, ACID transaction isolation, JSONB, and database partitioning.
 ---
 
@@ -12,7 +12,7 @@ graph TD
     Client[1. Client Application / SQL Query] --> parser[2. SQL Lexer & Parser]
     parser --> AST[3. Abstract Syntax Tree & Semantic Check]
     AST --> optimizer[4. Cost-Based Query Optimizer CBO]
-    optimizer --> Plan[5. Execution Plan Binary]
+    optimizer --> Plan[5. Physical Execution Plan Binary]
     Plan --> exec[6. Execution Engine]
     exec --> storage[7. Storage Manager & Buffer Pool Cache]
     storage --> disk[(8. Data Pages / B-Tree Index Files & WAL)]
@@ -31,15 +31,16 @@ graph TD
 
 ## 🗺️ SQL Learning Modules & Navigation Roadmap
 
-Explore our structured SQL modules below. Each module provides deep architectural insights, physical data layout diagrams, query optimization strategies, and real-world database design practices.
+Explore our 6 structured, analogy-driven SQL modules below. Each module provides technical insights, physical data layout diagrams, query optimization strategies, and production database design practices.
 
 | Module | Core Topics | Key Focus & Engineering Concepts | Read Time |
 | :--- | :--- | :--- | :--- |
-| **[1. Architecture & DDL/DML](./01-architecture-and-ddl-dml/sql-engine-architecture)** | Parser, AST, CBO, Buffer Pool, WAL, DDL vs DML vs DCL vs TCL, Constraints & Normalization (1NF–BCNF) | Internal database compilation pipeline, auto-commit rules, integrity constraints, and schema decomposition | ~15 mins |
-| **[2. Querying & Joins](./02-querying-joins-and-nulls/execution-order-and-null-trap)** | 10-Step Execution Order, The NULL Trap (3-Valued Logic), JOIN Algorithms (Nested Loops, Hash Join, Sort-Merge), Subqueries, Recursive CTEs | Logical vs written execution sequence, NULL comparison hazards, join memory mechanics, and hierarchical trees | ~20 mins |
-| **[3. Window Functions & Analytics](./03-window-functions-and-analytics/window-functions-and-ranking)** | `OVER()`, `PARTITION BY`, Window Frames (`ROWS`/`RANGE`), `RANK()`, `DENSE_RANK()`, `LAG()`/`LEAD()`, `GROUPING SETS`, `CUBE`, `ROLLUP` | Preserving row-level detail with window frames, analytical reporting, running totals, and multidimensional aggregation | ~20 mins |
-| **[4. Performance & Transactions](./04-performance-indexing-and-transactions/indexing-and-query-tuning)** | B-Tree Clustered vs Non-Clustered Indexes, Leftmost Prefix Rule, Covering Indexes (`INCLUDE`), Sargability, `EXPLAIN ANALYZE`, MVCC, ACID Isolation Levels, Concurrency Anomalies, Deadlocks | Query tuning, eliminating full table scans, index sargability, transaction isolation locks, and write skew | ~25 mins |
-| **[5. Advanced Objects & JSONB](./05-advanced-objects-json-and-partitioning/jsonb-views-and-partitioning)** | JSON/JSONB Operators (`->`, `@>`), GIN Indexing, Virtual Views vs Materialized Views, Table Partitioning (Range/List/Hash), Partition Pruning, Stored Procedures & Triggers | Semi-structured data processing, materialized view caching, big data table partitioning, and database automation | ~20 mins |
+| **[1. Architecture & Command Taxonomy](./01-architecture-and-ddl-dml/sql-engine-architecture)** | Parser, AST, CBO, Buffer Pool, WAL, DDL vs DML vs DCL vs TCL, `DELETE` vs `TRUNCATE` vs `DROP` | Internal database compilation pipeline, auto-commit rules, and data page deallocation | ~15 mins |
+| **[2. Schema Design & Normalization](./02-schema-design-and-normalization/schema-constraints-and-types)** | Constraints (`PK`, `FK`, `UNIQUE`), `NUMERIC` vs `FLOAT`, 1NF–BCNF Normalization, Star Schemas | Referential integrity cascades, exact vs approximate math, anomalies, and OLTP vs OLAP | ~18 mins |
+| **[3. Execution Order & NULL Logic](./03-querying-execution-order-and-nulls/execution-order-and-null-trap)** | 10-Step Execution Order, The NULL Trap (3-Valued Logic), `NOT IN (..., NULL)`, `COALESCE` | Written vs logical execution sequence, NULL comparison hazards, and safe division | ~15 mins |
+| **[4. Joins, Subqueries & CTEs](./04-joins-subqueries-and-ctes/joins-subqueries-and-ctes)** | Relational Joins, Nested Loops / Hash / Sort-Merge Joins, `EXISTS` vs `IN`, Recursive CTEs | Visual join guide, physical join algorithms, short-circuiting, and hierarchical tree traversal | ~20 mins |
+| **[5. Window Functions & Analytics](./05-window-functions-and-analytics/window-functions-and-ranking)** | `OVER()`, `PARTITION BY`, `ROWS`/`RANGE` Frames, `RANK()`, `DENSE_RANK()`, `LAG()`/`LEAD()`, `ROLLUP`, `CUBE` | Preserving row identity, running totals, moving averages, YoY growth, and multidimensional aggregation | ~20 mins |
+| **[6. Indexing, Transactions & Big Data](./06-indexing-transactions-jsonb-and-partitioning/indexing-transactions-and-partitioning)** | B-Trees, Sargability, `EXPLAIN ANALYZE`, MVCC, ACID Isolation Levels, Lock Types, JSONB, GIN, Partitioning | Query tuning, eliminating full table scans, isolation locks, semi-structured data, and partition pruning | ~25 mins |
 
 ---
 
@@ -60,9 +61,9 @@ Explore our structured SQL modules below. Each module provides deep architectura
 
 | Algorithm | Best For | Time Complexity | Memory Requirements | Driver Table Requirement |
 | :--- | :--- | :--- | :--- | :--- |
-| **Nested Loop Join** | Small datasets or queries with highly selective indexed outer rows | $O(M \times N)$ without index; $O(M \log N)$ indexed | $O(1)$ minimal RAM buffer | Prefers smaller outer dataset |
-| **Hash Join** | Large un-indexed datasets with equality join predicates (`=`) | $O(M + N)$ build & probe phases | $O(M)$ proportional to smaller table hash table | Fits smaller table in `work_mem` hash table |
-| **Sort-Merge Join** | Large datasets already sorted on join keys or explicit range predicates | $O(M \log M + N \log N)$ (or $O(M+N)$ if pre-sorted) | Requires RAM buffer for sorting blocks | Ideal when join output requires sorted ordering |
+| **Nested Loop Join** | Small datasets or queries with highly selective indexed outer rows | `O(M × N)` without index; `O(M log N)` indexed | `O(1)` minimal RAM buffer | Prefers smaller outer dataset |
+| **Hash Join** | Large un-indexed datasets with equality join predicates (`=`) | `O(M + N)` build & probe phases | `O(M)` proportional to smaller table hash table | Fits smaller table in `work_mem` hash table |
+| **Sort-Merge Join** | Large datasets already sorted on join keys or explicit range predicates | `O(M log M + N log N)` (or `O(M+N)` if pre-sorted) | Requires RAM buffer for sorting blocks | Ideal when join output requires sorted ordering |
 
 ---
 
@@ -95,4 +96,4 @@ A B-Tree index indexes the scalar binary blob of the JSON document as a whole. A
 
 ## 🚀 Get Started
 
-Jump directly into **[Module 1: Architecture & Schema Design](./01-architecture-and-ddl-dml/sql-engine-architecture)** to master SQL engine internals, parser compilation stages, cost-based optimization, and schema constraints!
+Jump directly into **[Module 1: Architecture & Command Taxonomy](./01-architecture-and-ddl-dml/sql-engine-architecture)** to master SQL engine compilation, CBO cost optimization, and command taxonomy!

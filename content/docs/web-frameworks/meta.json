@@ -1,9 +1,9 @@
 {
   "title": "Web Frameworks",
-  "icon": "Code2",
+  "icon": "Code",
   "pages": [
     "index",
-    "---[Code]Frontend Frameworks---",
+    "---Frontend Frameworks---",
     "react",
     "angular"
   ]
