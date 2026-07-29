@@ -1,6 +1,9 @@
 {
   "title": "Programming Languages",
+  "icon": "Code2",
   "pages": [
-    "java"
+    "index",
+    "java",
+    "python"
   ]
 }

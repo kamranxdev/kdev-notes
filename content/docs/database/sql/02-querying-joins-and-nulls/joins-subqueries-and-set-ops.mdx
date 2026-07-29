@@ -1,0 +1,113 @@
+---
+title: Relational JOINs, Subqueries & Set Operators
+description: Deep technical guide to relational table joins, physical join algorithms (Hash, Nested Loop, Sort-Merge), subqueries, and set operators.
+---
+
+## 🔗 Relational JOIN Types
+
+JOIN operations combine columns from one or more tables based on a shared relationship key:
+
+```
+       INNER JOIN                      LEFT JOIN                     RIGHT JOIN
+   ┌───────┬───────┐               ┌───────┬───────┐              ┌───────┬───────┐
+   │       │███████│               │███████│███████│              │       │███████│
+   │ Table │███████│ Table         │███████│███████│ Table        │ Table │███████│ Table
+   │   A   │███████│   B           │███████│███████│   B          │   A   │███████│   B
+   │       │███████│               │███████│       │              │       │███████│
+   └───────┴───────┘               └───────┴───────┘              └───────┴───────┘
+     Only Overlap                    All A + Overlap                All B + Overlap
+```
+
+* `INNER JOIN`: Returns only matching rows present in both tables.
+* `LEFT OUTER JOIN`: Returns all rows from the left table, plus matching rows from the right table (unmatched right columns return `NULL`).
+* `RIGHT OUTER JOIN`: Returns all rows from the right table, plus matching rows from the left table.
+* `FULL OUTER JOIN`: Returns all rows from both tables, filling missing matches with `NULL`.
+* `CROSS JOIN`: Produces a Cartesian product (combines every row of Table A with every row of Table B).
+
+---
+
+## ⚙️ Physical Join Algorithms (Database Internals)
+
+The RDBMS Query Optimizer selects one of three primary physical join algorithms based on data sizes, indexes, and join predicates:
+
+### 1. Nested Loops Join
+* **Mechanics**: Scans every row in the outer table, and for each outer row, searches the inner table for matching keys.
+* **Analogy**: *For every student in Row A, walk down Row B checking every single student's ID.*
+* **Ideal Workload**: Small outer dataset joined with an inner dataset that has a highly selective **B-Tree index** on the join column. Time complexity: $O(N \log M)$.
+
+### 2. Hash Join
+* **Mechanics**:
+  1. **Build Phase**: Scans the smaller table and constructs an in-memory hash table on the join key.
+  2. **Probe Phase**: Scans the larger table row-by-row, hashing the key and probing the hash table for immediate matches.
+* **Analogy**: *Group students in Row A into color-coded rooms by hobby. Then, have students in Row B walk straight to their matching color room.*
+* **Ideal Workload**: Large, unindexed datasets joined on equality (`=`). Time complexity: $O(N + M)$.
+
+### 3. Sort-Merge Join
+* **Mechanics**: Sorts both input datasets on the join key, then steps through both streams in parallel to merge matching records.
+* **Analogy**: *Line up both rows of students by height first, then walk down both rows together matching equal heights.*
+* **Ideal Workload**: Datasets that are already sorted by disk index, or joins involving range inequality operators (`<`, `>=`).
+
+---
+
+## 📐 Subqueries vs. Set Operators
+
+### Subquery Types
+1. **Scalar Subquery**: Returns a single value (1 row, 1 column). Used in `SELECT` or `WHERE`.
+2. **Correlated Subquery**: References columns from the outer query table, executing once for every candidate row evaluated by the outer query.
+3. **EXISTS vs IN**:
+   * `EXISTS`: Stops scanning as soon as the first matching row is found (short-circuit evaluation). Excellent for correlated subqueries.
+   * `IN`: Evaluates the entire subquery result set before filtering outer rows.
+
+```sql
+-- Efficient Correlated Subquery using EXISTS
+SELECT e.emp_name, e.salary
+FROM employees e
+WHERE EXISTS (
+    SELECT 1 FROM departments d 
+    WHERE d.dept_id = e.dept_id AND d.location = 'NEW YORK'
+);
+```
+
+### Set Operators
+* `UNION`: Combines result sets from two queries and **de-duplicates** identical rows (incurs sorting overhead).
+* `UNION ALL`: Combines result sets **without de-duplication** (ultra-fast performance).
+* `INTERSECT`: Returns only rows present in **both** query result sets.
+* `EXCEPT` (PostgreSQL/SQL Server) / `MINUS` (Oracle): Returns rows from the first query that do **not** exist in the second query.
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="Which physical join algorithm is chosen by the optimizer when joining two massive unindexed 10-million-row tables on an equality condition?" options={["Nested Loops Join", "Hash Join", "Sort-Merge Join", "Cross Join"]} answerIndex={1}>
+**Hash Join** is optimal for large unindexed datasets joined on equality predicates. It builds an in-memory hash table from the smaller input and probes it using the larger input in linear $O(N + M)$ time.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Employees Without Projects">
+<ProblemDescription>
+Write a query to find all employees (`emp_id`, `emp_name`) who have NOT been assigned to any project in the `project_assignments` table. Implement using both `LEFT JOIN` and `NOT EXISTS`.
+</ProblemDescription>
+<ProblemSolution>
+Implementation 1: Using `LEFT JOIN` with `IS NULL` check:
+
+```sql
+SELECT e.emp_id, e.emp_name
+FROM employees e
+LEFT JOIN project_assignments pa ON e.emp_id = pa.emp_id
+WHERE pa.project_id IS NULL;
+```
+
+Implementation 2: Using `NOT EXISTS`:
+
+```sql
+SELECT e.emp_id, e.emp_name
+FROM employees e
+WHERE NOT EXISTS (
+    SELECT 1 FROM project_assignments pa WHERE pa.emp_id = e.emp_id
+);
+```
+</ProblemSolution>
+</Problem>

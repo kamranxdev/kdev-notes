@@ -1,4 +1,7 @@
 {
   "title": "Unix & Linux",
-  "pages": []
+  "icon": "Terminal",
+  "pages": [
+    "index"
+  ]
 }

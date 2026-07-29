@@ -1,0 +1,11 @@
+{
+  "title": "Core Java & JVM",
+  "icon": "Cpu",
+  "pages": [
+    "---[Cpu]JVM & Memory---",
+    "jvm-architecture-and-memory",
+    "primitives-and-memory-model",
+    "---[Code]Language Core---",
+    "control-flow-and-exceptions"
+  ]
+}

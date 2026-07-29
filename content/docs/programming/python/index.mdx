@@ -1,0 +1,38 @@
+---
+title: Python Engineering Hub
+description: Comprehensive reference guide to Python memory management, GIL internals, object-oriented design, decorators, generators, and async programming.
+---
+
+### Welcome to Python Engineering
+
+Python is a versatile, high-level, interpreted programming language known for its clear syntax and immense ecosystem. 
+
+```mermaid
+graph TD
+    py_src[1. Python Source Code .py] --> py_compiler[2. Python Bytecode Compiler]
+    py_compiler --> pyc[3. Compiled Bytecode .pyc]
+    pyc --> pvm[4. Python Virtual Machine PVM]
+    pvm --> gil[GIL Global Interpreter Lock]
+    gil --> os_bin[Machine Code Execution]
+
+    style py_src fill:#3b82f6,color:#fff,stroke:#1d4ed8
+    style py_compiler fill:#10b981,color:#fff,stroke:#047857
+    style pyc fill:#f59e0b,color:#fff,stroke:#b45309
+    style pvm fill:#ec4899,color:#fff,stroke:#be185d
+    style gil fill:#8b5cf6,color:#fff,stroke:#6d28d9
+```
+
+---
+
+## 🗺️ Python Learning Modules
+
+| Module | Core Topics | Focus & Key Concepts |
+| :--- | :--- | :--- |
+| **[1. Core Syntax & Types](./01-core-syntax/data-types-and-control-flow)** | Variables, Dynamic Typing, Lists, Dicts, Tuples, Sets, List Comprehensions | Memory mutability vs immutability and sequence data structures |
+| **[2. Advanced Python](./02-advanced-concepts/decorators-and-generators)** | Closures, Decorators, Generators (`yield`), Iterators, Asyncio & GIL | Functional programming constructs and non-blocking asynchronous I/O |
+
+---
+
+<Quiz question="What is the role of Python's Global Interpreter Lock (GIL) in CPython?" options={["Prevents compilation errors.","Ensures only one native thread executes Python bytecode at a time per CPython process.","Manages heap memory allocations.","Optimizes database queries."]} answerIndex={1}>
+The Global Interpreter Lock (GIL) is a mutex that protects access to Python objects, preventing multiple native threads from executing CPython bytecode simultaneously.
+</Quiz>

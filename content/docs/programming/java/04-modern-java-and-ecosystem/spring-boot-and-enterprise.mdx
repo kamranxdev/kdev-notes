@@ -1,0 +1,38 @@
+---
+title: Spring Boot & Enterprise Architecture
+description: Foundational concepts of Dependency Injection (DI), Inversion of Control (IoC), Spring Bean lifecycles, and layered web architecture.
+---
+
+### 1. Inversion of Control (IoC) & Dependency Injection (DI)
+
+*   **Inversion of Control (IoC)**: Transferring control of object creation, lifecycle management, and dependency wiring from application code to the Spring Framework container.
+*   **Dependency Injection (DI)**: Passing dependent objects into a class (via constructor injection) rather than letting the class instantiate its dependencies using `new`.
+
+```java
+// Preferred: Constructor Injection
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+
+    @Autowired
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+}
+```
+
+---
+
+### 2. Spring Layered Architecture
+
+```
+  HTTP Request ──► @RestController ──► @Service ──► @Repository ──► Database
+```
+
+1.  **Controller Layer (`@RestController`)**: Handles HTTP requests, input validation, and maps DTO responses.
+2.  **Service Layer (`@Service`)**: Encapsulates core business logic and transaction boundaries (`@Transactional`).
+3.  **Repository Layer (`@Repository`)**: Interacts with the database using Spring Data JPA / Hibernate.
+
+<Quiz question="Why is Constructor Injection preferred over Field Injection (@Autowired on private fields) in Spring Boot?" options={["It allows fields to be declared final, ensures immutability, and simplifies unit testing without reflection.","It runs faster at compile time.","It forces beans to be loaded in Metaspace.","It bypasses Spring IoC container."]} answerIndex={0}>
+Constructor injection enables fields to be declared `final`, guarantees required dependencies are present upon object creation, and makes unit testing straightforward.
+</Quiz>

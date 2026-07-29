@@ -1,0 +1,94 @@
+---
+title: ACID Transactions & Concurrency Isolation Levels
+description: Comprehensive technical guide to ACID database guarantees, concurrency anomalies (dirty reads, phantom reads), and SQL isolation levels.
+---
+
+## 🛡️ ACID Properties of Database Transactions
+
+A transaction is a single logical unit of database work containing one or more DML statements. A relational engine guarantees reliability by adhering to **ACID** properties:
+
+```
+                          ACID Guarantees
+                                 │
+     ┌───────────────────┬───────┴───────┬───────────────────┐
+     ▼                   ▼               ▼                   ▼
+ Atomicity          Consistency      Isolation           Durability
+All-or-Nothing     Valid Schema     Concurrent       Permanent Persistence
+ Undo Log          Constraints     MVCC / Locks        WAL / Redo Log
+```
+
+* **Atomicity**: All operations inside the transaction complete successfully, or the entire transaction is undone (`ROLLBACK`). Managed via the **Undo Log**.
+* **Consistency**: The database transitions from one valid schema state to another, preserving all declared foreign keys, constraints, and triggers.
+* **Isolation**: Concurrent transactions execute without interfering with one another's intermediate states. Managed via **Locks** and **MVCC (Multi-Version Concurrency Control)**.
+* **Durability**: Once committed (`COMMIT`), changes are saved permanently to disk storage and survive hardware failure. Managed via the **Write-Ahead Log (WAL) / Redo Log**.
+
+---
+
+## ⚡ Concurrency Anomalies
+
+When multiple client applications read and write data concurrently without strict isolation, three classic concurrency anomalies can occur:
+
+### 1. Dirty Read
+Transaction A modifies a row. Transaction B reads the modified uncommitted row. Transaction A subsequently issues a `ROLLBACK`. Transaction B has read data that "never officially existed".
+
+### 2. Non-Repeatable Read
+Transaction A reads a row. Transaction B updates or deletes that row and issues a `COMMIT`. Transaction A re-reads the same row during its transaction lifecycle and sees **modified column values**.
+
+### 3. Phantom Read
+Transaction A executes a range query (e.g., `WHERE salary > 50000`) returning 10 rows. Transaction B inserts a new row matching the condition and commits. Transaction A re-runs the range query and sees **11 rows** (a "phantom" row appeared).
+
+---
+
+## 🔒 SQL Isolation Levels Comparison
+
+ANSI/ISO SQL defines four isolation levels offering tradeoffs between concurrency performance and data safety:
+
+| Isolation Level | Dirty Read | Non-Repeatable Read | Phantom Read | Concurrency Mechanism |
+| :--- | :--- | :--- | :--- | :--- |
+| **Read Uncommitted** | Permitted | Permitted | Permitted | No read locks acquired |
+| **Read Committed** | **Prevented** | Permitted | Permitted | Short-term shared locks released after each statement |
+| **Repeatable Read** | **Prevented** | **Prevented** | Permitted | Long-term shared read locks held until `COMMIT` |
+| **Serializable** | **Prevented** | **Prevented** | **Prevented** | Strict Range Locks / Serialized execution queue |
+
+```sql
+-- Setting explicit isolation level for transaction block
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+
+BEGIN TRANSACTION;
+  UPDATE accounts SET balance = balance - 500 WHERE account_id = 101;
+  UPDATE accounts SET balance = balance + 500 WHERE account_id = 202;
+COMMIT;
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="Which database logging mechanism guarantees Durability by writing transaction changes to disk before committing?" options={["The Undo Log", "The Write-Ahead Log (WAL) / Redo Log", "The Query Cache", "The Buffer Pool Memory"]} answerIndex={1}>
+The **Write-Ahead Log (WAL) / Redo Log** records transaction changes sequentially to non-volatile disk storage before a commit is confirmed, ensuring data durability across system crashes.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: E-Commerce Inventory Race Condition">
+<ProblemDescription>
+Two concurrent customer checkout transactions attempt to purchase the final remaining item (`stock = 1`). Both read `stock = 1` simultaneously, pass the check, and reduce `stock` to `-1`. Design a SQL transaction solution using Pessimistic Locking to prevent the race condition.
+</ProblemDescription>
+<ProblemSolution>
+Use `FOR UPDATE` to acquire an exclusive row lock during row selection:
+
+```sql
+BEGIN TRANSACTION;
+
+-- Acquires an exclusive row lock on the inventory row, blocking concurrent readers
+SELECT stock FROM inventory WHERE item_id = 99 FOR UPDATE;
+
+-- Safely deduct stock knowing no concurrent transaction can modify item_id 99
+UPDATE inventory SET stock = stock - 1 WHERE item_id = 99 AND stock > 0;
+
+COMMIT;
+```
+</ProblemSolution>
+</Problem>

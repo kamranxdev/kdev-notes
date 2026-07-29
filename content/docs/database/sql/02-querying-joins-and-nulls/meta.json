@@ -1,0 +1,10 @@
+{
+  "title": "Querying, Filtering & Joins",
+  "icon": "Filter",
+  "pages": [
+    "---[Filter]Query Execution---",
+    "execution-order-and-null-trap",
+    "---[Workflow]Joins & Sets---",
+    "joins-subqueries-and-set-ops"
+  ]
+}

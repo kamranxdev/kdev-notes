@@ -1,0 +1,131 @@
+---
+title: "Bulk Processing: BULK COLLECT, LIMIT & FORALL"
+description: "Comprehensive performance optimization guide for PL/SQL bulk operations, eliminating context switches, batch fetching with LIMIT, and FORALL batch DML."
+---
+
+## 🚀 High-Performance Bulk Processing
+
+Row-by-row operations in PL/SQL degrade application performance due to thousands of repetitive context switches between the PL/SQL engine and the SQL engine.
+
+Oracle PL/SQL provides two primary directives to batch database communication into single array context switches:
+
+1. `BULK COLLECT INTO`: Transports multiple data rows from the SQL engine into PL/SQL collection arrays in **a single retrieval step**.
+2. `FORALL`: Sends a collection array of parameters from the PL/SQL engine to the SQL engine to execute batch DML operations (`INSERT`, `UPDATE`, `DELETE`) in **a single update step**.
+
+```
+  Traditional Loop (10,000 Switches):
+  PL/SQL Engine ──Row 1──► SQL Engine ──Row 2──► SQL Engine ... (Slow)
+
+  Bulk Processing (1 Switch):
+  PL/SQL Engine ══════════ Batch Collection Array (10,000 Rows) ══════════► SQL Engine (Fast)
+```
+
+---
+
+## 📥 BULK COLLECT with LIMIT Clause (Preventing OOM)
+
+Fetching millions of rows at once using `BULK COLLECT` can exhaust the database server's Process Global Area (**PGA RAM**).
+
+**Engineering Solution**: Pair explicit cursors with `BULK COLLECT INTO` and the `LIMIT` clause to fetch rows in manageable chunks (typically 100 to 1,000 rows per batch):
+
+```sql
+DECLARE
+  CURSOR c_emps IS SELECT * FROM employees;
+  TYPE type_emp_list IS TABLE OF employees%ROWTYPE;
+  v_batch type_emp_list;
+BEGIN
+  OPEN c_emps;
+  LOOP
+    -- Fetch 500 rows per single context switch
+    FETCH c_emps BULK COLLECT INTO v_batch LIMIT 500;
+    EXIT WHEN v_batch.COUNT = 0;
+
+    -- Process the batch of 500 in memory
+    FOR i IN 1..v_batch.COUNT LOOP
+      DBMS_OUTPUT.PUT_LINE('Processing ID: ' || v_batch(i).employee_id);
+    END LOOP;
+  END LOOP;
+  CLOSE c_emps;
+END;
+/
+```
+
+---
+
+## 📤 FORALL Batch DML
+
+`FORALL` is **not a loop**. It is a single batch instruction sent to the SQL engine telling it to run a DML statement across every element in a collection.
+
+```sql
+DECLARE
+  TYPE type_id_list IS TABLE OF employees.employee_id%TYPE;
+  v_ids type_id_list := type_id_list(101, 102, 103, 104, 105);
+BEGIN
+  -- Sends all 5 updates to the SQL engine in 1 single context switch
+  FORALL i IN 1..v_ids.COUNT
+    UPDATE employees
+    SET salary = salary * 1.10
+    WHERE employee_id = v_ids(i);
+END;
+/
+```
+
+### Exception Handling in FORALL (`SAVE EXCEPTIONS`)
+If item #3 in a 1,000-item `FORALL` batch fails a constraint, by default the entire `FORALL` statement aborts. Using `SAVE EXCEPTIONS` allows valid rows to commit while capturing invalid items inside `SQL%BULK_EXCEPTIONS`:
+
+```sql
+BEGIN
+  FORALL i IN 1..v_ids.COUNT SAVE EXCEPTIONS
+    UPDATE employees SET salary = salary * 1.10 WHERE employee_id = v_ids(i);
+EXCEPTION
+  WHEN OTHERS THEN
+    FOR j IN 1..SQL%BULK_EXCEPTIONS.COUNT LOOP
+      DBMS_OUTPUT.PUT_LINE('Error at index ' || SQL%BULK_EXCEPTIONS(j).ERROR_INDEX ||
+                           ': ' || SQLERRM(-SQL%BULK_EXCEPTIONS(j).ERROR_CODE));
+    END LOOP;
+END;
+/
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="Why is it critical to use the LIMIT clause when performing BULK COLLECT operations on large tables?" options={["It auto-commits database transactions.", "Without LIMIT, fetching millions of rows at once can exhaust database server PGA RAM memory.", "It prevents index corruptions.", "LIMIT forces the query engine to run on single-core CPUs."]} answerIndex={1}>
+`BULK COLLECT` fetches data into PL/SQL collections stored in Process Global Area (PGA) RAM. Fetching millions of rows simultaneously without a `LIMIT` batch size can cause Out-Of-Memory (OOM) failures.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Complete Batched Processing Pipeline">
+<ProblemDescription>
+Write a PL/SQL procedure that fetches employee IDs from department 50 in batches of 100 using `BULK COLLECT ... LIMIT 100`, updates their status to `'PROMOTED'` using `FORALL`, and commits each batch safely.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+CREATE OR REPLACE PROCEDURE promote_dept_50 IS
+  CURSOR c_dept IS SELECT employee_id FROM employees WHERE department_id = 50;
+  TYPE type_ids IS TABLE OF employees.employee_id%TYPE;
+  v_ids type_ids;
+BEGIN
+  OPEN c_dept;
+  LOOP
+    FETCH c_dept BULK COLLECT INTO v_ids LIMIT 100;
+    EXIT WHEN v_ids.COUNT = 0;
+
+    -- Execute batch update in single context switch
+    FORALL i IN 1..v_ids.COUNT
+      UPDATE employees
+      SET status = 'PROMOTED'
+      WHERE employee_id = v_ids(i);
+
+    COMMIT; -- Commit batch transaction
+  END LOOP;
+  CLOSE c_dept;
+END;
+/
+```
+</ProblemSolution>
+</Problem>

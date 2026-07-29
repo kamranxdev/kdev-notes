@@ -1,0 +1,117 @@
+---
+title: SQL Logical Execution Order & The NULL Trap
+description: Master the exact 8-step logical execution sequence of SQL queries, 3-valued boolean logic, NULL hazards, and aggregate filtering rules.
+---
+
+## 🔄 Logical Query Execution Order
+
+While developers write SQL statements starting with the `SELECT` clause, the SQL database engine evaluates clause logic in a strictly defined 8-step execution sequence:
+
+```
+  Written Syntax Order                Engine Logical Execution Order
+  1. SELECT                           1. FROM (Cross joins & table feeds)
+  2. FROM                             2. ON (Filter join conditions)
+  3. WHERE                            3. JOIN (Produce joined virtual table)
+  4. GROUP BY                         4. WHERE (Filter individual rows)
+  5. HAVING                           5. GROUP BY (Group rows into buckets)
+  6. ORDER BY                         6. HAVING (Filter aggregated buckets)
+  7. LIMIT / OFFSET                   7. SELECT (Evaluate columns & aliases)
+                                      8. DISTINCT (De-duplicate output rows)
+                                      9. ORDER BY (Sort result set)
+                                      10. LIMIT / OFFSET (Slice page result)
+```
+
+### Critical Architectural Takeaways:
+1. **The Alias Trap**: Because `WHERE` (step 4) is evaluated long before `SELECT` (step 7), you **cannot** reference column aliases created in `SELECT` inside a `WHERE` clause.
+2. **Where vs. Having**: `WHERE` filters individual rows *before* grouping occurs. `HAVING` filters group summaries *after* `GROUP BY` has aggregated the rows. You cannot use aggregate functions (`SUM`, `AVG`, `COUNT`) inside a `WHERE` clause.
+
+```sql
+-- WRONG: Fails because 'annual_salary' alias and AVG() are invalid in WHERE
+SELECT dept_id, AVG(salary) AS avg_sal, salary * 12 AS annual_salary
+FROM employees
+WHERE annual_salary > 50000 AND AVG(salary) > 4000
+GROUP BY dept_id;
+
+-- CORRECT: Fixed query with HAVING and inline math
+SELECT dept_id, AVG(salary) AS avg_sal
+FROM employees
+WHERE salary * 12 > 50000
+GROUP BY dept_id
+HAVING AVG(salary) > 4000;
+```
+
+---
+
+## 📦 The NULL Trap: 3-Valued Boolean Logic
+
+In SQL, `NULL` does not equal `0`, an empty string `""`, or false. It represents an **Unknown Value** (missing or unassigned data).
+
+* **Analogy**: *A mystery sealed box.* Comparing `box == 10` returns `UNKNOWN`. Comparing `boxA == boxB` returns `UNKNOWN` because you do not know the contents of either box.
+
+### Three-Valued Logic Truth Table
+
+| Comparison | Logical Result |
+| :--- | :--- |
+| `10 = NULL` | `UNKNOWN` |
+| `NULL = NULL` | `UNKNOWN` |
+| `NULL != NULL` | `UNKNOWN` |
+| `TRUE AND UNKNOWN` | `UNKNOWN` |
+| `FALSE AND UNKNOWN` | `FALSE` |
+| `TRUE OR UNKNOWN` | `TRUE` |
+
+```sql
+-- WRONG: Returns ZERO rows because comparisons against NULL evaluate to UNKNOWN
+SELECT * FROM employees WHERE manager_id = NULL;
+
+-- CORRECT: Uses explicitly designed NULL operators
+SELECT * FROM employees WHERE manager_id IS NULL;
+```
+
+> [!CAUTION]
+> **The NOT IN NULL Trap**:
+> Evaluating `x NOT IN (1, 2, NULL)` expands into `(x != 1 AND x != 2 AND x != NULL)`.
+> Since `x != NULL` evaluates to `UNKNOWN`, the entire `AND` expression resolves to `UNKNOWN`, returning **zero rows**! Always filter out `NULL` values when writing subqueries used in `NOT IN`.
+
+---
+
+## 🛠️ Handling NULL Values Cleanly
+
+1. `COALESCE(val1, val2, ..., default)`: Standard SQL function that returns the first non-null argument in the parameter list.
+2. `NVL(expr1, expr2)` (Oracle) / `IFNULL(expr1, expr2)` (MySQL): Replaces `expr1` with `expr2` if `expr1` is `NULL`.
+3. `NULLIF(expr1, expr2)`: Returns `NULL` if `expr1 = expr2`, avoiding division-by-zero errors.
+
+```sql
+-- Safe division avoiding division-by-zero using NULLIF and COALESCE
+SELECT product_id,
+       COALESCE(total_revenue / NULLIF(total_units, 0), 0) AS avg_unit_price
+FROM sales_summary;
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is the result of executing the query: SELECT * FROM employees WHERE emp_id NOT IN (10, 20, NULL)?" options={["Returns all employees except those with emp_id 10 and 20.", "Returns zero rows regardless of the table contents.", "Throws a compile-time syntax error.", "Ignores the NULL and returns employees except 10 and 20."]} answerIndex={1}>
+`NOT IN (10, 20, NULL)` expands to `emp_id != 10 AND emp_id != 20 AND emp_id != NULL`. Because `emp_id != NULL` yields `UNKNOWN`, the combined `AND` condition evaluates to `UNKNOWN` for all rows, resulting in an empty result set.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Handling Missing Data Aggregations">
+<ProblemDescription>
+Write a query against `sales` returning `region`, `total_sales`, and `commission_fee`. If `commission_pct` is `NULL`, assume a default commission of 5% (0.05).
+</ProblemDescription>
+<ProblemSolution>
+Use `COALESCE` to provide fallback commission percentages:
+
+```sql
+SELECT region,
+       SUM(amount) AS total_sales,
+       SUM(amount * COALESCE(commission_pct, 0.05)) AS commission_fee
+FROM sales
+GROUP BY region;
+```
+</ProblemSolution>
+</Problem>

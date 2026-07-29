@@ -1,0 +1,93 @@
+---
+title: Database Indexing, B-Trees & Query Tuning
+description: Deep dive into database index internal architecture (B-Tree structure), Clustered vs Non-Clustered indexes, EXPLAIN PLAN analysis, and sargability rules.
+---
+
+## 📖 Physical Index Architecture: Clustered vs Non-Clustered
+
+An index is an auxiliary data structure created on disk to speed up record retrieval without scanning the entire table.
+
+```
+       B-Tree Index Architecture
+                 [ Root Node: 50 ]
+                /                 \
+        [ Leaf: 10, 20, 30 ]    [ Leaf: 60, 70, 80 ]
+                  │                       │
+      (Clustered Index: Points) (Non-Clustered: RowID Pointers)
+      Actual Table Rows on Disk   Pointers to Physical Data Heap
+```
+
+### 1. Clustered Index (Primary Index)
+* **Analogy**: *A phone book sorted alphabetically by last name.* The physical data rows on disk are physically stored and ordered according to the index key.
+* **Rule**: There can be **only one clustered index per table** (since physical rows can only be ordered on disk in one sequence).
+* **Behavior**: The leaf nodes of a clustered index contain the actual data pages of the table.
+
+### 2. Non-Clustered Index (Secondary Index)
+* **Analogy**: *The index at the back of a chemistry textbook.* A separate data structure containing ordered key values alongside direct memory pointers (**RowID / RID**) pointing to physical table rows.
+* **Rule**: A table can have hundreds of non-clustered indexes.
+* **Key Lookup Overhead**: If a query requests columns not stored in the non-clustered index, the engine must perform a **Key Lookup / Bookmark Lookup** back to the physical table page to retrieve remaining attributes.
+
+---
+
+## 🔍 Understanding EXPLAIN PLAN Output
+
+Run `EXPLAIN PLAN FOR` or `EXPLAIN ANALYZE` to inspect how the Query Optimizer intends to execute a query:
+
+```sql
+EXPLAIN ANALYZE 
+SELECT emp_name, salary FROM employees WHERE dept_id = 10;
+```
+
+### Execution Operator Hierarchy (Fastest to Slowest):
+1. **Index Seek / Index Unique Scan**: The engine navigates the B-Tree directly to pinpoint matching key values in $O(\log N)$ time. (Ultra-fast).
+2. **Index Range Scan**: Navigates the B-Tree to a starting key and scans contiguous leaf nodes within a range.
+3. **Index Scan**: Traverses all leaf nodes of the index.
+4. **Full Table Scan (FTS) / Sequential Scan**: Scans every single disk data block allocated to the table from start to end. High I/O cost on large datasets.
+
+---
+
+## 🚫 Index Sargability (Search Argumentable)
+
+A query predicate is **Sargable** if the optimizer can leverage a B-Tree index to perform an Index Seek. Wrapping indexed columns in SQL functions or arithmetic operations renders the query **Non-Sargable**, forcing full table scans!
+
+```sql
+-- NON-SARGABLE (Destroys Index Seek! Engine must evaluate UPPER() on 10,000,000 rows)
+SELECT * FROM employees WHERE UPPER(last_name) = 'SMITH';
+
+-- SARGABLE FIX (Store data in normalized uppercase or use a Function-Based Index)
+SELECT * FROM employees WHERE last_name = 'SMITH';
+
+-- NON-SARGABLE (Arithmetic operation on column forces FTS)
+SELECT * FROM sales WHERE amount * 1.1 > 1000;
+
+-- SARGABLE FIX (Isolate column on one side of operator)
+SELECT * FROM sales WHERE amount > 1000 / 1.1;
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="Why can a database table have only one Clustered Index?" options={["RDBMS memory limits prohibit multiple indexes.", "A clustered index physically sorts data rows on disk, and physical table rows can only be sorted in a single sequence.", "Non-clustered indexes are restricted to numeric primary keys.", "SQL standards enforce single indexes for transactional safety."]} answerIndex={1}>
+Because a **Clustered Index** determines the physical storage order of table data blocks on disk, data rows can only be physically sorted in one order at a time.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Fixing Non-Sargable Date Filtering">
+<ProblemDescription>
+An e-commerce site query `SELECT * FROM orders WHERE YEAR(order_date) = 2026` runs in 30 seconds due to a Full Table Scan on 20 million rows, despite having a B-Tree index on `order_date`. Refactor the query to make it sargable.
+</ProblemDescription>
+<ProblemSolution>
+Rewrite the query using an explicit range predicate to enable a B-Tree Index Range Scan:
+
+```sql
+-- Sargable query leveraging index seek across 2026 date boundaries
+SELECT * FROM orders 
+WHERE order_date >= '2026-01-01 00:00:00' 
+  AND order_date <  '2027-01-01 00:00:00';
+```
+</ProblemSolution>
+</Problem>

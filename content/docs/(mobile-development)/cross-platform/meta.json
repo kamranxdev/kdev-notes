@@ -1,8 +1,11 @@
 {
-  "title": "Cross-Platform Frameworks",
+  "title": "Cross-Platform Development",
+  "icon": "Globe",
   "pages": [
+    "index",
+    "---[Smartphone]Frameworks---",
     "react-native",
-    "expo",
-    "flutter"
+    "flutter",
+    "expo"
   ]
 }

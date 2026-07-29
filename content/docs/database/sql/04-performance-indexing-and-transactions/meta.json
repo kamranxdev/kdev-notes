@@ -1,0 +1,10 @@
+{
+  "title": "Performance, Indexing & Transactions",
+  "icon": "Zap",
+  "pages": [
+    "---[Zap]Query Optimization---",
+    "indexing-and-query-tuning",
+    "---[Workflow]ACID Transactions---",
+    "acid-transactions-and-isolation"
+  ]
+}

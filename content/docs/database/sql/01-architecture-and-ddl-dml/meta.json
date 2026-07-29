@@ -1,0 +1,10 @@
+{
+  "title": "Architecture & Schema Design",
+  "icon": "Table",
+  "pages": [
+    "---[Database]Engine Architecture---",
+    "sql-engine-architecture",
+    "---[Table]Schema & Constraints---",
+    "schema-constraints-and-types"
+  ]
+}

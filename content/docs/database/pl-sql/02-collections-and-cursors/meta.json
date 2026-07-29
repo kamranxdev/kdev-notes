@@ -1,0 +1,10 @@
+{
+  "title": "Collections & Cursors",
+  "icon": "Layers",
+  "pages": [
+    "---[Layers]Data Structures---",
+    "collections-and-records",
+    "---[Filter]Cursor Management---",
+    "cursors-and-ref-cursors"
+  ]
+}

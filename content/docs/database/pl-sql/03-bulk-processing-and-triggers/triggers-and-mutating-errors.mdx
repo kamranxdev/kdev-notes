@@ -1,0 +1,117 @@
+---
+title: Database Triggers & Resolving Mutating Table Errors (ORA-04091)
+description: Detailed technical guide to Oracle database triggers, row-level vs statement-level firing, pseudo-records (:OLD/:NEW), mutating table exceptions, and Compound Triggers.
+---
+
+## ⚡ Database Trigger Classification
+
+A trigger is a named PL/SQL block compiled in the database schema that automatically fires in response to specific DML events (`INSERT`, `UPDATE`, `DELETE`), DDL events, or system operations.
+
+```
+                                Trigger Types
+                                      │
+       ┌──────────────────────────────┴──────────────────────────────┐
+       ▼                                                             ▼
+Row-Level Triggers (`FOR EACH ROW`)                    Statement-Level Triggers
+ Fires ONCE for EVERY modified row.                     Fires ONCE per SQL statement.
+ Access to `:OLD` and `:NEW` column buffers.            NO access to `:OLD` or `:NEW`.
+ Subject to Mutating Table Errors (ORA-04091).          Safe for aggregate table queries.
+```
+
+### Pseudo-Records: `:OLD` and `:NEW`
+Inside a row-level trigger, Oracle provides two pseudo-record buffers:
+* `:OLD`: Contains original column values prior to modification (available on `UPDATE` and `DELETE`).
+* `:NEW`: Contains new column values being assigned (available on `INSERT` and `UPDATE`).
+
+---
+
+## 💥 The Mutating Table Error (ORA-04091)
+
+A **Mutating Table Error** occurs when a row-level trigger (`FOR EACH ROW`) attempts to query or read data from the exact same table that is currently undergoing modification by the triggering statement.
+
+* **Analogy**: *Pulling the rug out while standing on it.* While a row modification is mid-execution, the physical table is in an uncommitted, unstable state. Oracle throws `ORA-04091` to prevent reading inconsistent data.
+
+```sql
+-- WRONG: Raises ORA-04091 because row trigger reads table being modified!
+CREATE OR REPLACE TRIGGER trg_check_salary
+BEFORE INSERT OR UPDATE ON employees
+FOR EACH ROW
+DECLARE
+  v_avg_sal NUMBER;
+BEGIN
+  -- FAILS WITH ORA-04091: Table EMPLOYEES is mutating!
+  SELECT AVG(salary) INTO v_avg_sal FROM employees;
+  IF :NEW.salary > v_avg_sal * 2 THEN
+    RAISE_APPLICATION_ERROR(-20002, 'Salary exceeds double average!');
+  END IF;
+END;
+/
+```
+
+---
+
+## 🛡️ The Solution: Compound Triggers
+
+A **Compound Trigger** combines up to four timing sections into a single trigger structure, sharing common in-memory state across all stages of a statement:
+
+1. `BEFORE STATEMENT`: Initializes in-memory state before any rows update.
+2. `BEFORE EACH ROW`: Pre-validates row values.
+3. `AFTER EACH ROW`: **Gathers modified row IDs into memory** without querying the mutating table.
+4. `AFTER STATEMENT`: **Evaluates aggregate table logic safely** after all row updates complete and the table state stabilizes.
+
+```sql
+CREATE OR REPLACE TRIGGER trg_compound_check_salary
+FOR UPDATE OF salary ON employees
+COMPOUND TRIGGER
+  -- Shared in-memory collection to record updated IDs
+  TYPE type_id_list IS TABLE OF employees.employee_id%TYPE;
+  v_updated_ids type_id_list := type_id_list();
+
+  -- 1. Record updated row IDs without querying the table
+  AFTER EACH ROW IS
+  BEGIN
+    v_updated_ids.EXTEND;
+    v_updated_ids(v_updated_ids.LAST) := :NEW.employee_id;
+  END AFTER EACH ROW;
+
+  -- 2. Execute table summary checks after the table is stable
+  AFTER STATEMENT IS
+    v_total_salary NUMBER;
+  BEGIN
+    SELECT SUM(salary) INTO v_total_salary FROM employees;
+    DBMS_OUTPUT.PUT_LINE('New Total Salary Pool: ' || v_total_salary);
+  END AFTER STATEMENT;
+END;
+/
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="Why does a row-level trigger raise ORA-04091 (Mutating Table Error) when trying to run SELECT SUM(salary) FROM employees?" options={["Triggers cannot use SQL aggregate functions.", "The table is undergoing active row modifications and is in an unstable state while the row trigger executes.", "Triggers execute outside database memory limits.", "Row triggers require DDL permissions."]} answerIndex={1}>
+Row-level triggers execute while individual row changes are mid-flight. At that instant, the table is "mutating" (unstable). Querying the entire table inside a row-level trigger triggers an `ORA-04091` error to prevent reading inconsistent data.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Audit Trigger capturing :OLD and :NEW values">
+<ProblemDescription>
+Write an `AFTER UPDATE` row-level trigger on `employees` that logs salary changes into `salary_audit` (`emp_id`, `old_salary`, `new_salary`, `change_date`) whenever an employee's salary changes.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+CREATE OR REPLACE TRIGGER trg_audit_salary_change
+AFTER UPDATE OF salary ON employees
+FOR EACH ROW
+WHEN (OLD.salary != NEW.salary OR (OLD.salary IS NULL AND NEW.salary IS NOT NULL))
+BEGIN
+  INSERT INTO salary_audit (emp_id, old_salary, new_salary, change_date)
+  VALUES (:OLD.employee_id, :OLD.salary, :NEW.salary, SYSDATE);
+END;
+/
+```
+</ProblemSolution>
+</Problem>

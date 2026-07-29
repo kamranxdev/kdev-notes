@@ -1,0 +1,42 @@
+---
+title: Functional Streams API & Lambdas
+description: Master Java Streams API assembly line pipeline, lazy intermediate operations, terminal collectors, and functional programming constructs.
+---
+
+### 1. Streams API Mechanics
+
+The Streams API processes collections declaratively as a pipeline assembly line.
+
+```
+  Source Data ──► filter() ──► map() ──► collect() (Terminal)
+  [Conveyor Belt]  (Lazy)      (Lazy)    (Triggers execution)
+```
+
+*   **Intermediate Operations**: Lazy operations that transform a stream and return a new stream (e.g., `filter()`, `map()`, `sorted()`). They do not execute until a terminal operation is invoked.
+*   **Terminal Operations**: Produce a side-effect or concrete result (e.g., `collect()`, `forEach()`, `reduce()`). Executing a terminal operation consumes the stream pipeline.
+
+---
+
+### 2. Stream Example: Grouping & Collectors
+
+```java
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class StreamPipelineDemo {
+    public record Transaction(String category, double amount) {}
+
+    public static Map<String, Double> getTotalPerCategory(List<Transaction> txs) {
+        return txs.stream()
+            .filter(t -> t.amount() > 0.0) // Filter invalid amounts
+            .collect(Collectors.groupingBy(
+                Transaction::category,
+                Collectors.summingDouble(Transaction::amount)
+            ));
+    }
+}
+```
+
+<Quiz question="What distinguishes an Intermediate stream operation (e.g., filter, map) from a Terminal operation?" options={["Intermediate operations execute immediately when called.","Intermediate operations are lazy and do not process data until a Terminal operation triggers execution.","Terminal operations return a new Stream.","Intermediate operations can only run on parallel streams."]} answerIndex={1}>
+Intermediate operations are lazy; they construct the execution pipeline but do not evaluate elements until a Terminal operation is invoked.
+</Quiz>

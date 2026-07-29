@@ -1,0 +1,11 @@
+{
+  "title": "OOP & Collections",
+  "icon": "Boxes",
+  "pages": [
+    "---[Boxes]Type System---",
+    "oop-semantics-records-sealed",
+    "generics-type-erasure",
+    "---[Layers]Collections---",
+    "collections-framework-internals"
+  ]
+}

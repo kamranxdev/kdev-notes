@@ -1,6 +1,9 @@
 {
-  "title": "Frameworks",
+  "title": "Web Frameworks",
+  "icon": "Code2",
   "pages": [
+    "index",
+    "---[Code]Frontend Frameworks---",
     "react",
     "angular"
   ]

@@ -1,0 +1,10 @@
+{
+  "title": "Architecture & Core Blocks",
+  "icon": "Server",
+  "pages": [
+    "---[Server]Engine & Context---",
+    "plsql-architecture-and-context-switches",
+    "---[Code]Block Structure---",
+    "block-structure-variables-and-anchors"
+  ]
+}

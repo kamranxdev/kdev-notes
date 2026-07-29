@@ -1,0 +1,67 @@
+---
+title: Exception Handling & Resource Safety
+description: Comprehensive guide to Java Throwable hierarchy, checked vs unchecked exceptions, try-catch-finally mechanics, and try-with-resources resource safety.
+---
+
+### 1. The Throwable Hierarchy
+
+In Java, all errors and exceptions derive from the base class `java.lang.Throwable`.
+
+```
+                    Throwable Hierarchy
+                       ┌───────────┐
+                       │ Throwable │
+                       └─────┬─────┘
+                 ┌───────────┴───────────┐
+           ┌─────▼─────┐           ┌─────▼─────┐
+           │   Error   │           │ Exception │
+           └───────────┘           └─────┬─────┘
+                               ┌─────────┴─────────┐
+                         ┌─────▼─────┐       ┌─────▼────────────┐
+                         │ Checked   │       │ RuntimeException │
+                         │ Exception │       │   (Unchecked)    │
+                         └───────────┘       └──────────────────┘
+```
+
+1.  **Error**: Serious JVM-level failures (e.g., `OutOfMemoryError`, `StackOverflowError`). Applications should not attempt to catch or handle `Error`.
+2.  **Checked Exceptions**: Inherit from `Exception` (excluding `RuntimeException`). The compiler forces callers to handle checked exceptions using `try-catch` or declare them in the method signature (`throws`). Used for recoverable external failures (e.g., `IOException`, `SQLException`).
+3.  **Unchecked Exceptions**: Inherit from `RuntimeException` (e.g., `NullPointerException`, `IndexOutOfBoundsException`, `IllegalArgumentException`). Caused by programming bugs or logic flaws. The compiler does not enforce explicit handling.
+
+---
+
+### 2. Best Practices for Catching & Handling Exceptions
+
+*   **Never Swallowing Exceptions**: Avoid empty catch blocks (`catch (Exception e) {}`), which mask runtime bugs and prevent debugging.
+*   **Specific Catch Blocks**: Catch specific exceptions before broader parent exceptions.
+*   **Preserving Stack Traces**: Pass the original cause when wrapping exceptions (`throw new CustomException("Failed", cause);`).
+
+---
+
+### 3. Resource Safety: `try-with-resources`
+
+Introduced in Java 7, **`try-with-resources`** automatically closes resources that implement the `java.lang.AutoCloseable` or `java.io.Closeable` interface upon block exit (whether normally or via exception).
+
+```java
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+public class ResourceDemo {
+    public static void readFile(String path) {
+        // Resource initialized in try header is automatically closed
+        try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+            String line = br.readLine();
+            System.out.println("First Line: " + line);
+        } catch (IOException e) {
+            System.err.println("File read failed: " + e.getMessage());
+        }
+    }
+}
+```
+
+> [!TIP]
+> In Java 9+, effectively final resources declared outside the `try(...)` header can also be passed directly into the try-with-resources statement.
+
+<Quiz question="Which of the following is a checked exception that must be declared or caught at compile time?" options={["NullPointerException","IllegalArgumentException","IOException","ArrayIndexOutOfBoundsException"]} answerIndex={2}>
+`IOException` inherits directly from `Exception` (and not `RuntimeException`), making it a checked exception.
+</Quiz>

@@ -1,0 +1,110 @@
+---
+title: PL/SQL Performance Tuning, Dynamic SQL & Best Practices
+description: Master Dynamic SQL (`EXECUTE IMMEDIATE`), compiler optimizations (`NOCOPY`), function result caching (`RESULT_CACHE`), and enterprise PL/SQL best practices.
+---
+
+## ⚡ Dynamic SQL Execution (`EXECUTE IMMEDIATE`)
+
+Dynamic SQL enables building and compiling SQL queries dynamically at runtime as strings.
+
+* **Primary Use Cases**: Executing DDL statements (`CREATE TABLE`, `TRUNCATE`), parameterizing table/column names, or writing flexible reporting search screens.
+* **Security & Performance Rule**: Always use **Bind Variables (`USING`)** instead of string concatenation to eliminate **SQL Injection** security vulnerabilities and allow the Shared Pool to reuse execution plans!
+
+```sql
+-- WRONG: VULNERABLE to SQL Injection & forces hard-parsing on every call!
+-- EXECUTE IMMEDIATE 'UPDATE employees SET salary = ' || v_sal || ' WHERE id = ' || v_id;
+
+-- CORRECT: Uses Bind Variables (USING clause)
+DECLARE
+  v_sql VARCHAR2(200);
+  v_sal NUMBER := 85000;
+  v_id  NUMBER := 101;
+BEGIN
+  v_sql := 'UPDATE employees SET salary = :1 WHERE employee_id = :2';
+  EXECUTE IMMEDIATE v_sql USING v_sal, v_id;
+END;
+/
+```
+
+---
+
+## 🚀 Advanced Performance Optimizations
+
+### 1. The `NOCOPY` Parameter Hint
+By default, PL/SQL passes `OUT` and `IN OUT` parameters by **Value** (allocates a copy of the parameter in memory and copies it back upon completion). For large collections containing 100,000 items, parameter copying incurs huge CPU and memory overhead!
+
+* Specifying `NOCOPY` forces parameter passing by **Reference** (pointer pass), avoiding memory duplication:
+
+```sql
+TYPE type_big_tab IS TABLE OF VARCHAR2(4000);
+
+-- Passes large collection by pointer reference (ultra-fast)
+PROCEDURE process_data(p_data IN OUT NOCOPY type_big_tab) IS
+BEGIN
+  -- Direct memory manipulation without copy overhead
+  NULL;
+END;
+/
+```
+
+### 2. Function Result Cache (`RESULT_CACHE`)
+Tells the Oracle database engine to cache function output results in the Shared Pool RAM indexed by parameter input values. If the function is invoked again with identical input parameters, Oracle returns the cached result instantly without executing the function body or running SQL statements!
+
+```sql
+CREATE OR REPLACE FUNCTION get_dept_headcount (
+    p_dept_id IN NUMBER
+) RETURN NUMBER 
+RESULT_CACHE RELIES_ON (employees) IS -- Invalidates cache if employees table updates
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO v_count FROM employees WHERE department_id = p_dept_id;
+  RETURN v_count;
+END;
+/
+```
+
+---
+
+## 📋 Enterprise PL/SQL Engineering Best Practices Checklist
+
+1. **Avoid Row-by-Row Processing**: Replace cursor loops with single set-based SQL statements or `BULK COLLECT ... LIMIT` / `FORALL`.
+2. **Anchor Variable Types**: Always use `%TYPE` and `%ROWTYPE` instead of hardcoding data types.
+3. **Bind Dynamic SQL**: Always pass dynamic parameters via `EXECUTE IMMEDIATE ... USING` to prevent SQL Injection and optimize Shared Pool memory.
+4. **Encapsulate Logic in Packages**: Group related procedures inside package bodies to benefit from Shared Pool memory pinning and modular encapsulation.
+5. **Handle Exceptions Explicitly**: Avoid empty `WHEN OTHERS THEN NULL;` handlers which swallow application runtime errors silently.
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is the primary benefit of adding the NOCOPY hint to an IN OUT collection parameter in PL/SQL?" options={["It encrypts the collection contents.", "It forces parameter passing by Reference instead of by Value, eliminating expensive memory copying of large collections.", "It auto-commits the transaction after parameter evaluation.", "It converts the parameter into a JSON string."]} answerIndex={1}>
+By default, `IN OUT` parameters are passed by value (copied into memory buffers). Adding `NOCOPY` instructs the PL/SQL engine to pass the parameter by **Reference**, avoiding memory copying overhead when passing large collections.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Dynamic Truncate Procedure with Safety Check">
+<ProblemDescription>
+Write a PL/SQL procedure `truncate_staging_table(p_table_name IN VARCHAR2)` that validates the input table name starts with `'STAG_'` to prevent unintended schema truncation, and executes `TRUNCATE TABLE` safely using dynamic SQL.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+CREATE OR REPLACE PROCEDURE truncate_staging_table (
+    p_table_name IN VARCHAR2
+) IS
+BEGIN
+  -- Safety validation check
+  IF UPPER(p_table_name) LIKE 'STAG_%' THEN
+    -- DDL requires Dynamic SQL execution
+    EXECUTE IMMEDIATE 'TRUNCATE TABLE ' || DBMS_ASSERT.ENQUOTE_NAME(p_table_name);
+    DBMS_OUTPUT.PUT_LINE('Successfully truncated: ' || p_table_name);
+  ELSE
+    RAISE_APPLICATION_ERROR(-20005, 'Security Error: Only staging tables (STAG_%) may be truncated.');
+  END IF;
+END;
+/
+```
+</ProblemSolution>
+</Problem>

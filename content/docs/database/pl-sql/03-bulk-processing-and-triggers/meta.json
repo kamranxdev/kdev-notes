@@ -1,0 +1,10 @@
+{
+  "title": "Bulk Processing & Triggers",
+  "icon": "Workflow",
+  "pages": [
+    "---[Workflow]Bulk Operations---",
+    "bulk-collect-and-forall",
+    "---[Zap]Database Triggers---",
+    "triggers-and-mutating-errors"
+  ]
+}

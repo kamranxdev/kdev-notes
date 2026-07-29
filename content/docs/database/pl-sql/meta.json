@@ -1,0 +1,14 @@
+{
+  "title": "PL/SQL",
+  "icon": "Server",
+  "root": true,
+  "pages": [
+    "index",
+    "01-core-architecture-and-blocks",
+    "02-collections-and-cursors",
+    "03-bulk-processing-and-triggers",
+    "04-packages-transactions-and-tuning",
+    "---Official Documentation---",
+    "external:[ExternalLink][Oracle PL/SQL Reference](https://docs.oracle.com/en/database/oracle/oracle-database/)"
+  ]
+}

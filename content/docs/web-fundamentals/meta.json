@@ -1,6 +1,9 @@
 {
-  "title": "Fundamentals",
+  "title": "Web Fundamentals",
+  "icon": "Globe",
   "pages": [
+    "index",
+    "---[Code]Core Technologies---",
     "html",
     "css",
     "javascript"

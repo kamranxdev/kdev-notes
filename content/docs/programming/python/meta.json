@@ -1,0 +1,12 @@
+{
+  "title": "Python",
+  "icon": "FileCode",
+  "root": true,
+  "pages": [
+    "index",
+    "01-core-syntax",
+    "02-advanced-concepts",
+    "---Official Documentation---",
+    "external:[ExternalLink][Python 3 Documentation](https://docs.python.org/3/)"
+  ]
+}

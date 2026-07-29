@@ -1,0 +1,19 @@
+---
+title: Data Types & Control Flow
+description: Deep dive into Python primitive and collection data types, reference counting memory model, and list comprehensions.
+---
+
+### 1. Dynamic Typing & Reference Counting
+
+In Python, variables do not store values directly; they store references (pointers) to objects in memory.
+
+*   **Immutable Types**: `int`, `float`, `str`, `tuple`, `frozenset`.
+*   **Mutable Types**: `list`, `dict`, `set`, custom class instances.
+
+```python
+# Mutable object reference demo
+a = [1, 2, 3]
+b = a # Points to the same list instance in memory
+b.append(4)
+print(a) # Output: [1, 2, 3, 4]
+```

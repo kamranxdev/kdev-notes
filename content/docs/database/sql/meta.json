@@ -1,0 +1,14 @@
+{
+  "title": "SQL",
+  "icon": "Database",
+  "root": true,
+  "pages": [
+    "index",
+    "01-architecture-and-ddl-dml",
+    "02-querying-joins-and-nulls",
+    "03-window-functions-and-analytics",
+    "04-performance-indexing-and-transactions",
+    "---Official Documentation---",
+    "external:[ExternalLink][PostgreSQL Documentation](https://www.postgresql.org/docs/)"
+  ]
+}

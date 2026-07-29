@@ -1,0 +1,8 @@
+{
+  "title": "Core Syntax & Types",
+  "icon": "Code",
+  "pages": [
+    "---[Code]Language Core---",
+    "data-types-and-control-flow"
+  ]
+}

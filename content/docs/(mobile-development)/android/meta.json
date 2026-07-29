@@ -1,7 +1,9 @@
 {
-    "title": "Android",
-    "pages": [
-        "kotlin",
-        "java"
-    ]
+  "title": "Android Development",
+  "icon": "Smartphone",
+  "pages": [
+    "---[Code]Languages---",
+    "kotlin",
+    "java"
+  ]
 }

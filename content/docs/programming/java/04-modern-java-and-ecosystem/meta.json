@@ -1,0 +1,11 @@
+{
+  "title": "Modern Java & Ecosystem",
+  "icon": "Sparkles",
+  "pages": [
+    "---[Sparkles]Modern Features---",
+    "streams-api-and-functional",
+    "java8-to-21-evolution",
+    "---[Server]Enterprise Java---",
+    "spring-boot-and-enterprise"
+  ]
+}

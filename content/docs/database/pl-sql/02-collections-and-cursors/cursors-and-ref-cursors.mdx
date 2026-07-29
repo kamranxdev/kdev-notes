@@ -1,0 +1,129 @@
+---
+title: Implicit Cursors, Explicit Cursors & REF CURSOR Pointers
+description: Complete technical reference for Oracle PL/SQL cursors, explicit lifecycle states, cursor FOR loops, and dynamic REF CURSOR pointers.
+---
+
+## 🔦 What is a Database Cursor?
+
+A cursor is a work area pointer allocated by the database server to process and step through the active result set of a SQL query.
+
+* **Analogy**: *A laser pointer beam.* Instead of physically dragging a 10-ton physical file cabinet into your office RAM, you shine a laser pointer (cursor) on one file row at a time, read its contents, and advance the laser pointer to the next record.
+
+```
+                  Active Query Result Set in Database
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ Row 1: Alice   | Sales       | $90,000                          │
+  │ Row 2: Bob     | Engineering | $110,000   ◄── [ Cursor Pointer ]│
+  │ Row 3: Charlie | Marketing   | $85,000                          │
+  └─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📜 Explicit Cursor Lifecycle
+
+For multi-row SQL queries, explicit cursors provide granular procedural control over row fetching:
+
+1. **DECLARE**: Defines the cursor name and associated SQL query.
+2. **OPEN**: Allocates memory resources, evaluates bind variables, and executes the query to identify the active result set.
+3. **FETCH**: Retrieves the current row into PL/SQL target variables and advances the pointer.
+4. **CLOSE**: Releases active result set memory resources.
+
+```sql
+DECLARE
+  CURSOR c_emps IS
+    SELECT first_name, salary FROM employees WHERE department_id = 20;
+  v_name  employees.first_name%TYPE;
+  v_sal   employees.salary%TYPE;
+BEGIN
+  OPEN c_emps;
+  LOOP
+    FETCH c_emps INTO v_name, v_sal;
+    EXIT WHEN c_emps%NOTFOUND; -- Cursor Attribute Check
+    DBMS_OUTPUT.PUT_LINE('Name: ' || v_name || ', Sal: ' || v_sal);
+  END LOOP;
+  CLOSE c_emps;
+END;
+/
+```
+
+### Cursor Status Attributes:
+* `%FOUND`: Returns `TRUE` if the most recent `FETCH` successfully returned a row.
+* `%NOTFOUND`: Returns `TRUE` if the most recent `FETCH` failed to find a row.
+* `%ROWCOUNT`: Returns the total number of rows fetched so far.
+* `%ISOPEN`: Returns `TRUE` if the cursor is open in memory.
+
+---
+
+## ⚡ Cursor FOR Loops
+
+A **Cursor FOR Loop** automates the entire cursor management lifecycle (opening the cursor, fetching rows iteratively into an implicitly declared `%ROWTYPE` record, checking `%NOTFOUND`, and closing the cursor automatically upon exit):
+
+```sql
+DECLARE
+  CURSOR c_dept_emps IS SELECT first_name, salary FROM employees;
+BEGIN
+  -- Automatically OPENS cursor, FETCHES into record 'r', and CLOSES on completion
+  FOR r IN c_dept_emps LOOP
+    DBMS_OUTPUT.PUT_LINE(r.first_name || ' earns ' || r.salary);
+  END LOOP;
+END;
+/
+```
+
+---
+
+## 🔄 REF CURSOR (Dynamic Pointer Variables)
+
+A `REF CURSOR` is a pointer variable that points to a query result set dynamically at runtime. Unlike explicit static cursors, `REF CURSOR` references can be passed as parameters between procedures, functions, and client application layers (Java/Node.js).
+
+* **Strong REF CURSOR**: Declares a fixed return structure (`RETURN emp%ROWTYPE`).
+* **Weak REF CURSOR (`SYS_REFCURSOR`)**: Untyped dynamic pointer that can point to any query structure.
+
+```sql
+CREATE OR REPLACE PROCEDURE get_employees_by_dept (
+    p_dept_id IN NUMBER,
+    p_cursor  OUT SYS_REFCURSOR -- Dynamic Cursor Pointer
+) IS
+BEGIN
+  OPEN p_cursor FOR 
+    SELECT employee_id, first_name, salary 
+    FROM employees 
+    WHERE department_id = p_dept_id;
+END;
+/
+```
+
+---
+
+## ❓ Conceptual Quizzes
+
+<Quiz question="What is the key functional advantage of a SYS_REFCURSOR over a standard static EXPLICIT CURSOR?" options={["It bypasses database access security rules.", "It can be passed as a return parameter to client applications like Java/Node.js, allowing callers to fetch rows dynamically.", "It converts SQL statements into HTML code.", "It automatically commits database transactions."]} answerIndex={1}>
+`SYS_REFCURSOR` is a dynamic cursor variable pointer. It can be opened inside a database stored procedure and returned to external calling applications (e.g. Java JDBC / C# ADO.NET) to stream result set rows asynchronously.
+</Quiz>
+
+---
+
+## 💻 Practice Problems
+
+<Problem title="Problem: Dynamic Cursor Parameter Filtering">
+<ProblemDescription>
+Write a PL/SQL procedure that accepts a `p_job_id` string. If `p_job_id` is `'ALL'`, open a `SYS_REFCURSOR` for all employees. Otherwise, open the cursor filtered by `job_id = p_job_id`.
+</ProblemDescription>
+<ProblemSolution>
+```sql
+CREATE OR REPLACE PROCEDURE get_job_report (
+    p_job_id IN VARCHAR2,
+    p_result OUT SYS_REFCURSOR
+) IS
+BEGIN
+  IF p_job_id = 'ALL' THEN
+    OPEN p_result FOR SELECT employee_id, first_name, job_id FROM employees;
+  ELSE
+    OPEN p_result FOR SELECT employee_id, first_name, job_id FROM employees WHERE job_id = p_job_id;
+  END IF;
+END;
+/
+```
+</ProblemSolution>
+</Problem>

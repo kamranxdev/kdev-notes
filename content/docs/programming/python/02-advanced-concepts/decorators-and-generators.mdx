@@ -1,0 +1,27 @@
+---
+title: Decorators & Generators
+description: Master Python closures, function decorators, and memory-efficient generators using yield.
+---
+
+### 1. Function Decorators
+
+A decorator is a function that takes another function as an argument and extends its behavior without explicitly modifying it.
+
+```python
+import functools
+import time
+
+def timer_decorator(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        duration = time.perf_counter() - start
+        print(f"{func.__name__} executed in {duration:.4f}s")
+        return result
+    return wrapper
+
+@timer_decorator
+def compute_sum(n):
+    return sum(range(n))
+```
