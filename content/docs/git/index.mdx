@@ -1,5 +1,5 @@
 ---
-title: "Git Architecture & Distributed Engine Hub "
+title: "Git Architecture & Distributed Engine Hub (The Masterclass Manual)"
 description: An analogy-driven, professional-grade guide to Git version control architecture, covering content-addressable storage, distributed DAG mechanics, packfiles, branching strategies, and internal engine pipelines.
 ---
 
@@ -79,6 +79,60 @@ graph TD
 
 ---
 
+## CLI Command Masterclass: Setup, Identity & Status
+
+### 1. `git init` & `git clone`
+
+*   **Mental Model**: `git init` constructs a new empty Multiverse Vault (`.git` folder). `git clone` downloads an entire parallel Multiverse Vault over the network and sets up remote tracking branches.
+*   **Essential Flags**:
+
+| Command Flag | Operational Purpose |
+| :--- | :--- |
+| `git init --initial-branch=main` | Initializes repository setting default branch name to `main` explicitly. |
+| `git clone --depth 1 <url>` | **Shallow Clone**: Downloads only the latest commit snapshot, reducing download size by up to 95%. |
+| `git clone --bare <url>` | Downloads object database without creating a Working Directory workspace (ideal for central servers). |
+
+```bash
+# Production Clone Commands
+$ git clone --depth 1 --single-branch -b main https://github.com/org/repo.git
+```
+
+---
+
+### 2. `git config`
+
+*   **Mental Model**: Manages identity and configuration levels across system (`/etc/gitconfig`), user (`~/.gitconfig`), and local repository (`.git/config`).
+
+```bash
+# Global Developer Identity Setup
+$ git config --global user.name "Alex Mercer"
+$ git config --global user.email "alex@example.com"
+$ git config --global core.editor "vim"
+$ git config --global core.autocrlf input # Normalizes line endings (LF on Linux/macOS)
+
+# Inspect Active Configuration Cascade
+$ git config --list --show-origin
+```
+
+---
+
+### 3. `git status` & `git log`
+
+*   **Mental Model**: `git status` compares the triple state (Working Directory vs. Index vs. HEAD). `git log` traverses the DAG backwards from HEAD through parent pointers.
+
+```bash
+# Compact Production Status
+$ git status -s -b
+
+# High-Density DAG Graph Visualization Log
+$ git log --graph --oneline --all --decorate
+
+# Search Commits modifying specific file or function
+$ git log -S "function_name" --stat
+```
+
+---
+
 ## Architectural Deep-Dive & Engineering Concepts
 
 ### Content-Addressable Storage Engine Mechanics
@@ -94,21 +148,6 @@ SHA-1 Hash = SHA1(type + " " + size + "\0" + content)
 $ echo -en "blob 12\0Hello World\n" | sha1sum
 557db03de997c86a4a028e1ebd3a1ceb225be238
 ```
-
-### Deduplication Engine Mechanics
-*   **Content-Based Addressing**: If two identical 50 MB files exist in different directories (`/assets/video1.mp4` and `/docs/copy.mp4`), Git stores **only one single Blob object** inside `.git/objects/55/7db03...`.
-*   **Directory Mapping**: Tree objects map distinct filenames to the exact same SHA-1 hash key, drastically reducing repository disk footprint.
-
-```text
-Tree Object (/src)
-  ├── 100644 blob 557db03de997c86a4a028e1ebd3a1ceb225be238    video1.mp4
-  └── 100644 blob 557db03de997c86a4a028e1ebd3a1ceb225be238    copy.mp4
-```
-
-<Callout type="info">
-**Why Commit Hashes Change When You Amend Log Messages**  
-Because a Commit object includes its parent commit hash, root tree hash, author timestamp, and commit message string inside its payload, altering even a single character in a commit message changes the resulting SHA-1 hash key completely. This causes a cascade where all child commits downstream receive new parent SHA hashes.
-</Callout>
 
 ---
 

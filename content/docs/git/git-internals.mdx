@@ -1,5 +1,5 @@
 ---
-title: "Git Object Model & DAG Mechanics "
+title: "Git Object Model & DAG Mechanics (The Masterclass Manual)"
 description: An analogy-driven, professional-grade guide to Git object model internals, covering Blobs, Trees, Commits, Tags, .git filesystem layout, SHA-1/SHA-256 hashing, zlib compression, and packfile delta optimization.
 ---
 
@@ -77,78 +77,42 @@ graph TD
 
 ---
 
-## Architectural Deep-Dive & Engineering Concepts
+## CLI Command Masterclass: Staging & Plumbing Operations
 
-### 1. Raw Binary Inspection of a Git Commit
+### 1. `git add` & `git commit`
 
-Dissecting the byte structure of a Git commit object via plumbing commands:
+*   **Mental Model**: `git add` hashes file contents into `.git/objects` as Blobs and updates `.git/index`. `git commit` constructs a Tree object from `.git/index` and creates a Commit object node.
 
-```bash
-# 1. Get current HEAD commit SHA
-$ git rev-parse HEAD
-c108a9f318d18b329431e21e428f522301988942
-
-# 2. Inspect object size and header
-$ git cat-file -s HEAD
-248
-
-# 3. Read raw decompressed commit contents
-$ git cat-file -p HEAD
-tree 4b2e8f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e
-parent 99f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9
-author Alex Mercer <alex@example.com> 1776100000 +0000
-committer Alex Mercer <alex@example.com> 1776100000 +0000
-
-Feature: Implement order validation pipeline
-```
-
-```text
-+-------------------------------------------------------------------------------+
-| Commit Object Internal Layout                                                 |
-+-------------------------------------------------------------------------------+
-| Header  : "commit 248\0"                                                       |
-| Payload : tree 4b2e8f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e                        |
-|           parent 99f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9                     |
-|           author Alex Mercer <alex@example.com> 1776100000 +0000              |
-|           committer Alex Mercer <alex@example.com> 1776100000 +0000           |
-|                                                                               |
-|           Feature: Implement order validation pipeline                        |
-+-------------------------------------------------------------------------------+
-```
-
-<Callout type="info">
-**Author vs. Committer Metadata**  
-Git tracks two identity fields:
-*   **Author**: The developer who wrote the code changes (`GIT_AUTHOR_NAME`).
-*   **Committer**: The developer/CI bot who applied or rebased the commit into the branch (`GIT_COMMITTER_NAME`).
-During `git rebase` or `git cherry-pick`, Author metadata is preserved while Committer metadata is updated to your identity.
-</Callout>
-
-### 2. Packfile Delta Compression Engine Mechanics
-
-To optimize disk footprint, Git consolidates loose objects into packfiles using sliding-window delta compression:
-
-```text
-Loose Objects Storage (In-Efficient)
-File v1 (1 MB) -> [Loose Object 1: 1 MB]
-File v2 (1 MB) -> [Loose Object 2: 1 MB] (only 1 line changed!)
-Total Size: 2 MB
-
-Packfile Delta Storage (Hyper-Efficient)
-[Packfile: 1.001 MB]
- ├── Base Object (v2): 1 MB
- └── Delta Object (v1): Pointer to v2 + 1 KB diff instruction ("Delete line 40")
-```
+| Flag / Option | Operational Purpose |
+| :--- | :--- |
+| `git add -p` | **Patch Mode**: Interactive prompt allowing developers to stage specific hunks or lines. |
+| `git add -u` | Stages modified and deleted tracked files, ignoring untracked new files. |
+| `git commit --amend` | Overwrites current HEAD commit with staged changes and updates commit message. |
 
 ```bash
-# Manually Trigger Packfile Garbage Collection
+# Interactive Patch Staging
+$ git add -p src/App.java
+
+# Amend Commit without changing message
+$ git commit --amend --no-edit
+```
+
+---
+
+### 2. Plumbing Commands (`git cat-file`, `git hash-object`, `git gc`)
+
+*   **Mental Model**: Plumbing commands interact directly with the object database engine without porcelain CLI abstractions.
+
+```bash
+# 1. Compute SHA-1 hash and write Blob to database
+$ SHA=$(echo "production config" | git hash-object -w --stdin)
+
+# 2. Inspect object type and pretty-print content
+$ git cat-file -t $SHA # Output: blob
+$ git cat-file -p $SHA # Output: production config
+
+# 3. Force Aggressive Packfile Garbage Collection
 $ git gc --aggressive --prune=now
-Enumerating objects: 12500, done.
-Counting objects: 100% (12500/12500), done.
-Delta compression using up to 16 threads
-Compressing objects: 100% (4500/4500), done.
-Writing objects: 100% (12500/12500), done.
-Total 12500 (delta 7800), reused 0 (delta 0)
 ```
 
 ---

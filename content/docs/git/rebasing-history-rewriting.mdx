@@ -1,5 +1,5 @@
 ---
-title: "Interactive Rebasing & History Rewriting "
+title: "Interactive Rebasing & History Rewriting (The Masterclass Manual)"
 description: An analogy-driven, professional-grade guide to Git interactive rebasing, history rewriting, commit squashing, Reflog mechanics, and Git reset modes (soft, mixed, hard).
 ---
 
@@ -84,6 +84,48 @@ graph TD
 
 ---
 
+## CLI Command Masterclass: History Rewriting & Resetting
+
+### 1. `git rebase` & `git cherry-pick`
+
+*   **Mental Model**: `git rebase` un-hooks a sequence of commits and re-applies them onto a new parent. `git cherry-pick` copies a single commit patch from anywhere in the DAG onto the current branch tip.
+
+```bash
+# 1. Rebase current feature branch onto updated main
+$ git rebase main
+
+# 2. Interactive rebase over last 3 commits
+$ git rebase -i HEAD~3
+
+# 3. Abort a paused rebase safely
+$ git rebase --abort
+
+# 4. Cherry-pick a specific hotfix commit by SHA
+$ git cherry-pick c108a9f
+```
+
+---
+
+### 2. `git reset` & `git reflog`
+
+*   **Mental Model**: `git reset` moves the branch pointer backwards in time. `git reflog` acts as a transaction log of all pointer movements.
+
+```bash
+# 1. Soft Reset: Move HEAD back 1 commit, keeping changes staged
+$ git reset --soft HEAD~1
+
+# 2. Hard Reset: Move HEAD back 1 commit, wiping all unstaged edits (CAUTION!)
+$ git reset --hard HEAD~1
+
+# 3. Inspect Reference Transaction Log
+$ git reflog
+
+# 4. Recover lost commit after hard reset
+$ git reset --hard HEAD@{1}
+```
+
+---
+
 ## Architectural Deep-Dive & Engineering Concepts
 
 ### The Golden Rule of Rebasing
@@ -93,28 +135,6 @@ graph TD
 **Never rebase commits that have already been pushed to a shared public remote branch.**  
 `git rebase` generates new SHA-1 hashes for replayed commits. Rebasing public commits forces team members' local DAGs out of sync, causing duplicate commit chains and complex merge conflicts upon pulling.
 </Callout>
-
-### Interactive Rebase Instruction Execution (`git rebase -i`)
-
-Executing interactive rebase over local commits:
-
-```bash
-# Launch interactive rebase for the last 4 commits
-$ git rebase -i HEAD~4
-```
-
-```text
-# Interactive Rebase Instruction File
-pick a1b2c3d Fix typo in payment validator
-squash e5f6g7h Add unit tests for payment validator
-fixup i9j0k1l WIP work on payments
-reword m2n3o4p Refactor payment gateway architecture
-```
-
-*   **Step 1**: Commit `a1b2c3d` is picked as base.
-*   **Step 2**: Commit `e5f6g7h` is squashed into `a1b2c3d` (combines code and prompts for combined message).
-*   **Step 3**: Commit `i9j0k1l` is fixed up into `a1b2c3d` (combines code and discards WIP message).
-*   **Step 4**: Commit `m2n3o4p` is reworded (opens editor to update log text).
 
 ### Emergency Commit Recovery via Reflog
 

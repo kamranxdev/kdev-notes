@@ -1,5 +1,5 @@
 ---
-title: "Production Troubleshooting, Bisect & Recovery "
+title: "Production Troubleshooting, Bisect & Recovery (The Masterclass Manual)"
 description: An analogy-driven, professional-grade guide to production Git troubleshooting, automated binary search bug isolation via git bisect, multi-checkout workflows using git worktree, detached HEAD recovery, and repository garbage collection.
 ---
 
@@ -76,58 +76,45 @@ graph TD
 
 ---
 
-## Architectural Deep-Dive & Engineering Concepts
+## CLI Command Masterclass: Remote Sync & Production Recovery
 
-### 1. Automated Regression Hunting with `git bisect run`
+### 1. `git push`, `git fetch` & `git pull`
 
-Automating bug isolation using a test script across commits:
+*   **Mental Model**: `git fetch` downloads remote objects and updates `refs/remotes/` without altering your local Working Directory. `git push` sends local DAG nodes to a remote repository.
 
-```bash
-# 1. Start bisect session
-$ git bisect start
-
-# 2. Mark current HEAD as BAD
-$ git bisect bad HEAD
-
-# 3. Mark last known good tag as GOOD
-$ git bisect good v2.4.0
-
-# 4. Automate execution using a test script!
-# Exit Code 0 = GOOD (PASS), Exit Code 1-127 = BAD (FAIL)
-$ git bisect run npm test
-```
-
-### 2. Multi-Branch Parallel Workspaces via `git worktree`
-
-Shared `.git` object store model for concurrent directory checkouts:
-
-```text
-/mnt/workspace/kdev-notes/              <-- Main Directory (.git/ lives here)
-├── src/
-└── content/
-
-/mnt/workspace/kdev-notes-hotfix/       <-- Linked Worktree (.git file points to main .git)
-├── src/
-└── content/
-```
+| Flag / Option | Operational Purpose |
+| :--- | :--- |
+| `git push --force-with-lease` | **Safe Force Push**: Overwrites remote branch ONLY if no teammate pushed new commits in the interim. |
+| `git fetch --prune` | Deletes local remote-tracking branches (`origin/feature`) that were deleted on the remote server. |
+| `git pull --rebase` | Fetches remote changes and replays local un-pushed commits on top, avoiding 2-parent merge commits. |
 
 ```bash
-# 1. Add linked worktree directory checked out to "hotfix/security"
-$ git worktree add ../kdev-notes-hotfix hotfix/security
+# Production Safe Force Push
+$ git push origin feature/my-branch --force-with-lease
 
-# 2. Work in hotfix directory independently without switching main workspace
-$ cd ../kdev-notes-hotfix
-$ git status
-
-# 3. Remove linked worktree directory when finished
-$ cd ../kdev-notes
-$ git worktree remove ../kdev-notes-hotfix
+# Clean Pull with Rebase & Remote Pruning
+$ git fetch --prune
+$ git pull --rebase origin main
 ```
 
-<Callout type="tip">
-**Why `git worktree` Saves Disk Space and RAM**  
-Cloning a 5 GB repository 3 times consumes 15 GB of disk space. Creating linked worktrees via `git worktree add` consumes **zero extra object space**, because all worktrees read from the single original `.git/objects` database.
-</Callout>
+---
+
+### 2. `git worktree`, `git stash` & `git clean`
+
+*   **Mental Model**: `git worktree` creates linked directory checkouts sharing `.git/objects`. `git stash` pushes uncommitted edits onto a temporary stack. `git clean` removes untracked garbage files.
+
+```bash
+# 1. Add linked worktree folder for an urgent hotfix
+$ git worktree add ../repo-hotfix hotfix/security-fix
+
+# 2. Stash uncommitted workspace changes with message
+$ git stash push -m "WIP login form edits"
+$ git stash list
+$ git stash pop # Re-applies latest stash and removes it from stack
+
+# 3. Clean untracked files and directories forcefully
+$ git clean -fd
+```
 
 ---
 

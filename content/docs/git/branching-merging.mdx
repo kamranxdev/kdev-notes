@@ -1,5 +1,5 @@
 ---
-title: "Branching, Merging & Strategy Mechanics "
+title: "Branching, Merging & Strategy Mechanics (The Masterclass Manual)"
 description: An analogy-driven, professional-grade guide to Git branching, fast-forward merges, 3-way merges, common ancestor calculations, ORT merge engine architecture, and merge conflict resolution.
 ---
 
@@ -76,52 +76,38 @@ graph TD
 
 ---
 
-## Architectural Deep-Dive & Engineering Concepts
+## CLI Command Masterclass: Branching & Merging
 
-### 3-Way Merge Mathematics & Common Ancestors
+### 1. `git branch` & `git switch`
 
-Git computes merge diffs using the **Best Common Ancestor** commit ($Base$):
+*   **Mental Model**: `git branch` manipulates 41-byte text reference files under `.git/refs/heads/`. `git switch` moves the `.git/HEAD` cursor pointer to a target branch file.
 
-```text
-Merge Diff = (Ours - Base) + (Theirs - Base)
+| Command & Flag | Operational Purpose |
+| :--- | :--- |
+| `git branch -a` | Lists all local and remote-tracking branches (`refs/remotes/origin/`). |
+| `git switch -c <name>` | Creates a new branch and instantly flips HEAD cursor to it (replaces `git checkout -b`). |
+| `git branch -d <name>` | Safe branch deletion (refuses if branch has unmerged commits). |
+| `git branch -D <name>` | **Force Delete**: Deletes branch reference file regardless of merge status. |
+
+---
+
+### 2. `git merge` & `git diff`
+
+*   **Mental Model**: `git merge` executes the 3-Way ORT engine to integrate commit trees. `git diff` calculates line-by-line diffs between tree snapshots.
+
+```bash
+# 1. Force Fast-Forward Merge Only (Fails if branch diverged!)
+$ git merge --ff-only feature/login
+
+# 2. Force explicit 2-Parent Merge Commit
+$ git merge --no-ff feature/payments
+
+# 3. Abort a paused merge conflict cleanly
+$ git merge --abort
+
+# 4. View Staged Diffs prepared in Index
+$ git diff --staged
 ```
-
-```text
-          Base (B) : "user_role = 'GUEST'"
-         /        \
-        /          \
-Ours (O):           Theirs (T):
-"user_role = 'ADMIN'" "user_role = 'GUEST'"
-(Modified!)           (Untouched)
-        \          /
-         \        /
-       Result: "user_role = 'ADMIN'" (Ours applied cleanly!)
-```
-
-### Conflict Marker Anatomy
-
-When both branches modify identical lines differently, Git inserts conflict markers:
-
-```java
-public class UserPermission {
-    public String getRole() {
-<<<<<<< HEAD (Ours / Current Branch)
-        return "ROLE_ADMIN_SUPERVISOR";
-=======
-        return "ROLE_ENTERPRISE_LEAD";
->>>>>>> feature/auth-upgrade (Theirs / Incoming Branch)
-    }
-}
-```
-
-*   `<<<<<<< HEAD`: Marks start of current branch code (`Ours`).
-*   `=======`: Divider between conflicting edits.
-*   `>>>>>>> feature/auth-upgrade`: Marks end of incoming branch code (`Theirs`).
-
-<Callout type="warning">
-**The ORT Merge Engine in Modern Git**  
-Starting in Git 2.34, Git replaced the legacy `recursive` merge engine with **ORT** (*Ostensibly Recursive's Twin*). ORT is up to 500x faster on large repositories because it defers file rename detection and avoids writing temporary tree objects to disk during intermediate merge steps.
-</Callout>
 
 ---
 

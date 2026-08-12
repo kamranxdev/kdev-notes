@@ -1,5 +1,5 @@
 ---
-title: "Docker Compose & Production Orchestration "
+title: "Docker Compose & Production Orchestration (The Masterclass Manual)"
 description: An analogy-driven, professional-grade guide to Docker Compose v2, multi-container stack orchestration, service dependency ordering, healthcheck probes, network isolation, and production resource quotas.
 ---
 
@@ -79,6 +79,41 @@ graph TD
 
 ---
 
+## CLI Command Masterclass: Docker Compose v2 CLI Operations
+
+### 1. `docker compose up` & `docker compose down`
+
+*   **Mental Model**: Operates over the entire multi-container application stack as a unified lifecycle unit.
+
+| Command & Flag | Operational Purpose |
+| :--- | :--- |
+| `docker compose up -d` | Launches all stack services in detached background mode. |
+| `docker compose up -d --build` | Forces image rebuilding before launching stack containers. |
+| `docker compose down` | Stops and removes stack containers and default project networks. |
+| `docker compose down -v` | **Full Stack Teardown**: Stops containers, removes networks, and **purges stack Named Volumes**. |
+
+---
+
+### 2. `docker compose ps`, `docker compose logs` & `docker compose exec`
+
+*   **Mental Model**: Manages runtime introspection, streaming log aggregation, and remote command execution across stack services.
+
+```bash
+# 1. Validate docker-compose.yml syntax and environment variable resolution
+$ docker compose config
+
+# 2. View stack service status and healthcheck states
+$ docker compose ps
+
+# 3. Tail real-time aggregated logs for a specific service
+$ docker compose logs -f api
+
+# 4. Execute command inside a stack service container
+$ docker compose exec db pg_isready -U app_user
+```
+
+---
+
 ## Architectural Deep-Dive & Engineering Concepts
 
 ### Production Multi-Container Manifest (`docker-compose.yml`)
@@ -106,7 +141,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - backend-net
-    # Active Healthcheck Probe
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U app_user -d app_db"]
       interval: 5s
@@ -135,7 +169,6 @@ services:
     networks:
       - backend-net
       - frontend-net
-    # Wait for DB to be HEALTHY (Not just started!)
     depends_on:
       db:
         condition: service_healthy
@@ -168,12 +201,9 @@ services:
       api:
         condition: service_healthy
 
-# -------------------------------------------------------------
-# ISOLATED NETWORKS & VOLUMES SPECIFICATION
-# -------------------------------------------------------------
 networks:
   backend-net:
-    internal: true # Air-gapped network: No outward internet access!
+    internal: true
   frontend-net:
 
 volumes:
@@ -183,11 +213,6 @@ secrets:
   db_password:
     file: ./secrets/db_password.txt
 ```
-
-<Callout type="warning">
-**The `depends_on` Race Condition Trap**  
-Writing `depends_on: [db]` merely waits for the database container *process* to start. PostgreSQL takes 5–10 seconds to initialize socket connections! If the API connects immediately, it crashes. Always pair `depends_on` with `condition: service_healthy` and an active `healthcheck` probe.
-</Callout>
 
 ---
 

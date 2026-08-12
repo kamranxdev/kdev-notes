@@ -1,5 +1,5 @@
 ---
-title: "Docker Engine Architecture & Kernel Mechanics "
+title: "Docker Engine Architecture & Kernel Mechanics (The Masterclass Manual)"
 description: An analogy-driven, professional-grade guide to Docker Engine architecture, covering dockerd, containerd, runC, OCI specs, Linux namespaces, cgroups v2, and OverlayFS storage drivers.
 ---
 
@@ -83,6 +83,47 @@ graph TD
 
 ---
 
+## CLI Command Masterclass: Runtime Resource Limits & Introspection
+
+### 1. Resource Limits in `docker run`
+
+*   **Mental Model**: Configures low-level Linux `cgroups v2` resource quotas directly upon container creation.
+
+| Flag | Operational Purpose |
+| :--- | :--- |
+| `--memory="512m"` | Hard upper limit on RAM memory. Triggering this causes kernel OOM Killer intervention. |
+| `--cpus="1.5"` | Restricts container execution to a maximum of 1.5 CPU cores per second. |
+| `--restart=unless-stopped` | Instructs `dockerd` daemon to restart container automatically on crash or host reboot. |
+
+```bash
+# Production Hardened Resource Allocation Run Command
+$ docker run -d \
+  --name production-api \
+  --memory="512m" \
+  --cpus="1.5" \
+  --restart=unless-stopped \
+  nginx:alpine
+```
+
+---
+
+### 2. `docker stats`, `docker inspect` & `docker top`
+
+*   **Mental Model**: Interrogates running container runtime processes and kernel cgroup metrics.
+
+```bash
+# 1. Live Real-Time Resource Usage Stream across all containers
+$ docker stats
+
+# 2. Query Container Host PID and IP address via JSON Format
+$ docker inspect --format '{{ .State.Pid }} | {{ .NetworkSettings.IPAddress }}' production-api
+
+# 3. List active host processes running inside container
+$ docker top production-api
+```
+
+---
+
 ## Architectural Deep-Dive & Engineering Concepts
 
 ### OverlayFS Copy-on-Write (CoW) Engine Mechanics
@@ -99,16 +140,6 @@ OverlayFS eliminates file duplication across containers by sharing read-only `Lo
   ├── UpperDir  (Writable Container Layer) : [/app/server.js]
   └── LowerDir  (Read-Only Image Layers)   : [/usr/bin/node, /etc/alpine-release]
 ```
-
-### Copy-on-Write (CoW) Execution Steps
-1.  **Read Operation**: When a process reads `/usr/bin/node`, OverlayFS reads directly from the read-only `LowerDir`. Zero copy overhead!
-2.  **Write Operation**: When a process modifies `/etc/config.json` existing in `LowerDir`, OverlayFS intercepts the write, copies `/etc/config.json` up into `UpperDir` (Copy-on-Write), and applies modifications to the `UpperDir` copy.
-3.  **Delete Operation**: When a process deletes a file from `LowerDir`, OverlayFS creates a special **whiteout character device** in `UpperDir` to mask the file from the merged view.
-
-<Callout type="warning">
-**Performance Trade-off: High I/O Heavy Databases on OverlayFS**  
-Copy-on-Write introduces disk latency during initial file writes. Never run high-throughput databases (PostgreSQL, MySQL, Redis) directly on the container's OverlayFS `UpperDir` layer! Always use **Named Volumes** or **Bind Mounts** to bypass OverlayFS and write directly to host storage.
-</Callout>
 
 ---
 

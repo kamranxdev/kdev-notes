@@ -3,6 +3,14 @@
   "icon": "Terminal",
   "root": true,
   "pages": [
-    "index"
+    "index",
+    "---[Cpu]Kernel & Systems Isolation---",
+    "kernel-architecture-and-syscalls",
+    "---[FolderTree]File Systems & Inodes---",
+    "filesystems-and-inodes",
+    "---[Activity]Processes & IPC---",
+    "process-management-and-ipc",
+    "---[Code]Shell & Text Processing---",
+    "shell-scripting-and-text-processing"
   ]
 }

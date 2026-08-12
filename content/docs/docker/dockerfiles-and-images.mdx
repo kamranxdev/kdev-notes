@@ -1,5 +1,5 @@
 ---
-title: "Dockerfile Engineering & Layer Optimization "
+title: "Dockerfile Engineering & Layer Optimization (The Masterclass Manual)"
 description: An analogy-driven, professional-grade guide to Dockerfile engineering, layer immutability, build cache hashing, CMD vs. ENTRYPOINT semantics, multi-stage builds, and minimal distroless image optimization.
 ---
 
@@ -76,6 +76,44 @@ graph TD
 
 ---
 
+## CLI Command Masterclass: Image Building & Registry Operations
+
+### 1. `docker build`
+
+*   **Mental Model**: Evaluates Dockerfile instructions line-by-line, computing content hashes for cache validation and assembling final tarball layers.
+
+| Flag | Operational Purpose |
+| :--- | :--- |
+| `-t name:tag` | Tags the resulting image with repository name and version tag. |
+| `-f Dockerfile.prod` | Specifies custom Dockerfile path. |
+| `--no-cache` | Disables build layer caching, forcing fresh execution of all instructions. |
+| `--target builder` | Builds only up to a specific stage target in a multi-stage Dockerfile (great for CI test stages!). |
+
+```bash
+# Production Multi-Stage Build Command
+$ docker build --target builder -t app:test .
+$ docker build --no-cache -t myorg/myapp:v1.2.0 -f Dockerfile.prod .
+```
+
+---
+
+### 2. Image Management & Inspect Commands (`docker images`, `docker history`, `docker tag`)
+
+*   **Mental Model**: Manages local image storage, tags, and layer history analysis.
+
+```bash
+# 1. Inspect Layer Byte Sizes and Instructions of an Image
+$ docker history myorg/myapp:v1.2.0
+
+# 2. Tag Local Image for Remote Container Registry (Docker Hub / GCR)
+$ docker tag myapp:v1.2.0 registry.example.com/team/myapp:v1.2.0
+
+# 3. Push Image to Remote Registry
+$ docker push registry.example.com/team/myapp:v1.2.0
+```
+
+---
+
 ## Architectural Deep-Dive & Engineering Concepts
 
 ### 1. `CMD` vs. `ENTRYPOINT` Exec Array Rules
@@ -87,67 +125,12 @@ Always use **Exec Array Syntax** (`["binary", "arg1"]`) instead of **Shell Synta
 # 1. BAD: Shell Form (Spawns /bin/sh -c process)
 # -------------------------------------------------------------
 CMD node server.js
-# Container PID 1 = /bin/sh (Node runs as child process)
-# DANGER: /bin/sh swallows SIGTERM signals during 'docker stop'! Node cannot shut down gracefully!
 
 # -------------------------------------------------------------
 # 2. GOOD: Exec Array Form (Direct process execution)
 # -------------------------------------------------------------
 CMD ["node", "server.js"]
-# Container PID 1 = node
-# Node receives SIGTERM directly, closing database pools gracefully!
 ```
-
----
-
-### 2. Production Multi-Stage Build Pipeline
-
-Optimizing a Node.js TypeScript application from 1.2 GB down to 80 MB:
-
-```dockerfile
-# =============================================================
-# STAGE 1: Build & Compilation Environment (Heavyweight)
-# =============================================================
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# 1. Leverage Layer Caching for Dependencies
-COPY package*.json ./
-RUN npm ci
-
-# 2. Copy Source and Compile TypeScript -> JavaScript
-COPY . .
-RUN npm run build
-
-# 3. Prune Development Dependencies
-RUN npm prune --production
-
-# =============================================================
-# STAGE 2: Production Runtime Environment (Minimal & Hardened)
-# =============================================================
-FROM gcr.io/distroless/nodejs20-debian12 AS runner
-
-WORKDIR /app
-
-# Create unprivileged security context
-USER 10001
-
-# Copy ONLY built artifacts and production node_modules from builder
-COPY --from=builder --chown=10001:10001 /app/dist ./dist
-COPY --from=builder --chown=10001:10001 /app/node_modules ./node_modules
-COPY --from=builder --chown=10001:10001 /app/package.json ./package.json
-
-EXPOSE 3000
-
-# Exec Array Form
-CMD ["dist/server.js"]
-```
-
-<Callout type="tip">
-**Why Ordering Instructions Matters for Layer Cache Optimization**  
-Docker evaluates cache validity from top to bottom. If a layer changes (e.g. `COPY . .`), **all subsequent layer caches are invalidated!** Always place infrequently changed instructions (`RUN npm ci` with `package.json`) *above* frequently changed instructions (`COPY . .` source code).
-</Callout>
 
 ---
 

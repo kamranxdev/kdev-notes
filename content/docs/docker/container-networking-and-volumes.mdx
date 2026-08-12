@@ -1,5 +1,5 @@
 ---
-title: "Docker Networking, Storage & Volumes "
+title: "Docker Networking, Storage & Volumes (The Masterclass Manual)"
 description: An analogy-driven, professional-grade guide to Docker networking drivers (Bridge, Host, Overlay), iptables NAT port forwarding, storage persistency mechanisms, Named Volumes, and Bind Mounts.
 ---
 
@@ -76,6 +76,44 @@ graph TD
 
 ---
 
+## CLI Command Masterclass: Network & Volume Operations
+
+### 1. `docker network` Management CLI
+
+*   **Mental Model**: Creates and manages isolated virtual bridge networks and attaches containers dynamically to embedded DNS zones.
+
+| Command & Subcommand | Operational Purpose |
+| :--- | :--- |
+| `docker network create app-net` | Creates a custom user-defined bridge network with automatic embedded DNS service discovery. |
+| `docker network ls` | Lists all active local network drivers (`bridge`, `host`, `none`, custom). |
+| `docker network connect app-net container1` | Dynamically attaches a running container to a second network without restarting. |
+| `docker network inspect app-net` | Displays active subnet range, gateway IP, and attached container list with assigned IPs. |
+
+```bash
+# Network Management Pipeline
+$ docker network create --driver bridge backend-net
+$ docker network connect backend-net my-api
+```
+
+---
+
+### 2. `docker volume` Management CLI
+
+*   **Mental Model**: Manages persistent storage lockers under `/var/lib/docker/volumes/` that bypass the container's OverlayFS layer.
+
+```bash
+# 1. Create Managed Named Volume
+$ docker volume create db_store
+
+# 2. Inspect Host Physical Mountpoint Path
+$ docker volume inspect db_store --format '{{ .Mountpoint }}'
+
+# 3. Purge all unattached unused storage volumes
+$ docker volume prune -f
+```
+
+---
+
 ## Architectural Deep-Dive & Engineering Concepts
 
 ### 1. How Port Forwarding Works via `iptables` NAT
@@ -85,46 +123,7 @@ When you launch a container with `-p 8080:80`, Docker manipulates host `iptables
 ```bash
 # Inspecting Docker NAT Rules in Host iptables
 $ sudo iptables -t nat -L DOCKER -n -v
-
-# Output:
-# Chain DOCKER (1 references)
-#  pkts bytes target     prot opt in     out     source               destination         
-#     5   300 DNAT       tcp  --  *      docker0 0.0.0.0/0            0.0.0.0/0            tcp dpt:8080 to:172.17.0.2:80
 ```
-
-*   **DNAT (Destination NAT)**: Intercepts incoming traffic hitting host port `8080` and rewrites destination IP/port to container internal IP `172.17.0.2:80`.
-*   **Inter-Container DNS**: User-defined bridge networks include built-in DNS resolution. Container `web` can ping container `db` directly by service name! Default bridge network (`bridge`) lacks automatic DNS resolution.
-
----
-
-### 2. Storage Persistency: Named Volumes vs. Bind Mounts
-
-#### Named Volume Usage (Production Recommended)
-```bash
-# Create managed volume
-$ docker volume create pg_data
-
-# Mount volume to container
-$ docker run -d \
-  --name production-postgres \
-  -v pg_data:/var/lib/postgresql/data \
-  postgres:16-alpine
-```
-
-#### Bind Mount Usage (Development Only)
-```bash
-# Mount local source code folder into container for live hot-reloading
-$ docker run -d \
-  --name dev-node-app \
-  -v $(pwd)/src:/app/src \
-  -p 3000:3000 \
-  node:20-alpine
-```
-
-<Callout type="warning">
-**Permissions Edge Case: Non-Root Containers & Bind Mounts**  
-When mounting host folders into containers running as non-root users (`USER 10001`), the container process will fail with `EACCES: permission denied` if the host folder is owned by host `root` (UID 0). Always ensure host directory permissions match container UID/GID (`chown -R 10001:10001 /host/path`).
-</Callout>
 
 ---
 

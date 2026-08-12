@@ -1,5 +1,5 @@
 ---
-title: "Docker & Containerization Architecture Hub "
+title: "Docker & Containerization Architecture Hub (The Masterclass Manual)"
 description: An analogy-driven, professional-grade guide to Docker and containerization architecture, covering OS-level virtualization, Linux kernel primitives, container runtime pipelines, and containerization patterns.
 ---
 
@@ -83,6 +83,39 @@ graph TD
 
 ---
 
+## CLI Command Masterclass: System Diagnostics & Maintenance
+
+### 1. `docker info` & `docker system df`
+
+*   **Mental Model**: Queries high-level Docker Daemon (`dockerd`) status, driver configuration, and storage utilization.
+
+| Command & Flag | Operational Purpose |
+| :--- | :--- |
+| `docker info` | Displays active storage driver (OverlayFS), cgroup driver (`systemd`), and total container count. |
+| `docker system df` | Summarizes disk space consumed by images, containers, local volumes, and build cache. |
+| `docker system df -v` | **Verbose Mode**: Breaks down disk usage line-by-line for every individual container and layer. |
+
+```bash
+# Production Disk Usage Inspection
+$ docker system df
+```
+
+---
+
+### 2. `docker system prune`
+
+*   **Mental Model**: Reclaims disk space by purging stopped containers, dangling build caches, and unreferenced networks/images.
+
+```bash
+# Safe Prune: Purges stopped containers and dangling images
+$ docker system prune
+
+# Aggressive Production Cleanup (Clears unused images and unattached volumes)
+$ docker system prune -a --volumes -f
+```
+
+---
+
 ## Architectural Deep-Dive & Engineering Concepts
 
 ### The Three Pillars of Container Isolation
@@ -92,22 +125,6 @@ Docker container isolation relies on three foundational Linux kernel primitives:
 *   **1. Linux Namespaces (Process Isolation)**: Restricts what a process can **see**. Isolates Process IDs (`pid`), Network Interfaces (`net`), Filesystem Mount Points (`mnt`), IPC (`ipc`), Hostnames (`uts`), and User IDs (`user`).
 *   **2. Control Groups / cgroups v2 (Resource Quotas)**: Restricts what a process can **consume**. Enforces strict upper limits on CPU execution time, RAM memory usage, Disk I/O bandwidth, and network throughput.
 *   **3. UnionFS / OverlayFS (Storage Layering)**: Combines multiple read-only image layers with a single thin read-write container layer into a unified virtual filesystem using Copy-on-Write (CoW).
-
-```text
-+-------------------------------------------------------------------------+
-| Docker Container Runtime Isolation Model                                |
-+-------------------------------------------------------------------------+
-| [ Namespaces: Visibility ]  [ cgroups v2: Limits ]  [ OverlayFS: Disk ] |
-| Isolates PIDs, IPs, Mounts   Limits CPU, RAM, I/O   Read-Only + RW Layer|
-+-------------------------------------------------------------------------+
-|                   Shared Host Linux Kernel (Kernel 5.x/6.x)             |
-+-------------------------------------------------------------------------+
-```
-
-<Callout type="info">
-**Why Docker Containers Share the Host Kernel**  
-Because containers execute as standard process groups directly on the host Linux kernel, running 100 Nginx containers consumes only the RAM required by 100 Nginx process instances. Running 100 Nginx VMs would require loading 100 separate Linux kernels into memory, wasting hundreds of gigabytes of RAM.
-</Callout>
 
 ---
 

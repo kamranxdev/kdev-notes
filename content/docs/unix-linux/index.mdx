@@ -1,257 +1,173 @@
 ---
-title: Unix / Linux
-description: An analogy-driven, professional-grade guide to Unix and Linux systems from architecture and file systems to shell scripting, text processing, process control, and system administration.
+title: "Unix & Linux Systems Engineering Hub (The Masterclass Manual)"
+description: An analogy-driven, professional-grade guide to Unix and Linux operating systems, covering kernel architectures, system calls, VFS file systems, process lifecycles, and POSIX shell engineering.
 ---
 
-### 1. Introduction to Unix/Linux Architecture
+## High-Level Concept Definition & Real-World Analogy
 
-Imagine a high-security research facility.
-*   **The Hardware**: The physical server facility (CPU, RAM, Disks).
-*   **The Kernel**: The facility manager who has direct, absolute access to the vault keys, hardware switches, and control panels.
-*   **The Shell**: The receptionist sitting at the entrance desk. You (the user) cannot walk in and flip hardware switches yourself; you must tell the receptionist what you want, and they translate your command into a formal request for the manager.
+**Unix/Linux** is a family of multi-user, multitasking operating systems built on modular, text-centric abstractions, hierarchical file systems, and strict Ring 0 vs. Ring 3 hardware memory boundaries.
+
+### Core Architectural Features
+*   **"Everything is a File" Abstraction**: Hardware devices, network sockets, directories, and running processes are exposed as uniform file paths.
+*   **Modular Pipeline Philosophy**: Small, single-purpose utilities connected via byte-stream pipes (`|`) to solve complex workflows.
+*   **Strict Memory Protection**: Hardware-enforced separation between unprivileged User Space (Ring 3) and privileged Kernel Space (Ring 0).
+
+### Real-World Analogy: The High-Security Research Facility
+
+To visualize Unix/Linux system architecture, consider a **High-Security Research Facility**:
+
+*   **The Hardware (CPU, RAM, Disks)**: The **Physical Server Facility Vaults**. Holds raw power, storage rooms, and electrical generators.
+*   **The Kernel Space (Ring 0)**: The **Inner Vault Security Manager**. Has absolute, unrestricted clearance keys to flip hardware switches and open physical doors.
+*   **The User Space (Ring 3)**: The **Public Entrance Lobby**. Where visitors, researchers (`web browsers`, `compilers`, `databases`) work. They possess zero hardware keys.
+*   **The System Call (Syscall)**: A **Formal Security Service Ticket**. A researcher in the lobby slides a ticket through a bulletproof glass slot to ask the Manager to read a file from the vault.
+*   **The Shell (`bash`, `zsh`)**: The **Front Desk Receptionist**. Listens to spoken instructions, checks permissions, and translates commands into formal service tickets for the Manager.
 
 ```mermaid
 graph TD
-    User([User / Application]) --> Shell[Shell: bash, zsh, sh]
-    User --> LibC[System Libraries: glibc]
-    Shell --> LibC
-    Shell --> SysCall[System Call Interface]
-    LibC --> SysCall
-    SysCall --> Kernel[Kernel: CPU, Memory, Device Drivers]
-    Kernel --> Hardware[Hardware: CPU, RAM, Disk, Network]
+    UserApps["User Space Applications\n(Web Server, DB, Shell)"] -->|User Space Ring 3| LibC["C Standard Library (glibc)\n(printf, malloc, fopen)"]
+    UserApps -->|Direct Syscall| SyscallInterface["System Call Interface\n(read, write, fork, exec)"]
+    LibC -->|Triggers Trap/Interrupt| SyscallInterface
     
-    style User fill:#4f46e5,stroke:#312e81,stroke-width:2px,color:#fff
-    style Shell fill:#0891b2,stroke:#155e75,stroke-width:2px,color:#fff
-    style LibC fill:#0d9488,stroke:#115e59,stroke-width:2px,color:#fff
-    style SysCall fill:#ea580c,stroke:#9a3412,stroke-width:2px,color:#fff
-    style Kernel fill:#dc2626,stroke:#991b1b,stroke-width:2px,color:#fff
-    style Hardware fill:#4b5563,stroke:#1f2937,stroke-width:2px,color:#fff
-```
+    subgraph KernelSpace [Kernel Space Ring 0]
+        SyscallInterface --> MemoryManager["Memory Manager\n(Virtual Memory, Paging)"]
+        SyscallInterface --> ProcessScheduler["Process Scheduler\n(CFS Scheduler, task_struct)"]
+        SyscallInterface --> VFS["Virtual File System (VFS)\n(Ext4, XFS, Btrfs)"]
+        SyscallInterface --> NetworkStack["Network Stack\n(TCP/IP, Sockets, iptables)"]
+    end
 
-#### User Space vs. Kernel Space
-To prevent a bug in a user application from accidentally wiping out the entire system, CPU architectures enforce strict boundaries:
-1.  **Kernel Space (Ring 0)**: The inner laboratory vault. The Kernel runs here with unrestricted access to physical hardware, memory blocks, and privileged CPU instructions.
-2.  **User Space (Ring 3)**: The public lobby. All user programs, database servers, web browsers, and shells run here. They have no direct access to hardware and must request resources from the Kernel.
+    MemoryManager --> Hardware["Hardware Layer\n(CPU, RAM, NVMe Disks, NIC)"]
+    ProcessScheduler --> Hardware
+    VFS --> Hardware
+    NetworkStack --> Hardware
 
-#### System Calls vs. Library Calls
-If a program in User Space wants to read a file from the disk drive:
-*   **System Call (Syscall)**: The program writes a formal request ticket and slides it through a slot in the security glass window. The CPU pauses execution, switches from User Space (Ring 3) to privileged Kernel Space (Ring 0), performs the disk read, and returns the data back to User Space. Examples: `read()`, `write()`, `fork()`, `open()`.
-*   **Library Call**: A pre-packaged utility function inside a standard library (like C's `glibc`). Calling `printf()` is a library call; it formats your text in User Space, and then internally slides a `write()` system call ticket through the window to print the pixels to the screen.
-
-#### Monolithic vs. Microkernels
-*   **Monolithic Kernel (e.g., Linux)**: The facility manager puts all department leads (device drivers, file systems, memory schedulers) inside the inner vault (Kernel Space). This is fast because they can talk directly to one another without paperwork, but if a single driver crashes, the whole facility goes down.
-*   **Microkernel (e.g., macOS's Mach core)**: Only the core manager sits in the vault. The driver, file system, and network teams are moved to user-space offices. If the network driver crashes, it doesn't crash the manager; you just reboot that single office. However, constant message-passing between offices creates performance overhead.
-
-<Quiz question="What is the primary difference between a system call and a library call?" options={["System calls run in user space, while library calls run in kernel space","System calls require switching CPU execution modes from User Space (Ring 3) to Kernel Space (Ring 0); library calls are standard user-space functions","Library calls are open-source, whereas system calls are proprietary","System calls do not consume CPU cycles, while library calls do"]} answerIndex={1}>
-System calls are the interface between user space and kernel space. They trigger a hardware interrupt or exception that switches the CPU to privileged mode (Ring 0). Library calls (like `malloc` or `printf`) run in user space and may or may not invoke system calls internally.
-</Quiz>
-
----
-
-### 2. The Linux File System & Inodes
-
-The golden rule of Unix is: **"Everything is a file."** Hardware drives, network interfaces, directories, and running processes are all exposed as files within a single hierarchical tree structure starting at `/` (root).
-
-#### Virtual File System (VFS)
-*   **VFS**: The hotel's central reservation desk. You ask for a room check-in using standard words ("open room", "lock door"), and the desk handles whether it's a log cabin, a tent, or a concrete suite (ext4, FAT32, NFS) behind the scenes.
-
-#### Anatomy of a File: Inodes
-To understand files, we must separate a file's **metadata** from its **content** and its **name**.
-An **Inode (Index Node)** is a data structure on disk that represents a file system object. Each file has exactly one inode, identified by a unique **inode number** on its partition.
-*   **Analogy**: The landlord's master property ledger card.
-
-```
-        Directory Data Block (e.g. /home/user)
-        ┌───────────────────────────────┐
-        │ Filename      │ Inode Number  │
-        ├───────────────┼───────────────┤
-        │ notes.txt     │ 140234        ├────────┐
-        │ script.sh     │ 140235        │        │
-        └───────────────┴───────────────┘        │
-                                                 ▼
-        Inode Table (Entry 140234)               │
-        ┌──────────────────────────────────────┐ │
-        │ Metadata:                            │ │
-        │ - Owner: UID 1000                    │◀┘
-        │ - Permissions: rw-r----              │
-        │ - Size: 4096 bytes                   │
-        │ - Links count: 1                     │
-        │ - Pointers to Data Blocks            ├────────┐
-        └──────────────────────────────────────┘        │
-                                                        ▼
-        Data Blocks on Disk                             │
-        ┌─────────────────────────────────────────────┐ │
-        │ [ Actual text content of the file... ]      │◀┘
-        └─────────────────────────────────────────────┘
-```
-
-*   **What is stored in an Inode?** File type, size, owner (UID/GID), permissions, timestamps (`atime`, `mtime`, `ctime`), and pointers to the physical data blocks on disk where the actual content is stored.
-*   **What is NOT stored in an Inode?** The file name! File names are stored in directory files. A directory is just a file whose content is a list of filename-to-inode-number mappings.
-
-#### Hard Links vs. Soft (Symbolic) Links
-*   **Hard Link**: Creating a second directory plaque in another hallway that lists the exact same ledger card (inode) number. The room is only cleaned out if you take down *both* plaques.
-*   **Symbolic Link (Symlink)**: A post-it note pointing to the first directory plaque path. If you tear down the original plaque, the post-it note points to nothing (a broken or dangling link).
-
-| Feature | Hard Link | Symbolic Link (Symlink) |
-| --- | --- | --- |
-| **Creation** | `ln target linkname` | `ln -s target linkname` |
-| **Inode** | Shares the **same** inode as the target file. | Has a **new, unique** inode. |
-| **Target Content** | Points directly to the data blocks. | Points to the path string of the target. |
-| **Across File Systems** | No (cannot span different partitions). | Yes (can span partitions). |
-| **For Directories** | No (restricted to prevent loops). | Yes. |
-| **If Target Deleted** | Link remains active; data is preserved. | Link becomes **broken (dangling)**. |
-
----
-
-### 3. Shell Environments & Startup Configurations
-
-#### Startup Files Evaluation Lifecycle: The Club Member Routine
-*   **Interactive Login Shell (e.g., SSH, or `bash --login`)**: Entering the main club entrance with registration check. The club manager reads the global guest guidelines (`/etc/profile`) and then checks your personal locker configuration (first of `~/.bash_profile`, `~/.bash_login`, or `~/.profile`).
-*   **Interactive Non-login Shell (e.g., opening a new terminal window)**: Walking into an inner room of the club you're already in. You skip the main gate registration and just load the quick-reference rules on the table (`~/.bashrc`).
-
-```
-Interactive Login Shell (e.g., SSH, or bash --login)
-  │
-  ├─► Reads /etc/profile
-  │
-  └─► Looks for first of:
-        1. ~/.bash_profile
-        2. ~/.bash_login
-        3. ~/.profile
-      (Executes ONLY the first one found, ignores others)
-
-Interactive Non-login Shell (e.g., New Terminal Window, or subshell)
-  │
-  └─► Reads ~/.bashrc
+    style UserApps fill:#0284c7,stroke:#075985,color:#fff
+    style LibC fill:#64748b,stroke:#334155,color:#fff
+    style SyscallInterface fill:#d97706,stroke:#92400e,color:#fff
+    style KernelSpace fill:#1e293b,stroke:#0f172a,color:#fff
+    style Hardware fill:#10b981,stroke:#047857,color:#fff
 ```
 
 ---
 
-### 4. Advanced Input/Output Redirection & File Descriptors
+## Structured Module Roadmap
 
-#### File Descriptors: Plumbing and Pipes
-In Unix, every running process has three default plumbing connectors:
-*   **Standard Input (FD 0 - cold water pipe)**: Usually reads from your keyboard.
-*   **Standard Output (FD 1 - hot water tap)**: Usually writes text to your screen.
-*   **Standard Error (FD 2 - drain pipe)**: Usually writes error reports to your screen.
-
-```
-       [ Keyboard ] ────► FD 0 (STDIN) ────► [ Running Process ] ────► FD 1 (STDOUT) ────► [ Screen ]
-                                                                 └──► FD 2 (STDERR) ────► [ Screen ]
-```
-
-*   `>` (Redirect Output): Fitting a coupler onto the hot water tap (FD 1) and piping the water into a bucket file (`stdout.log`).
-*   `2>` (Redirect Error): Redirecting the drain pipe (FD 2) into an error log file (`stderr.log`).
-*   `2>&1` (Merge Streams): Routing the drain pipe (FD 2) directly into the hot water stream (FD 1).
-*   `/dev/null`: A black hole drain pipe. Anything piped here is permanently discarded.
-    ```bash
-    # Run a command, sending successful output to a file and discarding errors
-    $ my_script.sh > output.log 2> /dev/null
-    ```
+| Module | Core Topics | Key Focus & Engineering Concepts | Read Time |
+| :--- | :--- | :--- | :--- |
+| **[Kernel Architecture & Syscalls](./kernel-architecture-and-syscalls)** | User vs. Kernel Space, Ring 0/3, Syscalls, Monolithic vs. Micro | Hardware Memory Boundaries, `glibc` Wrappers, Context Switching | 18 min |
+| **[File Systems & Inode Mechanics](./filesystems-and-inodes)** | VFS Layer, Ext4 Inodes, Hard Links vs. Symlinks, `/proc` & `/sys` | Index Node Metadata Tables, Direct Pointers, Pseudo-Filesystems | 17 min |
+| **[Process Management & IPC](./process-management-and-ipc)** | `fork()`, `execve()`, Process States, Signals, Pipes, Shared Memory | `task_struct`, Zombie/Orphan Processes, POSIX Signals, IPC Channels | 19 min |
+| **[Shell Scripting & Text Pipelines](./shell-scripting-and-text-processing)** | `bash` Mechanics, Redirection (`0/1/2`), `grep`, `sed`, `awk` | Stream Parsing, File Descriptors, Columnar Processing, Regex | 16 min |
 
 ---
 
-### 5. Process Management & Job Control
+## Quick Reference & Comparison Matrices
 
-#### Process States: The Office Department
-*   **Process**: A hired worker.
-*   **Parent/Child**: A manager hiring assistants.
-*   **Orphan**: A manager who leaves the company (parent exits), leaving the assistants working. The company owner (process ID 1 / `systemd`) automatically adopts them.
-*   **Zombie**: A worker who completes their task and stands in the hallway holding a report sheet, waiting for the manager to look at it. If the manager ignores them (doesn't call `wait()`), they remain stuck as a zombie.
+### 1. Unix Operating Systems Lineage & Architecture Matrix
 
-```
-  [ Running/Runnable ] ──► (sleeps) ──► [ Sleeping (Interruptible) ]
-           │                                          │
-    (stops / Ctrl+Z)                           (wakes up/signal)
-           │                                          │
-           ▼                                          ▼
-     [ Stopped ] ───────► (termination) ───────► [ Zombie ]
-                                                      │
-                                             (parent reads code)
-                                                      │
-                                                      ▼
-                                                 [ Dead ]
-```
+| OS Flavor | Kernel Type | Primary Ecosystem Focus | Default Package Manager | Unique Architectural Signature |
+| :--- | :--- | :--- | :--- | :--- |
+| **Linux (Ubuntu/Debian)** | Monolithic (Dynamic Modules) | Cloud Infrastructure & Enterprise Servers | `apt` / `dpkg` | Completely open-source kernel; powers $90\%+$ of cloud workloads. |
+| **RHEL / Rocky Linux** | Monolithic (SELinux Hardened) | Corporate Enterprise IT & Banking Systems | `dnf` / `rpm` | Strict stability lifecycles and mandatory SELinux security policies. |
+| **macOS (Darwin)** | Hybrid (Mach Microkernel + BSD) | Developer Workstations & Desktop Consumer | `brew` (Homebrew) | Combines Mach microkernel messaging with BSD POSIX subsystem. |
+| **FreeBSD** | Monolithic | High-Throughput Networking & Storage | `pkg` | Complete unified OS distribution; advanced ZFS and Jail isolation. |
 
-*   `SIGINT` (Signal 2): `Ctrl+C`. A polite request for the worker to clean up their desk and go home.
-*   `SIGTERM` (Signal 15): The standard exit request. Can be caught and handled.
-*   `SIGKILL` (Signal 9): Security escorting the worker out immediately. Cannot be ignored or blocked.
+### 2. Systems Abstraction Levels Taxonomy
+
+| Abstraction Layer | Privileged CPU Ring | Execution Purpose | Code Example |
+| :--- | :--- | :--- | :--- |
+| **User Application** | Ring 3 (Unprivileged) | High-level business logic processing | Python script, Java API service, Node.js server |
+| **C Library (`glibc`)** | Ring 3 (Unprivileged) | Standard user-space helper abstractions | `printf("Hello")`, `malloc(1024)`, `fopen()` |
+| **System Call (Syscall)** | Ring 3 -> Ring 0 (Trap) | Formal hardware request interface | `write(1, "Hello", 5)`, `read()`, `fork()` |
+| **Kernel Subsystem** | Ring 0 (Privileged) | Hardware execution, memory paging, device driver access | Process scheduler, Ext4 driver, TCP/IP stack |
 
 ---
 
-### 6. Text Wrangling & Processing Power Tools
+## CLI Command Masterclass: System Overview & Information
 
-#### Sed: The Conveyor Belt Rubber Stamp
-*   **Sed**: A conveyor belt passing rolls of paper where a machine dynamically replaces matches using a stamps template.
-    ```bash
-    # Replace the first occurrence of "A" with "B" on each line of a file
-    $ sed 's/A/B/' input.txt
-    ```
+### `uname`, `uptime`, `whoami`, `id`
 
-#### Awk: The Spreadsheet Analyst
-*   **Awk**: A spreadsheet analyst who takes text line-by-line, cuts it into columns automatically (`$1`, `$2`), and sums up values in a mental ledger.
-    ```bash
-    # Print the second column of lines containing "SUCCESS"
-    $ awk '/SUCCESS/ { print $2 }' log.txt
-    ```
+*   **Mental Model**: Interrogates the active kernel and user identity contexts from User Space (Ring 3).
 
----
-
-### 7. Conceptual Quizzes
-
-<Quiz question="If you delete the original target file, what happens to its hard link and symbolic link respectively?" options={["The hard link is broken, and the symbolic link remains valid.","Both links are immediately broken.","The hard link remains valid and can access the data, while the symbolic link becomes broken.","Both links remain valid and preserve the file data."]} answerIndex={2}>
-A hard link points directly to the file's inode number. Deleting the original file only decreases the link count in the inode. The data is not deleted until the link count reaches 0. Therefore, the hard link remains valid. A symbolic link, however, points to the target filename path; when the target is deleted, the path no longer exists, rendering the symbolic link broken.
-</Quiz>
-
-<Quiz question="Which command redirects Standard Error (FD 2) to standard output (FD 1)?" options={["`command > 2`","`command 2>&1`","`command 1>&2`","`command >> 2`"]} answerIndex={1}>
-`2>&1` routes file descriptor 2 (STDERR) to the destination of file descriptor 1 (STDOUT).
-</Quiz>
-
-<Quiz question="What is a zombie process in Unix?" options={["A process that consumes 100% CPU.","A process that has finished execution but still has an entry in the process table because its parent has not yet read its exit status.","A process running without a parent.","A background thread."]} answerIndex={1}>
-Zombie processes occupy no memory or CPU; they are simply inactive process table entries waiting for the parent process to fetch their exit code using the `wait()` system call.
-</Quiz>
-
----
-
-### 8. Real-world Practice Problems
-
-<Problem title="Problem 1: Process and File Descriptor Redirect">
-<ProblemDescription>
-Write a bash script that runs a background task `backup_system.sh`, redirects all normal logs to `/var/log/backup.log`, redirects all error logs to `/var/log/backup_err.log`, and prints the background job process ID (PID) to the screen.
-</ProblemDescription>
-<ProblemSolution>
-This script uses standard file descriptor routing:
+| Command & Flag | Operational Purpose |
+| :--- | :--- |
+| `uname -a` | Displays complete system kernel architecture, OS release, and CPU architecture string. |
+| `uptime` | Prints system running time, active user count, and 1, 5, 15-minute CPU load averages. |
+| `whoami` & `id` | Displays current effective User ID (UID), Group ID (GID), and assigned group memberships. |
 
 ```bash
-#!/bin/bash
-
-# Start the script in the background, routing STDOUT to FD 1's file and STDERR to FD 2's file
-./backup_system.sh > /var/log/backup.log 2> /var/log/backup_err.log &
-
-# Fetch the PID of the last background process
-BACKUP_PID=$!
-
-echo "Backup job started in the background with PID: $BACKUP_PID"
+# Production System Identity Inspection
+$ uname -srm # Output: Linux 6.8.0-x86_64
+$ id # Output: uid=1000(alex) gid=1000(alex) groups=1000(alex),27(sudo),142(docker)
 ```
-</ProblemSolution>
-</Problem>
 
-<Problem title="Problem 2: Text Wrangling with Awk and Sed">
+---
+
+## Interactive Self-Assessment Checkpoints
+
+<Quiz 
+  question="Why does a Linux system separate execution into User Space (Ring 3) and Kernel Space (Ring 0)?" 
+  options={[
+    "To make C programs run faster than Python programs.", 
+    "To prevent buggy or malicious user applications from accessing raw memory or hardware directly, protecting system stability and security.", 
+    "Because Linux cannot run without a web browser.", 
+    "To restrict system access to root users only."
+  ]} 
+  answerIndex={1}
+>
+  Option B is correct. Hardware protection rings:
+  * **Ring 3 (User Space)**: Runs applications with restricted CPU instructions and isolated virtual memory addresses.
+  * **Ring 0 (Kernel Space)**: Possesses absolute hardware access. A crash in Ring 3 terminates only that process; a crash in Ring 0 triggers a kernel panic.
+</Quiz>
+
+<Quiz 
+  question="What is the primary difference between a C library call (e.g. `printf`) and a System Call (e.g. `write`)?" 
+  options={[
+    "`printf` runs in Kernel Space; `write` runs in User Space.", 
+    "`printf` is a user-space helper function in `glibc` that buffers formatted text before invoking the low-level `write()` system call to request kernel execution.", 
+    "`write` is used exclusively for network sockets.", 
+    "They are identical aliases for the exact same CPU instruction."
+  ]} 
+  answerIndex={1}
+>
+  Option B is correct. Execution pipeline breakdown:
+  * `printf()` is a user-space library function that formats text into an internal buffer.
+  * When the buffer flushes, `printf()` triggers the `write()` system call, which switches CPU execution to Ring 0 to output bytes to the file descriptor.
+</Quiz>
+
+<Quiz 
+  question="Which Unix philosophy rule allows commands like `grep`, `sed`, and `sort` to be chained together flexibly into complex data processing pipelines?" 
+  options={[
+    "Write programs exclusively in C++.", 
+    "Write programs that do one thing well and expect the output of every program to become the input to another via standard text streams.", 
+    "Store all data in binary databases.", 
+    "Require root privileges for all file operations."
+  ]} 
+  answerIndex={1}
+>
+  Option B is correct. Unix Pipeline Principle:
+  * Small, specialized utilities emitting standard plain-text streams enable developers to compose powerful custom pipelines (`cat | grep | awk | sort | uniq -c`).
+</Quiz>
+
+<Problem title="Problem: Inspecting Kernel Hardware Abstraction via Pseudo-Filesystems">
 <ProblemDescription>
-Given a space-separated log file `transactions.log` where column 3 is the transaction status (e.g. `SUCCESS`, `FAILED`) and column 5 is the amount.
-Write a pipeline that:
-1. Filters for rows containing `SUCCESS`.
-2. Changes all currency symbols `$` to empty spaces.
-3. Sums up the total transaction amount.
+Write a Linux terminal command sequence to demonstrate the "Everything is a File" abstraction by querying CPU hardware details, active kernel version, and memory usage directly from the `/proc` pseudo-filesystem without using third-party GUI tools.
 </ProblemDescription>
 <ProblemSolution>
-This pipeline combines text parsing and aggregation:
+Query the virtual file nodes generated dynamically by the Linux kernel inside `/proc`:
 
 ```bash
-# 1. Filter rows where col 3 is SUCCESS
-# 2. Use sed to strip out the dollar signs
-# 3. Sum column 5 values with awk
-awk '$3 == "SUCCESS"' transactions.log | sed 's/\$//g' | awk '{ sum += $5 } END { print "Total: " sum }'
+# 1. Read CPU architecture and model details from the kernel
+$ cat /proc/cpuinfo | grep "model name" | head -n 1
+
+# 2. Read live system RAM memory usage statistics
+$ head -n 4 /proc/meminfo
+
+# 3. Read kernel hostname and release version
+$ cat /proc/sys/kernel/hostname
+$ cat /proc/sys/kernel/osrelease
+
+# 4. Read the exact command-line invocation of PID 1 (init/systemd)
+$ tr '\0' ' ' < /proc/1/cmdline
 ```
 </ProblemSolution>
 </Problem>
