@@ -3,6 +3,14 @@
   "icon": "Workflow",
   "root": true,
   "pages": [
-    "index"
+    "index",
+    "---[Architecture]Architectural Paradigms---",
+    "rest-architecture",
+    "soap-enterprise",
+    "---[Serialization]Data Formats & Parsers---",
+    "json-engineering",
+    "xml-processing",
+    "---[Integration]Client Engineering---",
+    "java-api-integration"
   ]
 }
