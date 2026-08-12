@@ -3,7 +3,7 @@
   "icon": "Database",
   "pages": [
     "index",
-    "sql",
-    "pl-sql"
+    "[Database][SQL](docs/database/sql)",
+    "[Server][PL SQL](docs/database/pl-sql)"
   ]
 }
