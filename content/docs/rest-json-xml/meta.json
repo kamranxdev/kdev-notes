@@ -4,13 +4,13 @@
   "root": true,
   "pages": [
     "index",
-    "---[Architecture]Architectural Paradigms---",
+    "---[Server]Architectural Paradigms---",
     "rest-architecture",
     "soap-enterprise",
-    "---[Serialization]Data Formats & Parsers---",
+    "---[FileJson]Data Formats & Parsers---",
     "json-engineering",
     "xml-processing",
-    "---[Integration]Client Engineering---",
+    "---[Code]Client Engineering---",
     "java-api-integration"
   ]
 }

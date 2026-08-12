@@ -1,0 +1,15 @@
+{
+  "title": "Git Version Control",
+  "icon": "Workflow",
+  "root": true,
+  "pages": [
+    "index",
+    "---[Database]Engine & Object Model---",
+    "git-internals",
+    "---[GitMerge]Branching & History---",
+    "branching-merging",
+    "rebasing-history-rewriting",
+    "---[Wrench]Troubleshooting & Tools---",
+    "advanced-troubleshooting"
+  ]
+}
