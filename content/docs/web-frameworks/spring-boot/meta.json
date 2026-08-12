@@ -1,0 +1,16 @@
+{
+  "title": "Spring Boot",
+  "icon": "Leaf",
+  "root": true,
+  "pages": [
+    "index",
+    "01-introduction-to-spring-and-spring-boot",
+    "02-writing-our-first-spring-boot-application",
+    "03-maven-engineering-hub",
+    "04-spring-core-dependency-injection-and-ioc",
+    "05-spring-ioc-container-beans-and-annotations",
+    "06-spring-core-circular-dependency-scopes-and-lazy-init",
+    "07-spring-bean-lifecycle",
+    "08-spring-xml-based-configuration"
+  ]
+}

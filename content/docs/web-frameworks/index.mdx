@@ -31,32 +31,40 @@ React is Meta's highly popular, plain JavaScript-first library focusing strictly
 - **Developer Experience**: Highly flexible, unopinionated, relies on NPM ecosystem for additional utilities.
 - **Key Concepts**: Virtual DOM, Reconciliation, JSX, Hooks (`useState`, `useEffect`), and Context API.
 
-#### Angular (Enterprise Framework)
+#### Angular (Enterprise Frontend Framework)
 Angular is Google's TypeScript-first, fully featured framework designed for robust, enterprise-scale web applications. Read the [Angular Study Guide](./angular.mdx).
 
 - **Developer Experience**: Highly structured, opinionated, batteries-included (routing, form validation, HTTP client built-in).
 - **Key Concepts**: TypeScript, Dependency Injection, Two-Way Data Binding, Directives, and RxJS Observables.
 
+#### Spring Boot (Enterprise Backend Framework)
+Spring Boot is VMware/Broadcom's Java-based, production-ready framework for building high-performance backend microservices and REST APIs. Read the [Spring Boot Study Guide](./spring-boot.mdx).
+
+- **Developer Experience**: Opinionated starter dependencies, auto-configuration (`@EnableAutoConfiguration`), embedded Tomcat web server.
+- **Key Concepts**: Inversion of Control (IoC), Dependency Injection (DI), Spring Data JPA, Spring Security 6, and Actuator metrics.
+
 ---
 
-### React vs. Angular Comparison
+### Frameworks & Libraries Comparison
 
-| Feature | React | Angular |
-| --- | --- | --- |
-| **Type** | UI Library | Full-scale Framework |
-| **Primary Creator** | Meta (Facebook) | Google |
-| **Language** | JavaScript / JSX / TypeScript | TypeScript |
-| **Data Binding** | One-Way (Unidirectional) | Two-Way (Bidirectional) |
-| **DOM Model** | Virtual DOM | Real DOM (Ivy Engine / Incremental DOM) |
-| **Architecture** | Component-centric (HTML/CSS in JS) | MVVM / Separated HTML, CSS, and TS |
-| **Batteries Included?** | No (choose routing/state separately) | Yes (built-in routing, forms, HTTP) |
+| Feature | React | Angular | Spring Boot |
+| --- | --- | --- | --- |
+| **Layer / Focus** | Frontend View Library | Full Frontend Framework | Backend Web & API Framework |
+| **Primary Creator** | Meta (Facebook) | Google | VMware / Broadcom (Pivotal) |
+| **Primary Language** | JS / JSX / TS | TypeScript | Java / Kotlin |
+| **Data / Control Model** | Unidirectional Data Flow | Bidirectional Data Binding | Dependency Injection & Controller Routing |
+| **Server / Runtime** | Client Browser / Node.js | Client Browser | Embedded Tomcat / Jetty / JVM |
+| **Data Persistence** | N/A (State / Store) | N/A (RxJS / HTTP Client) | Spring Data JPA / Hibernate / JDBC |
+| **Batteries Included?** | Minimal (Choose Ecosystem) | Full Frontend Stack | Full Enterprise Backend Stack |
 
 ---
 
 <Callout type="info" title="How to Choose">
-Choose **React** if you value flexibility, want to stay close to standard JavaScript, and prefer choosing your own packages for state and routing. 
+Choose **React** if you value frontend UI flexibility, want to stay close to standard JavaScript, and prefer choosing your own packages for state and routing. 
 
-Choose **Angular** if you are building a large enterprise application, want a standardized architecture for large teams, and prefer having all tools built-in.
+Choose **Angular** if you are building a large enterprise frontend application with a standardized TypeScript architecture.
+
+Choose **Spring Boot** if you need a high-throughput, enterprise-grade Java backend for microservices, secure RESTful APIs, and relational data persistence.
 </Callout>
 
 <Quiz question={"What does the term 'Inversion of Control' refer to when comparing a Framework to a Library?"} options={["A library calls your code, whereas a framework is called by your code", "A framework dictates the application structure and calls your code, whereas you call library functions yourself", "Libraries are faster than frameworks at rendering UI elements", "Frameworks compile to native binary files, while libraries remain in JavaScript format"]} answerIndex={1}>
