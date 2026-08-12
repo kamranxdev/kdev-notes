@@ -3,7 +3,7 @@
   "icon": "Code2",
   "pages": [
     "index",
-    "java",
-    "python"
+    "[Coffee][Java](docs/programming/java)",
+    "[Snake][Python](docs/programming/python)"
   ]
 }
