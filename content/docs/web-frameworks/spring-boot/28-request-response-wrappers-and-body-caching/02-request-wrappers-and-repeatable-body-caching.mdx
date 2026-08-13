@@ -166,7 +166,7 @@ public class RepeatableBodyFilter implements Filter {
 
 Buffering request bodies into heap memory incurs explicit space complexity trade-offs:
 
-$$\text{Memory Overhead} \approx O(R \times N)$$
+$$\text{"Memory Overhead"} \approx O(R \times N)$$
 
 * $R$: Concurrent active HTTP request threads
 * $N$: Average request payload size in bytes
