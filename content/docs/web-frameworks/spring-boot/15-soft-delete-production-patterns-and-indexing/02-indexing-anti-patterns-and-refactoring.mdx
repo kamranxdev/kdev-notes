@@ -1,0 +1,101 @@
+---
+title: "Indexing, Anti-Patterns & Refactoring"
+description: "Master database indexing caveats for low-cardinality boolean flags, operational query complexity, production anti-patterns, and API refactoring."
+---
+
+# Indexing, Anti-Patterns & Refactoring
+
+Implementing soft delete introduces operational database considerations, low-cardinality indexing caveats, and potential query visibility leaks that require systematic refactoring.
+
+---
+
+## 1. Database Indexing Caveats for Low-Cardinality Flags
+
+A common database design question is whether to create an index on the `is_deleted` column:
+
+```sql
+CREATE INDEX idx_students_is_deleted ON students(is_deleted);
+```
+
+### Low-Cardinality Indexing Analysis
+* **Cardinality**: Refers to the uniqueness of data values in a column.
+* A boolean column has extremely low cardinality (only `true` or `false`).
+* If 99% of database rows have `is_deleted = false`, an index on `is_deleted` alone provides **little to no performance benefit** because query planners will bypass the index and perform a Full Table Scan (FTS).
+
+### Production Indexing Recommendation
+Create a **Composite Index** combining foreign keys/filtering columns with `is_deleted`:
+
+```sql
+-- Composite index for filtering active students by course
+CREATE INDEX idx_students_course_deleted ON students(course, is_deleted);
+```
+
+---
+
+## 2. Operational Query Complexity Matrix
+
+| Operation Path | Logical Task | Database Execution Access Path | Application Complexity |
+| :--- | :--- | :--- | :--- |
+| **Soft Delete by ID** | Fetch + Mutate Flag | Primary Key Index Lookup ($O(\log_B N)$) + 1 Row Write | $O(1)$ expected |
+| **Hard Delete by ID** | Physical Row Removal | Primary Key Index Lookup ($O(\log_B N)$) + Index Maintenance | $O(1)$ expected |
+| **Active List** | Filter `is_deleted = false` | Full Table Scan or Composite Index Scan | $O(N)$ worst-case |
+| **Active Read by ID** | Filter ID + `is_deleted` | Primary Key Index Lookup ($O(\log_B N)$) | $O(1)$ expected |
+
+---
+
+## 3. Production Pitfall Matrix (7 Critical Pitfalls)
+
+| Pitfall | Operational Failure Mode | Recommended Engineering Solution |
+| :--- | :--- | :--- |
+| **1. Unfiltered `findAll()`** | Soft-deleted records leak into active API responses | Replace with `findByIsDeletedFalse()` |
+| **2. Unfiltered `findById()`** | Archived records accessible via direct ID lookup | Replace with `findByIdAndIsDeletedFalse(id)` |
+| **3. Nullable `Boolean` Flag** | Introduces 3rd logical state (`null`) | Enforce `nullable = false` in `@Column` mapping |
+| **4. Blind Low-Cardinality Indexing** | Wastes disk space without improving query plans | Analyze query plans (`EXPLAIN`) & use composite indexes |
+| **5. Using `DELETE` Verb for Soft Delete** | Violates HTTP protocol semantics | Use `PATCH /api/students/{id}/soft-delete` |
+| **6. Hard-Deleting Soft-Deleted Rows** | Accidental permanent data destruction | Enforce repository policy boundaries |
+| **7. Un-paginated Active Scans** | Memory exhaustion on large active datasets | Pass `Pageable` to `findByIsDeletedFalse(pageable)` |
+
+---
+
+## ❓ Interactive Self-Assessment
+
+<Quiz question="Why is indexing a single boolean column like 'is_deleted' often ineffective in databases?" options={["Because databases do not support boolean indexes", "Because boolean columns have low cardinality (only true/false); query planners often ignore the index and perform full table scans", "Because boolean indexes break Spring Boot startup", "Because boolean columns require C++ compilers"]} answerIndex={1}>
+Boolean columns have low cardinality. If most rows are `false`, query optimizers realize reading index pages plus table pages is slower than scanning the table directly. Use composite indexes instead.
+</Quiz>
+
+<Problem title="Refactoring an Unsafe Soft-Delete API">
+<ProblemDescription>
+A legacy application uses `studentRepository.findAll()` for list endpoints and `studentRepository.findById(id)` for single record reads. Refactor both paths to exclude soft-deleted records.
+</ProblemDescription>
+<ProblemSolution>
+
+```java
+// 1. REFACTORED REPOSITORY INTERFACE
+public interface StudentRepository extends JpaRepository<Student, Long> {
+    List<Student> findByIsDeletedFalse();
+    Optional<Student> findByIdAndIsDeletedFalse(Long id);
+}
+
+// 2. REFACTORED SERVICE LAYER
+@Service
+public class StudentService {
+    private final StudentRepository repository;
+
+    public StudentService(StudentRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<Student> getActiveStudents() {
+        return repository.findByIsDeletedFalse(); // Filtered list
+    }
+
+    public Student getActiveStudentById(Long id) {
+        return repository.findByIdAndIsDeletedFalse(id) // Filtered single read
+                .orElseThrow(() -> new RuntimeException("Active student not found: " + id));
+    }
+}
+```
+
+**Architectural Benefit**: Enforces consistent logical visibility boundaries across both list and single-read endpoints, ensuring soft-deleted records remain completely hidden from active application APIs.
+</ProblemSolution>
+</Problem>

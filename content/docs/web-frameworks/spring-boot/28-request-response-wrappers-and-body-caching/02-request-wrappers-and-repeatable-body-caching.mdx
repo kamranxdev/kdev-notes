@@ -1,0 +1,190 @@
+---
+title: "Request Wrappers & Repeatable Body Caching"
+description: "Master HttpServletRequestWrapper, request header/parameter substitution, the Tape Recorder mental model, and re-readable request body caching wrappers."
+---
+
+# Request Wrappers & Repeatable Body Caching
+
+The original `HttpServletRequest` interface does not provide setter methods for headers, parameters, or body streams. Modifying what downstream code observes requires **request wrapper substitution**.
+
+---
+
+## 1. Request Header & Parameter Mutation via `HttpServletRequestWrapper`
+
+To override headers or query parameters, extend `HttpServletRequestWrapper` and override accessor methods:
+
+```java
+public class HeaderAndParameterRequestWrapper extends HttpServletRequestWrapper {
+
+    private final String customAuthHeader;
+    private final Map<String, String[]> customParams;
+
+    public HeaderAndParameterRequestWrapper(
+            HttpServletRequest request,
+            String customAuthHeader,
+            Map<String, String[]> extraParams
+    ) {
+        super(request);
+        this.customAuthHeader = customAuthHeader;
+        
+        // Merge existing parameters with extra parameters
+        this.customParams = new HashMap<>(request.getParameterMap());
+        this.customParams.putAll(extraParams);
+    }
+
+    // Override Header Lookup
+    @Override
+    public String getHeader(String name) {
+        if ("Authorization".equalsIgnoreCase(name)) {
+            return customAuthHeader;
+        }
+        return super.getHeader(name);
+    }
+
+    // Override Parameter Map (MUST maintain consistency across ALL parameter methods!)
+    @Override
+    public Map<String, String[]> getParameterMap() {
+        return Collections.unmodifiableMap(customParams);
+    }
+
+    @Override
+    public String getParameter(String name) {
+        String[] values = customParams.get(name);
+        return (values != null && values.length > 0) ? values[0] : null;
+    }
+}
+```
+
+---
+
+## 2. Request Bodies as Streams: The Tape Recorder Model
+
+```text
+TAPE RECORDER MENTAL MODEL:
+Stream Input: [{ "name": "Aditya" }] ──► Read Byte 1..N ──► End-Of-File (EOF)
+                                                                 │
+                                                                 ▼
+                                                  Stream Position = EOF (Consumed!)
+```
+
+HTTP request bodies arrive as single-pass binary streams (`getInputStream()` / `getReader()`). Once read, the stream reaches EOF. Attempting to read it a second time returns empty data.
+
+### The Classic Filter Bug
+```java
+// BUGS! Filter reads body stream to print logs...
+String body = new String(request.getInputStream().readAllBytes());
+
+chain.doFilter(request, response); 
+// CRASH! Spring MVC / Jackson receives empty stream -> HTTP 400 "Required request body is missing"
+```
+
+---
+
+## 3. Re-Readable Bodies: `CachedBodyHttpServletRequest` Blueprint
+
+To read the body in a filter while allowing downstream Spring MVC controllers to deserialize it, cache the byte array and expose fresh `ByteArrayInputStream` instances:
+
+```java
+public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
+
+    private final byte[] cachedBody;
+
+    public CachedBodyHttpServletRequest(HttpServletRequest request) throws IOException {
+        super(request);
+        // Read original stream ONCE into memory
+        this.cachedBody = request.getInputStream().readAllBytes();
+    }
+
+    @Override
+    public ServletInputStream getInputStream() {
+        // Return a FRESH stream over the cached byte array on EVERY call!
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(cachedBody);
+
+        return new ServletInputStream() {
+            @Override
+            public int read() {
+                return byteArrayInputStream.read();
+            }
+
+            @Override
+            public boolean isFinished() {
+                return byteArrayInputStream.available() == 0;
+            }
+
+            @Override
+            public boolean isReady() {
+                return true;
+            }
+
+            @Override
+            public void setReadListener(ReadListener readListener) {}
+        };
+    }
+
+    @Override
+    public BufferedReader getReader() {
+        return new BufferedReader(new InputStreamReader(getInputStream(), StandardCharsets.UTF_8));
+    }
+
+    public byte[] getCachedBody() {
+        return cachedBody;
+    }
+}
+```
+
+### Filter Implementation
+```java
+@Component
+public class RepeatableBodyFilter implements Filter {
+
+    @Override
+    public void doFilter(
+            ServletRequest request,
+            ServletResponse response,
+            FilterChain chain
+    ) throws IOException, ServletException {
+
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+
+        // 1. Wrap request (caches body bytes into memory)
+        CachedBodyHttpServletRequest wrappedRequest =
+                new CachedBodyHttpServletRequest(httpRequest);
+
+        // 2. Safely inspect cached body bytes without consuming downstream stream
+        byte[] body = wrappedRequest.getCachedBody();
+        System.out.println("Filter inspected request size: " + body.length + " bytes");
+
+        // 3. Pass WRAPPED request downstream to Spring MVC
+        chain.doFilter(wrappedRequest, response);
+    }
+}
+```
+
+---
+
+## 4. Memory Cost Analysis ($O(N)$ Space)
+
+Buffering request bodies into heap memory incurs explicit space complexity trade-offs:
+
+$$\text{Memory Overhead} \approx O(R \times N)$$
+
+* $R$: Concurrent active HTTP request threads
+* $N$: Average request payload size in bytes
+
+<Callout type="warning">
+
+**DoS Vulnerability Warning**: Unrestricted request body buffering opens applications to Denial of Service (DoS) attacks! An attacker sending concurrent 50 MB payloads can quickly exhaust heap memory. Always enforce max payload thresholds before caching!
+
+</Callout>
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="Why does a Spring MVC controller receive 'Required request body is missing' if a Filter reads request.getInputStream() without a wrapper?" options={["Because Jackson requires XML", "Because HTTP request streams can only be read once; reading bytes in the Filter advances the stream to EOF", "Because Tomcat deletes request headers", "Because Spring Boot disables POST requests by default"]} answerIndex={1}>
+HTTP request bodies are single-pass streams. Reading the stream in a Filter consumes the bytes. Without a caching wrapper, downstream Spring MVC receives an exhausted stream at EOF.
+</Quiz>
+
+<Quiz question="How does CachedBodyHttpServletRequest allow request.getInputStream() to be read multiple times?" options={["It re-downloads the request from the client", "It caches the raw body byte array once and returns a fresh ByteArrayInputStream on every call to getInputStream()", "It converts JSON to Java bytecode", "It disables Tomcat concurrency"]} answerIndex={1}>
+By storing the body bytes in an internal byte array, `getInputStream()` can return a brand new `ByteArrayInputStream` initialized to position 0 every time downstream code calls it.
+</Quiz>

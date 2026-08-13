@@ -1,0 +1,7 @@
+{
+  "title": "15. Soft Delete Production Patterns & Indexing",
+  "pages": [
+    "01-controller-service-pipeline-and-patch-semantics",
+    "02-indexing-anti-patterns-and-refactoring"
+  ]
+}

@@ -1,0 +1,112 @@
+---
+title: "HandlerMapping, HandlerAdapter & Argument Resolution"
+description: "Master HandlerMapping metadata construction, HandlerAdapter invocation, method argument resolution, and Jackson HttpMessageConverter JSON pipelines."
+---
+
+# HandlerMapping, HandlerAdapter & Argument Resolution
+
+To transform an incoming HTTP request into a Java method call, Spring MVC relies on three decoupled subsystems: **`HandlerMapping`**, **`HandlerAdapter`**, and **`HandlerMethodArgumentResolver`**.
+
+---
+
+## 1. `HandlerMapping` & Startup Mapping Construction
+
+`HandlerMapping` answers the question: **"Which controller method should handle this HTTP request?"**
+
+```text
+GET /students/10 ──► HandlerMapping ──► Returns StudentController.getStudent(Integer id)
+```
+
+### Startup-Time Mapping Optimization
+Spring MVC does NOT scan controller annotations during runtime HTTP requests. Instead, during application startup:
+
+```text
+APPLICATION STARTUP LIFECYCLE:
+1. @ComponentScan scans packages for @RestController beans
+2. Spring instantiates Controller beans
+3. HandlerMapping inspects method annotations (@GetMapping, @PostMapping)
+4. Constructs an in-memory Routing Table:
+   GET  /students/{id} ──► StudentController.getStudent(Integer)
+   POST /students      ──► StudentController.createStudent(Student)
+   PUT  /students/{id} ──► StudentController.updateStudent(Integer, Student)
+```
+
+At runtime, `HandlerMapping` performs an $O(1)$ indexed lookup against this pre-built mapping metadata.
+
+---
+
+## 2. `HandlerAdapter` & The Adapter Design Pattern
+
+`HandlerMapping` identifies the target method, but does NOT execute it. `HandlerAdapter` executes the method:
+
+```text
+DispatcherServlet ──► HandlerAdapter.handle(request, response, handler) ──► Invokes Controller Method
+```
+
+### Why an Adapter Layer Exists
+Spring MVC supports multiple controller programming styles (annotated `@RestController`, functional `RouterFunction`, legacy `Controller` interfaces). The **Adapter Pattern** decouples `DispatcherServlet` from specific handler signatures.
+
+---
+
+## 3. Method Argument Resolution (`HandlerMethodArgumentResolver`)
+
+HTTP request data arrives via multiple distinct channels. Argument resolvers extract and convert wire data into Java parameters:
+
+```java
+@RestController
+@RequestMapping("/students")
+public class StudentController {
+
+    // 1. Path Variable: Extracts /students/10 ──► Integer id = 10
+    @GetMapping("/{id}")
+    public Student getStudent(@PathVariable Integer id) {
+        return studentService.getStudent(id);
+    }
+
+    // 2. Query Parameter: Extracts /students?name=Rahul ──► String name = "Rahul"
+    @GetMapping("/search")
+    public List<Student> searchStudents(@RequestParam String name) {
+        return studentService.searchByName(name);
+    }
+
+    // 3. Request Body: Deserializes JSON payload ──► Student Java Object
+    @PostMapping
+    public Student createStudent(@RequestBody Student student) {
+        return studentService.createStudent(student);
+    }
+}
+```
+
+### HTTP Data Channels & Spring Bindings
+
+| HTTP Source Channel | Spring Annotation | Underlying Extraction Process |
+| :--- | :--- | :--- |
+| **URI Path Segment** | `@PathVariable` | Extracts template match (`/students/{id}`) & converts String ──► Integer |
+| **URL Query String** | `@RequestParam` | Reads Servlet `request.getParameter("name")` |
+| **HTTP Request Body** | `@RequestBody` | Delegates to `HttpMessageConverter` + Jackson JSON deserializer |
+
+---
+
+## 4. `HttpMessageConverter` & Jackson JSON Pipeline
+
+When processing `@RequestBody` inputs or `@ResponseBody` return values, `HttpMessageConverter` coordinates JSON translation:
+
+```text
+REQUEST PAYLOAD (Deserialization):
+JSON Stream ──► HttpMessageConverter (MappingJackson2HttpMessageConverter) ──► Jackson ──► Student Java Object
+
+RESPONSE PAYLOAD (Serialization):
+Student Java Object ──► HttpMessageConverter ──► Jackson ──► JSON Bytes (Content-Type: application/json)
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="What is the difference between HandlerMapping and HandlerAdapter?" options={["HandlerMapping deletes database tables; HandlerAdapter creates them", "HandlerMapping identifies WHICH controller method matches the request URL/verb; HandlerAdapter executes HOW that method is invoked with resolved arguments", "HandlerMapping parses CSS; HandlerAdapter parses HTML", "They are identical components with different names"]} answerIndex={1}>
+`HandlerMapping` finds the matching handler method for a request URL, whereas `HandlerAdapter` resolves the method arguments and invokes the controller method.
+</Quiz>
+
+<Quiz question="Which component converts JSON HTTP request bodies into Java objects in Spring MVC?" options={["InternalResourceViewResolver", "HttpMessageConverter backed by Jackson", "Tomcat ServerSocket", "Maven Compiler Plugin"]} answerIndex={1}>
+`HttpMessageConverter` (specifically `MappingJackson2HttpMessageConverter`) uses Jackson to deserialize incoming JSON payloads into Java objects.
+</Quiz>

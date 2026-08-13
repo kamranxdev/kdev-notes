@@ -1,0 +1,154 @@
+---
+title: "Response Mutation & ContentCachingResponseWrapper"
+description: "Master Servlet response mutation, header timing, response commitment rules, ContentCachingResponseWrapper, and copyBodyToResponse mechanics."
+---
+
+# Response Mutation & `ContentCachingResponseWrapper`
+
+While response headers and status codes can be modified directly, mutating or inspecting HTTP response bodies inside a Servlet Filter requires specialized **response wrapping** due to stream-based writing mechanics.
+
+---
+
+## 1. Response Header Mutation & Timing
+
+Headers can be set or added to an `HttpServletResponse`:
+
+```java
+// Replaces existing header value
+httpResponse.setHeader("X-Application-Name", "Student API");
+
+// Appends additional header value
+httpResponse.addHeader("X-Supported-Locales", "en-US");
+httpResponse.addHeader("X-Supported-Locales", "fr-FR");
+```
+
+---
+
+## 2. Response Commitment & The Sealed Envelope Model
+
+A response transitions through two states: **Uncommitted** and **Committed**.
+
+```text
+THE SEALED ENVELOPE MENTAL MODEL:
+┌─────────────────────────────────────────┐
+│ UNCOMMITTED RESPONSE                    │
+│ ├── Headers & Status Code editable      │ ──► Call chain.doFilter()
+│ └── Body buffer currently filling       │
+└────────────────────┬────────────────────┘
+                     │ First bytes written/flushed to network stream
+                     ▼
+┌─────────────────────────────────────────┐
+│ COMMITTED RESPONSE (SEALED ENVELOPE)    │
+│ └── Headers & Status Code locked!       │ ──► Modifying headers now throws IllegalStateException
+└─────────────────────────────────────────┘
+```
+
+```java
+if (httpResponse.isCommitted()) {
+    // WARNING: Response headers/status are already flushed to the client!
+}
+```
+
+<Callout type="warning">
+
+**Timing Rule**: Always inject mandatory response headers **before** invoking `chain.doFilter(request, response)` to guarantee inclusion before the response becomes committed.
+
+</Callout>
+
+---
+
+## 3. Why `response.getBody()` Does Not Exist
+
+In the Servlet API, controllers write responses via `response.getWriter()` or `response.getOutputStream()`. The `HttpServletResponse` acts as a write-only network destination without an in-memory `getBody()` reader method:
+
+```text
+Controller ──► response.getWriter().write(...) ──► Network Socket ──► Client
+```
+
+To inspect or transform response bodies after controller execution, the response must be intercepted using a **`ContentCachingResponseWrapper`**.
+
+---
+
+## 4. `ContentCachingResponseWrapper` Blueprint
+
+Spring provides `ContentCachingResponseWrapper` to buffer outgoing response bytes into memory:
+
+```java
+@Component
+public class ResponseBodyTransformationFilter implements Filter {
+
+    @Override
+    public void doFilter(
+            ServletRequest request,
+            ServletResponse response,
+            FilterChain chain
+    ) throws IOException, ServletException {
+
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
+
+        // 1. Wrap original response
+        ContentCachingResponseWrapper wrappedResponse =
+                new ContentCachingResponseWrapper(httpResponse);
+
+        // 2. Pass wrapper downstream; Controller writes INTO the wrapper buffer
+        chain.doFilter(httpRequest, wrappedResponse);
+
+        // 3. Extract cached body bytes
+        byte[] originalBodyBytes = wrappedResponse.getContentAsByteArray();
+        String originalBody = new String(originalBodyBytes, StandardCharsets.UTF_8);
+
+        // 4. Modify body payload
+        String modifiedBody = """
+            {
+              "data": %s,
+              "interceptedBy": "ResponseBodyTransformationFilter"
+            }
+            """.formatted(originalBody);
+
+        byte[] modifiedBodyBytes = modifiedBody.getBytes(StandardCharsets.UTF_8);
+
+        // 5. Reset buffer (Clears cached body while preserving HTTP headers/status)
+        wrappedResponse.resetBuffer();
+
+        // 6. Write modified payload into wrapper
+        wrappedResponse.setContentType("application/json");
+        wrappedResponse.setContentLength(modifiedBodyBytes.length);
+        wrappedResponse.getOutputStream().write(modifiedBodyBytes);
+
+        // 7. CRITICAL: Copy cached content to the REAL response network stream!
+        wrappedResponse.copyBodyToResponse();
+    }
+}
+```
+
+<Callout type="danger">
+
+**Critical Warning**: Always call **`wrappedResponse.copyBodyToResponse()`** at the end of the filter! Omitting this method leaves the buffered data trapped inside the wrapper, causing the client to receive an HTTP 200 response with an **empty body**!
+
+</Callout>
+
+---
+
+## 5. Production Hazards & `ResponseBodyAdvice` Alternative
+
+Globally buffering response bodies inside a Servlet Filter introduces major production hazards:
+
+1. **Memory Overhead**: Buffering large responses or file downloads consumes $O(N)$ heap memory per request.
+2. **Binary Data Corruption**: Treating binary responses (PDFs, ZIPs, images) as UTF-8 strings corrupts files.
+3. **Stream Disruption**: Breaks chunked transfer encoding and SSE (Server-Sent Events) streaming endpoints.
+
+### Architectural Alternative
+If the requirement is to wrap Spring MVC REST responses (e.g. `{ "data": ... }`), use Spring MVC's **`ResponseBodyAdvice<T>`** interface instead of a low-level Servlet Filter!
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="What happens if a developer omits wrappedResponse.copyBodyToResponse() in a filter using ContentCachingResponseWrapper?" options={["Spring Boot throws a NullPointerException", "The client receives an empty HTTP response body because the buffered bytes were never flushed to the real response stream", "The response body is written twice", "Tomcat restarts automatically"]} answerIndex={1}>
+`ContentCachingResponseWrapper` buffers output in memory. Calling `copyBodyToResponse()` is mandatory to transfer the buffered bytes from the wrapper to the actual network output stream.
+</Quiz>
+
+<Quiz question="Why is resetting a response buffer with wrappedResponse.resetBuffer() preferred over recreating the response?" options={["It deletes all Java classes", "It clears the buffered response body bytes while preserving existing HTTP status codes and headers", "It speeds up MySQL queries", "It re-executes the controller"]} answerIndex={1}>
+`resetBuffer()` clears the buffered body payload while preserving existing headers and status codes set by downstream controllers.
+</Quiz>

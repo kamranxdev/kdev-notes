@@ -1,0 +1,7 @@
+{
+  "title": "23. Global Exception Handling & Error Contracts",
+  "pages": [
+    "01-restcontrolleradvice-and-exceptionhandlers",
+    "02-validation-parsing-errors-and-production-safety"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "title": "17. Deployment, Tomcat & Spring MVC Progression",
+  "pages": [
+    "01-war-packaging-provided-scope-and-embedded-tomcat",
+    "02-dispatcherservlet-spring-mvc-and-production-pitfalls"
+  ]
+}

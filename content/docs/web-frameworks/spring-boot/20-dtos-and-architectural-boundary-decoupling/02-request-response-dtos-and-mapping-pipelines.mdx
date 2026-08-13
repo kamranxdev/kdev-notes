@@ -1,0 +1,164 @@
+---
+title: "Request/Response DTOs & Mapping Pipelines"
+description: "Master Request and Response DTO design, explicit entity mapping pipelines, and production CRUD API implementations."
+---
+
+# Request/Response DTOs & Mapping Pipelines
+
+To insulate the database persistence layer from public HTTP traffic, separate DTO classes must be constructed for incoming requests and outgoing responses.
+
+---
+
+## 1. Request DTO vs Response DTO Specifications
+
+### Request DTO (Client Input Contract)
+Exposes ONLY the fields clients are permitted to supply during resource creation or update:
+
+```java
+public class StudentRequestDto {
+    private String name;
+    private String email;
+    private Integer age;
+
+    // Getters and Setters (Notice: NO id, NO isDeleted, NO createdAt)
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
+}
+```
+
+### Response DTO (Client Output Contract)
+Exposes ONLY public fields intended for client consumption:
+
+```java
+public class StudentResponseDto {
+    private Long id;
+    private String name;
+    private String email;
+    private Integer age;
+
+    // Getters and Setters (Exposes generated id, hides internal audit fields)
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
+}
+```
+
+---
+
+## 2. Explicit DTO Mapping Pipelines
+
+Transformation between DTOs and Entities occurs at the Service Layer boundary:
+
+```mermaid
+graph LR
+    ReqDTO["StudentRequestDto"] -->|mapToEntity| Entity["Student Entity"]
+    Entity -->|Repository.save| DB[("MySQL Database")]
+    DB -->|Saved Entity| Entity2["Persisted Student Entity"]
+    Entity2 -->|mapToResponseDto| RespDTO["StudentResponseDto"]
+
+    style ReqDTO fill:#ea580c,stroke:#c2410c,color:#fff
+    style Entity fill:#059669,stroke:#047857,color:#fff
+    style DB fill:#374151,stroke:#1f2937,color:#fff
+    style RespDTO fill:#2563eb,stroke:#1d4ed8,color:#fff
+```
+
+### Mapping Implementation in Service Layer
+
+```java
+@Service
+public class StudentService {
+
+    private final StudentRepository repository;
+
+    public StudentService(StudentRepository repository) {
+        this.repository = repository;
+    }
+
+    public StudentResponseDto createStudent(StudentRequestDto requestDto) {
+        // Step 1: Map Request DTO ──► Entity
+        Student student = mapToEntity(requestDto);
+
+        // Step 2: Persist Entity
+        Student savedStudent = repository.save(student);
+
+        // Step 3: Map Entity ──► Response DTO
+        return mapToResponseDto(savedStudent);
+    }
+
+    private Student mapToEntity(StudentRequestDto dto) {
+        Student student = new Student();
+        student.setName(dto.getName());
+        student.setEmail(dto.getEmail());
+        student.setAge(dto.getAge());
+        // Intentionally leaves id, isDeleted, createdAt to server control!
+        return student;
+    }
+
+    private StudentResponseDto mapToResponseDto(Student entity) {
+        StudentResponseDto dto = new StudentResponseDto();
+        dto.setId(entity.getId());
+        dto.setName(entity.getName());
+        dto.setEmail(entity.getEmail());
+        dto.getAge(entity.getAge());
+        return dto;
+    }
+}
+```
+
+---
+
+## 3. CRUD API Implementation with DTOs
+
+```java
+@RestController
+@RequestMapping("/api/students")
+public class StudentController {
+
+    private final StudentService service;
+
+    public StudentController(StudentService service) {
+        this.service = service;
+    }
+
+    @PostMapping
+    public StudentResponseDto createStudent(@Valid @RequestBody StudentRequestDto requestDto) {
+        return service.createStudent(requestDto);
+    }
+
+    @GetMapping("/{id}")
+    public StudentResponseDto getStudentById(@PathVariable Long id) {
+        return service.getStudentById(id);
+    }
+
+    @GetMapping
+    public List<StudentResponseDto> getAllStudents() {
+        return service.getAllStudents();
+    }
+
+    @PutMapping("/{id}")
+    public StudentResponseDto updateStudent(@PathVariable Long id, @Valid @RequestBody StudentRequestDto requestDto) {
+        return service.updateStudent(id, requestDto);
+    }
+}
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="Where should DTO-to-Entity mapping take place in a layered Spring Boot application?" options={["Inside the MySQL database engine", "At the Service Layer boundary (or dedicated Mapper classes), sitting between DTO-oriented Controllers and Entity-oriented Repositories", "Inside HTML files", "Inside pom.xml"]} answerIndex={1}>
+The Service Layer (or a dedicated Mapper class) is the natural mapping boundary because it mediates between external HTTP DTO contracts from Controllers and internal persistence Entities used by Repositories.
+</Quiz>
+
+<Quiz question="Why does updateStudent retrieve the existing Entity before applying DTO fields?" options={["To delete the record first", "To ensure fields not present in the update DTO (like createdAt or primary key) are preserved rather than overwritten with nulls", "Because update requires XML files", "To disable database indexes"]} answerIndex={1}>
+Retrieving the existing Entity allows the Service to selectively update permitted fields while preserving server-managed properties (like `id`, `createdAt`, `isDeleted`).
+</Quiz>

@@ -1,0 +1,189 @@
+---
+title: "Conditional Beans with @Profile & Production Patterns"
+description: "Master conditional Spring bean registration using @Profile, resolving bean ambiguity, implementation switching, and production configuration anti-patterns."
+---
+
+# Conditional Beans with `@Profile` & Production Patterns
+
+While profile-specific configuration files change **property values**, the **`@Profile`** annotation changes **which Spring Beans are instantiated** in the `ApplicationContext`.
+
+---
+
+## 1. Values vs Implementations: The Critical Decision Rule
+
+```text
+CRITICAL DECISION RULE:
+├── Different Property Values? ──► Use Profile Files (application-dev.yml vs application-prod.yml)
+└── Different Java Classes?   ──► Use @Profile Annotation (@Profile("dev") vs @Profile("prod"))
+```
+
+---
+
+## 2. Conditional Bean Creation with `@Profile`
+
+Suppose an application sends notifications. In development, notifications should be logged to the console without sending real emails. In production, real emails must be dispatched via SMTP:
+
+### Common Service Interface
+```java
+public interface NotificationService {
+    void sendNotification(String recipient, String message);
+}
+```
+
+### 1. Development Implementation (`@Profile("dev")`)
+```java
+@Service
+@Profile("dev")
+public class DevNotificationService implements NotificationService {
+
+    @Override
+    public void sendNotification(String recipient, String message) {
+        System.out.println("[DEV MOCK NOTIFICATION] To: " + recipient + " | Msg: " + message);
+    }
+}
+```
+
+### 2. Production Implementation (`@Profile("prod")`)
+```java
+@Service
+@Profile("prod")
+public class ProdNotificationService implements NotificationService {
+
+    @Override
+    public void sendNotification(String recipient, String message) {
+        // Dispatch real email via SMTP
+        System.out.println("[PROD SMTP EMAIL] Dispatched to: " + recipient);
+    }
+}
+```
+
+---
+
+## 3. How `@Profile` Prevents Bean Ambiguity
+
+Without `@Profile`, registering both `DevNotificationService` and `ProdNotificationService` as `@Service` beans would cause Spring DI to fail with `NoUniqueBeanDefinitionException` due to candidate ambiguity.
+
+With `@Profile`:
+* When `SPRING_PROFILES_ACTIVE=dev`, **only** `DevNotificationService` is registered in `ApplicationContext`.
+* When `SPRING_PROFILES_ACTIVE=prod`, **only** `ProdNotificationService` is registered in `ApplicationContext`.
+
+```java
+@RestController
+@RequestMapping("/api/notifications")
+public class NotificationController {
+
+    private final NotificationService service;
+
+    // Zero ambiguity! Exactly ONE NotificationService implementation exists for the active profile
+    public NotificationController(NotificationService service) {
+        this.service = service;
+    }
+
+    @PostMapping
+    public String notifyUser(@RequestParam String email, @RequestParam String msg) {
+        service.sendNotification(email, msg);
+        return "Notification processed";
+    }
+}
+```
+
+---
+
+## 4. Production Anti-Patterns Matrix
+
+| Anti-Pattern | Operational Risk | Recommended Solution |
+| :--- | :--- | :--- |
+| **1. Hardcoding Active Profile in Source** | Packages `spring.profiles.active=prod` into `application.yml`, making JAR non-reusable | Activate profiles externally via `SPRING_PROFILES_ACTIVE` |
+| **2. Mixing `.properties` and `.yml`** | Overlapping files create unpredictable property override bugs | Standardize strictly on `application.yml` |
+| **3. Using `@Profile` for Value Changes** | Creating separate classes just to change DB URLs or ports | Use `application-dev.yml` for values; `@Profile` for code |
+| **4. Excessive Individual `@Value` Fields** | Creates bloated, fragile classes with repeated annotations | Use `@ConfigurationProperties` for grouped settings |
+
+---
+
+## ❓ Interactive Self-Assessment
+
+<Quiz question="What is the difference between profile-specific files (application-dev.yml) and the @Profile annotation?" options={["Profile files change configuration values; @Profile conditions which Java classes/beans are registered in the ApplicationContext", "Profile files are for C++; @Profile is for Java", "They are identical", "@Profile changes database passwords only"]} answerIndex={0}>
+Profile-specific files change parameter values (like DB URLs or ports), whereas `@Profile` conditions bean registration, controlling which Java class implementation is loaded.
+</Quiz>
+
+<Problem title="Designing One Reusable JAR for Multi-Environment Deployments">
+<ProblemDescription>
+An enterprise system requires:
+1. Local Dev: Uses MySQL `localhost:3306/dev_db` on port `8081` with a mock `DevPaymentService`.
+2. Production: Uses Cloud MySQL `prod-db:3306/prod_db` on port `8080` with a real `StripePaymentService`.
+3. The Java Controller must remain 100% unchanged across both environments.
+
+Design the file layout and Java implementation structure.
+</ProblemDescription>
+<ProblemSolution>
+
+### 1. `src/main/resources/application-dev.yml`
+```yaml
+server:
+  port: 8081
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/dev_db
+```
+
+### 2. `src/main/resources/application-prod.yml`
+```yaml
+server:
+  port: 8080
+spring:
+  datasource:
+    url: jdbc:mysql://prod-db:3306/prod_db
+```
+
+### 3. Payment Service Interface & Profile Beans
+```java
+public interface PaymentService {
+    void processPayment(double amount);
+}
+
+@Service
+@Profile("dev")
+public class DevPaymentService implements PaymentService {
+    public void processPayment(double amount) {
+        System.out.println("MOCK PAYMENT: $" + amount);
+    }
+}
+
+@Service
+@Profile("prod")
+public class StripePaymentService implements PaymentService {
+    public void processPayment(double amount) {
+        System.out.println("STRIPE REAL PAYMENT: $" + amount);
+    }
+}
+```
+
+### 4. Controller
+```java
+@RestController
+@RequestMapping("/api/pay")
+public class PaymentController {
+    private final PaymentService paymentService;
+
+    public PaymentController(PaymentService paymentService) {
+        this.paymentService = paymentService;
+    }
+
+    @PostMapping
+    public String pay(@RequestParam double amount) {
+        paymentService.processPayment(amount);
+        return "Payment complete";
+    }
+}
+```
+
+### 5. Execution Command (Same JAR, Different Profile)
+```bash
+# Development:
+java -jar app.jar --spring.profiles.active=dev
+
+# Production:
+java -jar app.jar --spring.profiles.active=prod
+```
+</ProblemSolution>
+</Problem>

@@ -1,0 +1,7 @@
+{
+  "title": "4. Bean Lifecycle & Advanced Container Mechanics",
+  "pages": [
+    "01-bean-lifecycle-and-hooks",
+    "02-scopes-lazy-init-and-circular-deps"
+  ]
+}

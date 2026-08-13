@@ -1,0 +1,209 @@
+---
+title: "Inversion of Control & Dependency Injection"
+description: "Architectural mechanics of IoC and DI, tight vs loose coupling, interface abstraction, constructor vs field injection, SRP/OCP compliance, and unit testability."
+---
+
+At the heart of the Spring Framework lies two core software engineering paradigms: **Inversion of Control (IoC)** and **Dependency Injection (DI)**.
+
+## 1. Tight Coupling vs Loose Coupling
+
+Consider a backend application where an `OrderService` needs to notify users via email.
+
+### Tightly Coupled Architecture (Without Spring / DI)
+
+```java
+public class EmailService {
+    public void sendEmail(String message) {
+        System.out.println("Sending email: " + message);
+    }
+}
+
+public class OrderService {
+    // Rigid dependency created internally via 'new' keyword
+    private EmailService emailService = new EmailService();
+
+    public void processOrder(String orderId) {
+        // Business logic...
+        emailService.sendEmail("Order " + orderId + " processed.");
+    }
+}
+```
+
+#### Why Tight Coupling Breaks Architecture:
+1. **No Interchangeability**: If the team wants to switch from `EmailService` to `SmsService` or `WhatsAppService`, `OrderService` must be modified directly.
+2. **Impossible to Unit Test**: You cannot test `OrderService.processOrder()` in isolation without triggering real emails, because you cannot substitute a mock `EmailService`.
+3. **Violates Open/Closed Principle (OCP)**: Software entities should be open for extension, but closed for modification.
+
+---
+
+### Loosely Coupled Architecture (Interface Abstraction + DI)
+
+To break tight coupling, we introduce an **Interface** and pass the dependency into `OrderService` from the outside:
+
+```mermaid
+graph TD
+    OrderService[OrderService] --> NotificationService<<Interface>>
+    
+    NotificationServiceService1[EmailService] ..|Implements| NotificationService
+    NotificationServiceService2[SmsService] ..|Implements| NotificationService
+    NotificationServiceService3[MockNotificationService] ..|Implements| NotificationService
+
+    style OrderService fill:#0891b2,color:#fff
+    style NotificationService fill:#7c3aed,color:#fff
+    style NotificationServiceService3 fill:#059669,color:#fff
+```
+
+```java
+// 1. Interface abstraction contract
+public interface NotificationService {
+    void sendNotification(String message);
+}
+
+// 2. Concrete implementation A
+@Service
+public class EmailService implements NotificationService {
+    @Override
+    public void sendNotification(String message) {
+        System.out.println("Sending Email: " + message);
+    }
+}
+
+// 3. OrderService relies ONLY on the Interface contract
+@Service
+public class OrderService {
+    
+    private final NotificationService notificationService;
+
+    // Dependency is injected from outside via Constructor
+    public OrderService(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
+
+    public void processOrder(String orderId) {
+        notificationService.sendNotification("Order " + orderId + " processed.");
+    }
+}
+```
+
+---
+
+## 2. Inversion of Control (IoC) Explained
+
+In traditional programming, application code controls object creation and manages lifecycles (`new OrderService()`, `new EmailService()`).
+
+**Inversion of Control (IoC)** is a design principle where the control of object creation, lifecycle management, and dependency wiring is **inverted**—handed over to an external container (the **Spring IoC Container**).
+
+```text
+Traditional Control Flow:
+[ Application Code ] ──> Creates ──> [ Objects / Dependencies ]
+
+Inverted Control Flow (IoC):
+[ Spring IoC Container ] ──> Instantiates & Injects ──> [ Application Objects ]
+```
+
+### Real-World Analogy: Custom PC Build vs Pre-built Computer
+
+* **Traditional Control (No IoC)**: You forge individual copper wires, solder silicon chips, and assemble computer components by hand.
+* **Inversion of Control (IoC Container)**: You specify desired specifications (8-core CPU, 32GB RAM). The automated factory (Spring IoC Container) manufactures, wires, and delivers a fully assembled desktop ready for use.
+
+---
+
+## 3. Dependency Injection (DI) Styles
+
+**Dependency Injection** is the specific pattern used to implement IoC. There are three primary ways to inject dependencies in Spring:
+
+### 1. Constructor Injection (Industry Best Practice ⭐)
+
+```java
+@Service
+public class UserService {
+
+    private final UserRepository userRepository;
+
+    // Spring 4.3+: @Autowired is implicit on single constructors
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+}
+```
+
+#### Why Constructor Injection Is Superior:
+* **Immutability**: Dependencies can be declared `final`, preventing accidental reassignment.
+* **Null-Safety**: Prevents `NullPointerException` at runtime. The class cannot be instantiated without supplying dependencies.
+* **Framework Independence**: Pure Java test classes can instantiate `new UserService(mockRepository)` without launching Spring!
+
+---
+
+### 2. Field Injection (`@Autowired` directly on fields ⚠️ Discouraged)
+
+```java
+@Service
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository; // Field Injection
+}
+```
+
+> [!WARNING]
+> **Why Field Injection Is Discouraged in Production**:
+> 1. Cannot declare fields as `final`.
+> 2. Makes unit testing difficult without reflection utilities or starting heavy Spring contexts.
+> 3. Hides dependency smells: Classes can easily accumulate 10+ field dependencies without noticing code smell.
+
+---
+
+### 3. Setter Injection (Optional Dependencies)
+
+```java
+@Service
+public class AuditService {
+
+    private MetricsLogger metricsLogger;
+
+    @Autowired(required = false)
+    public void setMetricsLogger(MetricsLogger metricsLogger) {
+        this.metricsLogger = metricsLogger;
+    }
+}
+```
+
+* **Use Case**: Best used for optional dependencies that can be reconfigured or set after object instantiation.
+
+---
+
+## 4. Unit Testing & Mocking Advantages
+
+Because dependencies are injected, unit testing becomes fast, isolated, and simple using libraries like **Mockito**:
+
+```java
+class OrderServiceTest {
+
+    @Test
+    void testProcessOrder() {
+        // 1. Create Mock object without launching Spring
+        NotificationService mockNotification = Mockito.mock(NotificationService.class);
+        
+        // 2. Inject mock into OrderService
+        OrderService orderService = new OrderService(mockNotification);
+
+        // 3. Execute method
+        orderService.processOrder("ORD-101");
+
+        // 4. Verify mock interaction
+        Mockito.verify(mockNotification).sendNotification("Order ORD-101 processed.");
+    }
+}
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="Why is Constructor Injection strongly preferred over Field Injection (@Autowired on fields) in modern Spring Boot development?" options={["Field Injection is deprecated and causes compilation errors in Java 17", "Constructor injection allows dependencies to be marked 'final', guarantees non-null initialization, and enables unit testing without launching Spring", "Constructor injection speeds up database queries", "Field injection uses 10x more JVM heap memory"]} answerIndex={1}>
+Constructor injection enforces immutability via `final`, guarantees that objects cannot exist in an uninitialized state, and allows easy unit testing using pure Java instantiations.
+</Quiz>
+
+<Quiz question="What software design principle is violated when a class uses 'new ConcreteService()' directly inside its methods?" options={["Single Responsibility Principle (SRP)", "Open/Closed Principle (OCP) and Dependency Inversion Principle (DIP)", "Don't Repeat Yourself (DRY)", "Least Surprise Principle"]} answerIndex={1}>
+Creating concrete dependencies internally creates tight coupling, violating the Dependency Inversion Principle (DIP) and Open/Closed Principle (OCP) because the class cannot be extended or swapped without modifying code.
+</Quiz>

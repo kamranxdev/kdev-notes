@@ -1,0 +1,156 @@
+---
+title: "Entity Design, Repository Proxies & Persistence Context"
+description: "Master JPA entity design, Spring Data interface proxies, derived queries, persistence context dirty checking, and B-Tree query complexity."
+---
+
+# Entity Design, Repository Proxies & Persistence Context
+
+Understanding entity mapping blueprints, Spring Data proxy mechanics, and the Hibernate **Persistence Context** enables writing efficient data access layers.
+
+---
+
+## 1. Entity Blueprint Mapping
+
+```java
+package com.coderarmy.studentcrud.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "students")
+public class Student {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Delegated to MySQL Auto-Increment
+    private Long id;
+
+    private String name;
+    private String email;
+    private Integer age;
+    private String mobile;
+
+    private Boolean isDeleted = false; // Soft-delete state flag
+
+    public Student() {} // Required by JPA Spec
+
+    // Standard Getters and Setters
+    public Long getId() { return id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
+    public String getMobile() { return mobile; }
+    public void setMobile(String mobile) { this.mobile = mobile; }
+    public Boolean getIsDeleted() { return isDeleted; }
+    public void setIsDeleted(Boolean isDeleted) { this.isDeleted = isDeleted; }
+}
+```
+
+---
+
+## 2. Spring Data Repository Interface Proxies
+
+```java
+package com.coderarmy.studentcrud.repository;
+
+import com.coderarmy.studentcrud.entity.Student;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface StudentRepository extends JpaRepository<Student, Long> {
+    // Derived query method generated automatically at runtime
+    List<Student> findByIsDeletedFalse();
+}
+```
+
+### How Repository Interfaces Work Without Class Implementations
+
+```text
+StudentRepository Interface
+        │
+        ▼
+Spring Data Proxy Infrastructure (JDK Dynamic Proxy / ByteBuddy)
+        │
+        ▼
+Generated Runtime Implementation Class
+        │
+        ▼
+EntityManager ──► Hibernate ──► MySQL JDBC Driver
+```
+
+---
+
+## 3. Persistence Context, Managed Lifecycle & Dirty Checking
+
+Hibernate manages entities inside a **Persistence Context** (an internal Identity Map tracking entity states):
+
+```text
+TRANSIENT STATE (new Student())
+       │
+       │ repository.save(student)
+       ▼
+MANAGED STATE (Tracked by Persistence Context)
+       │
+       │ Mutate field: student.setName("New Name")
+       ▼
+DIRTY STATE ──► Transaction Flush ──► Auto-generates SQL UPDATE!
+```
+
+### Dirty Checking Mechanics
+
+```java
+@Transactional
+public void updateStudentName(Long id, String newName) {
+    // 1. Entity loaded into Persistence Context (MANAGED state)
+    Student student = studentRepository.findById(id).orElseThrow();
+    
+    // 2. State mutated directly in Java memory
+    student.setName(newName);
+    
+    // 3. No explicit repository.save() required! 
+    // At transaction commit/flush, Hibernate compares snapshot state and generates SQL UPDATE automatically.
+}
+```
+
+---
+
+## 4. Query Complexity & The `findAll()` Memory Trap
+
+Primary key lookups (`findById`) in MySQL InnoDB use B-Tree indexes with logarithmic time complexity:
+
+$$O(\log_B N)$$
+
+Where $N$ is the number of rows and $B$ is the tree branching factor.
+
+### The Memory Trap of `findAll()`
+
+```text
+10,000,000 Database Rows ──► repository.findAll() ──► Heap Exhaustion / OutOfMemoryError (OOM)!
+```
+
+Calling `findAll()` on un-paginated production tables forces Hibernate to materialize millions of Java objects simultaneously into heap memory.
+
+### Production Solution: Pagination via `Pageable`
+
+```java
+// Repository
+Page<Student> findByIsDeletedFalse(Pageable pageable);
+
+// Service Usage
+Pageable pageable = PageRequest.of(0, 50, Sort.by("id").descending());
+Page<Student> studentPage = studentRepository.findByIsDeletedFalse(pageable);
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="What is Hibernate Dirty Checking?" options={["A security scanner for SQL injections", "The process where Hibernate tracks managed entities and automatically issues an SQL UPDATE at transaction commit if entity fields were modified in Java memory", "A tool for deleting corrupted database records", "A method for converting JSON into XML"]} answerIndex={1}>
+Dirty Checking occurs when Hibernate detects differences between an entity's initial snapshot and its modified state during a transaction flush, generating an SQL `UPDATE` automatically.
+</Quiz>
+
+<Quiz question="Why should pagination be used instead of repository.findAll() when retrieving lists of records?" options={["Because findAll() does not work in Java 17", "Because findAll() attempts to load all database rows into JVM heap memory at once, risking OutOfMemory errors on large datasets", "Because pagination deletes old records", "Because Pageable encrypts the database password"]} answerIndex={1}>
+`findAll()` fetches all matching rows into memory simultaneously. Pagination restricts queries to manageable chunks (e.g. 50 records per page), maintaining low memory overhead.
+</Quiz>

@@ -1,0 +1,7 @@
+{
+  "title": "25. Spring Profiles & Environment Decoupling",
+  "pages": [
+    "01-profile-specific-configuration-and-activation",
+    "02-conditional-beans-with-profile-and-production-patterns"
+  ]
+}

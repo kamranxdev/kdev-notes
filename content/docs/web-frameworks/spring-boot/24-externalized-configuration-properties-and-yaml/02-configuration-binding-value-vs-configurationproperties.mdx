@@ -1,0 +1,137 @@
+---
+title: "Configuration Binding: @Value vs @ConfigurationProperties"
+description: "Master Spring property binding, single property injection with @Value, type-safe grouped binding with @ConfigurationProperties, and database blueprints."
+---
+
+# Configuration Binding: `@Value` vs `@ConfigurationProperties`
+
+Spring Boot provides two primary annotations for binding external property values into Java beans: **`@Value`** for single scalar properties and **`@ConfigurationProperties`** for type-safe grouped structures.
+
+---
+
+## 1. Single Property Injection with `@Value`
+
+The `@Value` annotation injects individual property values using SpEL / property placeholder syntax `${property.key:default_value}`:
+
+```java
+@RestController
+public class WelcomeController {
+
+    // Inject property; if missing, fall back to "Default Welcome Message"
+    @Value("${app.welcome.message:Default Welcome Message}")
+    private String welcomeMessage;
+
+    @Value("${server.port:8080}")
+    private int serverPort;
+
+    @GetMapping("/welcome")
+    public String getWelcomeMessage() {
+        return welcomeMessage + " (Running on port: " + serverPort + ")";
+    }
+}
+```
+
+---
+
+## 2. Type-Safe Grouped Binding with `@ConfigurationProperties`
+
+When configuration contains nested blocks, lists, or multiple related fields, injecting dozens of `@Value` annotations creates bloated, unmaintainable classes:
+
+```yaml
+# application.yml
+app:
+  name: Student Management System
+  version: 2.5.0
+  support:
+    email: support@studentapp.com
+    phone: "+1-800-555-0199"
+  supported-cities:
+    - Delhi
+    - Mumbai
+    - Bangalore
+```
+
+Instead of using individual `@Value` fields, bind the entire `app` prefix into a POJO using `@ConfigurationProperties`:
+
+```java
+@Component
+@ConfigurationProperties(prefix = "app")
+public class AppProperties {
+
+    private String name;
+    private String version;
+    private Support support = new Support();
+    private List<String> supportedCities = new ArrayList<>();
+
+    // Nested Class for Sub-properties
+    public static class Support {
+        private String email;
+        private String phone;
+
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+        public String getPhone() { return phone; }
+        public void setPhone(String phone) { this.phone = phone; }
+    }
+
+    // Getters and Setters
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getVersion() { return version; }
+    public void setVersion(String version) { this.version = version; }
+    public Support getSupport() { return support; }
+    public void setSupport(Support support) { this.support = support; }
+    public List<String> getSupportedCities() { return supportedCities; }
+    public void setSupportedCities(List<String> supportedCities) { this.supportedCities = supportedCities; }
+}
+```
+
+---
+
+## 3. Comparison Matrix: `@Value` vs `@ConfigurationProperties`
+
+| Feature | `@Value` | `@ConfigurationProperties` |
+| :--- | :--- | :--- |
+| **Primary Use Case** | Single, isolated scalar property | Grouped, nested, or list-based configuration |
+| **Relaxed Binding** | Limited | ✅ Supported (kebab-case `app-name` maps to `appName`) |
+| **SpEL Support** | ✅ Fully supported (`#{...}`) | ❌ Not supported |
+| **Type Safety & IDE Autocomplete** | Weak | ✅ Strong (Type-safe POJO with IDE hints) |
+| **JSR-303 Bean Validation** | ❌ Not supported | ✅ Supported (Can annotate POJO fields with `@NotBlank`) |
+
+---
+
+## 4. Database & JPA Configuration Blueprints
+
+### Properties Blueprint (`application.properties`)
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/student_db
+spring.datasource.username=root
+spring.datasource.password=root
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+```
+
+### YAML Blueprint (`application.yml`)
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/student_db
+    username: root
+    password: root
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="When should you choose @ConfigurationProperties over @Value?" options={["When you need to execute C++ scripts", "When binding complex, nested, list-based, or grouped configuration settings into a type-safe Java POJO", "When you want to delete properties from application.yml", "When running Spring Boot without Tomcat"]} answerIndex={1}>
+`@ConfigurationProperties` is ideal for binding structured, hierarchical configuration blocks or lists into a type-safe Java POJO with prefix matching and IDE auto-completion.
+</Quiz>
+
+<Quiz question="What is Relaxed Binding in Spring Boot configuration?" options={["Allowing property files to be saved without file extensions", "The mechanism where Spring Boot maps different naming styles (kebab-case, camelCase, snake_case) to the same Java property field", "Allowing Tomcat to run on any port automatically", "Ignoring database passwords"]} answerIndex={1}>
+Relaxed Binding allows configuration keys written in kebab-case (`app.support-email`), snake_case (`app.support_email`), or uppercase (`APP_SUPPORT_EMAIL`) to map automatically to a Java field named `supportEmail`.
+</Quiz>

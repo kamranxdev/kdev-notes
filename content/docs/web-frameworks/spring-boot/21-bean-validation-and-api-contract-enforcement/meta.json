@@ -1,0 +1,7 @@
+{
+  "title": "21. Bean Validation & API Contract Enforcement",
+  "pages": [
+    "01-bean-validation-annotations-and-valid-trigger",
+    "02-error-contracts-anti-patterns-and-refactoring"
+  ]
+}

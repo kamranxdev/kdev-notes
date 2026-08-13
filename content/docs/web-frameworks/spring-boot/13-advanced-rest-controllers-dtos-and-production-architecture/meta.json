@@ -1,0 +1,7 @@
+{
+  "title": "13. Advanced REST Controllers, DTOs & Production Architecture",
+  "pages": [
+    "01-rest-controllers-responseentity-and-jackson",
+    "02-dtos-state-machines-anti-patterns-and-debugging"
+  ]
+}

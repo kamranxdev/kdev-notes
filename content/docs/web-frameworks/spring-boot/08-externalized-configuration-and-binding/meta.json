@@ -1,0 +1,7 @@
+{
+  "title": "8. Externalized Configuration & Property Binding",
+  "pages": [
+    "01-configuration-sources-properties-and-yaml",
+    "02-value-vs-configuration-properties-and-relaxed-binding"
+  ]
+}

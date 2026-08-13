@@ -1,0 +1,214 @@
+---
+title: "Validation Errors, Parsing & Production Safety"
+description: "Master handling MethodArgumentNotValidException, HttpMessageNotReadableException, generic Exception fallbacks, and preventing production stack trace leaks."
+---
+
+# Validation Errors, Parsing & Production Safety
+
+Centralized exception handlers must handle binding failures, JSON parsing errors, path parameter conversion bugs, and catch-all unexpected runtime crashes safely.
+
+---
+
+## 1. Handling Validation Failures (`MethodArgumentNotValidException`)
+
+When `@Valid` evaluation fails on a `@RequestBody` DTO, Spring MVC raises `MethodArgumentNotValidException`. Extracting field-level error messages allows the handler to build a rich error response:
+
+```java
+public class ValidationErrorResponseDto extends ErrorResponseDto {
+    private final Map<String, String> fieldErrors;
+
+    public ValidationErrorResponseDto(int statusCode, String error, String message, String path, Map<String, String> fieldErrors) {
+        super(statusCode, error, message, path);
+        this.fieldErrors = fieldErrors;
+    }
+
+    public Map<String, String> getFieldErrors() { return fieldErrors; }
+}
+```
+
+```java
+@ExceptionHandler(MethodArgumentNotValidException.class)
+public ResponseEntity<ValidationErrorResponseDto> handleValidationErrors(
+        MethodArgumentNotValidException ex, HttpServletRequest request) {
+
+    Map<String, String> fieldErrors = new HashMap<>();
+    ex.getBindingResult().getFieldErrors().forEach(error -> 
+        fieldErrors.put(error.getField(), error.getDefaultMessage())
+    );
+
+    ValidationErrorResponseDto response = new ValidationErrorResponseDto(
+            HttpStatus.BAD_REQUEST.value(),
+            HttpStatus.BAD_REQUEST.getReasonPhrase(),
+            "Validation failed",
+            request.getRequestURI(),
+            fieldErrors
+    );
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+}
+```
+
+---
+
+## 2. Handling Request Parsing & Type Mismatch Failures
+
+### 1. Malformed JSON (`HttpMessageNotReadableException`)
+Triggers when a client sends invalid JSON (e.g. `{ "age": "twenty" }` for an `Integer` field):
+
+```java
+@ExceptionHandler(HttpMessageNotReadableException.class)
+public ResponseEntity<ErrorResponseDto> handleJsonParsingError(
+        HttpMessageNotReadableException ex, HttpServletRequest request) {
+
+    ErrorResponseDto response = new ErrorResponseDto(
+            HttpStatus.BAD_REQUEST.value(),
+            HttpStatus.BAD_REQUEST.getReasonPhrase(),
+            "Invalid JSON payload or data type mismatch",
+            request.getRequestURI()
+    );
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+}
+```
+
+### 2. Path Variable Type Mismatch (`MethodArgumentTypeMismatchException`)
+Triggers when a client passes invalid path types (e.g. `GET /api/students/abc` where `id` is `Long`):
+
+```java
+@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+public ResponseEntity<ErrorResponseDto> handleTypeMismatch(
+        MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+
+    ErrorResponseDto response = new ErrorResponseDto(
+            HttpStatus.BAD_REQUEST.value(),
+            HttpStatus.BAD_REQUEST.getReasonPhrase(),
+            "Invalid value for parameter '" + ex.getName() + "'",
+            request.getRequestURI()
+    );
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+}
+```
+
+---
+
+## 3. Generic Exception Fallback & Production Security
+
+<Callout type="warning">
+
+**SECURITY RULE**: Never return `ex.getMessage()` or stack traces in generic `Exception.class` handlers! Exposing raw messages risks leaking internal SQL queries, table names, database passwords, or filesystem paths to external attackers.
+
+</Callout>
+
+```java
+// SAFE PRODUCTION FALLBACK
+@ExceptionHandler(Exception.class)
+public ResponseEntity<ErrorResponseDto> handleGenericException(
+        Exception ex, HttpServletRequest request) {
+
+    // Log the full stack trace internally for developers
+    // logger.error("Unhandled exception occurred", ex);
+
+    // Return a sanitized, generic error message to external clients
+    ErrorResponseDto response = new ErrorResponseDto(
+            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+            HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
+            "An unexpected server error occurred. Please try again later.",
+            request.getRequestURI()
+    );
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+}
+```
+
+---
+
+## 4. Exception Handler Ordering Hierarchy
+
+Spring MVC selects the most specific handler matching the thrown exception class:
+
+```text
+HANDLING ORDER HIERARCHY:
+├── ResourceNotFoundException       ──► Maps to 404 (Most specific business handler)
+├── DuplicateResourceException      ──► Maps to 409 (Specific business conflict handler)
+├── MethodArgumentNotValidException  ──► Maps to 400 + Field Errors (Validation handler)
+├── HttpMessageNotReadableException  ──► Maps to 400 (Parsing failure handler)
+└── Exception                       ──► Maps to 500 (Catch-all safety net fallback)
+```
+
+---
+
+## ❓ Interactive Self-Assessment
+
+<Quiz question="Why is returning ex.getMessage() inside a catch-all Exception handler dangerous in production?" options={["Because it slows down Tomcat", "Because raw exception messages can leak sensitive internal details like SQL queries, table names, or filesystem paths to attackers", "Because Java disables ex.getMessage()", "Because JSON cannot format strings"]} answerIndex={1}>
+Unfiltered exception messages can expose database schema names, SQL syntax, or internal server paths. Production fallbacks must log details internally while returning sanitized generic messages to clients.
+</Quiz>
+
+<Problem title="Refactoring Monolithic Controller Error Logic">
+<ProblemDescription>
+A developer has written inline null checks and manual error maps inside a controller method:
+
+```java
+@GetMapping("/{id}")
+public ResponseEntity<?> getStudent(@PathVariable Long id) {
+    Student s = studentService.find(id);
+    if (s == null) {
+        Map<String, String> err = new HashMap<>();
+        err.put("error", "Student missing");
+        return ResponseEntity.status(404).body(err);
+    }
+    return ResponseEntity.ok(s);
+}
+```
+
+Refactor this endpoint into a clean Service-Controller-Advice architecture.
+</ProblemDescription>
+<ProblemSolution>
+
+```java
+// 1. SERVICE LAYER
+@Service
+public class StudentService {
+    private final StudentRepository repository;
+
+    public StudentService(StudentRepository repository) {
+        this.repository = repository;
+    }
+
+    public StudentResponseDto getStudentById(Long id) {
+        Student student = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Student with id " + id + " not found"));
+        return mapToResponseDto(student);
+    }
+}
+
+// 2. REFACTORED CLEAN CONTROLLER
+@RestController
+@RequestMapping("/api/students")
+public class StudentController {
+    private final StudentService service;
+
+    public StudentController(StudentService service) {
+        this.service = service;
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<StudentResponseDto> getStudentById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getStudentById(id));
+    }
+}
+
+// 3. GLOBAL EXCEPTION ADVICE
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
+        ErrorResponseDto error = new ErrorResponseDto(
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+}
+```
+</ProblemSolution>
+</Problem>

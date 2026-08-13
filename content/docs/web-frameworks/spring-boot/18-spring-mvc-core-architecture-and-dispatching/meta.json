@@ -1,0 +1,7 @@
+{
+  "title": "18. Spring MVC Core Architecture & Dispatching",
+  "pages": [
+    "01-front-controller-and-dispatcherservlet",
+    "02-handlermapping-handleradapter-and-argument-resolution"
+  ]
+}

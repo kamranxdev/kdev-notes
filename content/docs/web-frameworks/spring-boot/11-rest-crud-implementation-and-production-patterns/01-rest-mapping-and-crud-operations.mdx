@@ -1,0 +1,182 @@
+---
+title: "REST Mapping & CRUD Operations"
+description: "Master REST endpoint mapping, HTTP verbs, @PathVariable, @RequestBody, Create/Read/Update pipelines, and end-to-end request-to-database execution chains."
+---
+
+# REST Mapping & CRUD Operations
+
+CRUD mapping maps HTTP verbs directly to persistence operations on resources exposed by Spring MVC `@RestController` endpoints.
+
+---
+
+## 1. REST Endpoint Mapping Matrix
+
+| CRUD Operation | HTTP Method | Endpoint URI | `@PathVariable` / `@RequestBody` | Action |
+| :--- | :--- | :--- | :--- | :--- |
+| **Create** | `POST` | `/api/students` | `@RequestBody Student` | Creates a new record in database |
+| **Read All** | `GET` | `/api/students` | None | Returns list of active records |
+| **Read One** | `GET` | `/api/students/{id}` | `@PathVariable Long id` | Returns single record by ID |
+| **Update** | `PUT` | `/api/students/{id}` | `@PathVariable Long id`, `@RequestBody Student` | Updates existing record by ID |
+| **Delete** | `DELETE` | `/api/students/{id}` | `@PathVariable Long id` | Removes or soft-deletes record |
+
+---
+
+## 2. `@PathVariable` & `@RequestBody` Mechanics
+
+```text
+HTTP Request:
+PUT /api/students/42
+Content-Type: application/json
+
+Payload: { "name": "Rahul Sharma", "email": "rahul@example.com", "course": "Spring Boot", "age": 23, "rollNo": 101 }
+       │                                                                                             │
+       │ URL path variable "42"                                                                      │ Request body JSON
+       ▼                                                                                             ▼
+@PutMapping("/{id}")                                                                          @RequestBody
+public Student update(@PathVariable Long id,                                                 Student student)
+```
+
+---
+
+## 3. Step-by-Step CRUD Layer Implementations
+
+### Repository Layer Interface
+
+Spring Data JPA provides ready-made CRUD methods (`save()`, `findAll()`, `findById()`, `deleteById()`):
+
+```java
+package com.coderarmy.studentcrud.repository;
+
+import com.coderarmy.studentcrud.entity.Student;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface StudentRepository extends JpaRepository<Student, Long> {
+    // Custom query method for active (non-deleted) records
+    List<Student> findByIsDeletedFalse();
+}
+```
+
+---
+
+### Create Operation (`POST /api/students`)
+
+```java
+// Controller
+@PostMapping
+public Student createStudent(@RequestBody Student student) {
+    return studentService.createStudent(student);
+}
+
+// Service
+public Student createStudent(Student student) {
+    return studentRepository.save(student);
+}
+```
+
+---
+
+### Read Operations (`GET /api/students` & `GET /api/students/{id}`)
+
+```java
+// Controller
+@GetMapping
+public List<Student> getAllStudents() {
+    return studentService.getAllStudents();
+}
+
+@GetMapping("/{id}")
+public Student getStudentById(@PathVariable Long id) {
+    return studentService.getStudentById(id);
+}
+
+// Service
+public List<Student> getAllStudents() {
+    return studentRepository.findByIsDeletedFalse();
+}
+
+public Student getStudentById(Long id) {
+    return studentRepository.findById(id)
+            .filter(student -> !student.isDeleted())
+            .orElseThrow(() -> new RuntimeException("Student not found with ID: " + id));
+}
+```
+
+---
+
+### Update Operation (`PUT /api/students/{id}`)
+
+The update workflow follows 3 distinct steps:
+1. **Find** existing entity by ID (throw 404/Exception if missing).
+2. **Mutate** fields with incoming payload values.
+3. **Save** updated entity back into database.
+
+```java
+// Controller
+@PutMapping("/{id}")
+public Student updateStudent(@PathVariable Long id, @RequestBody Student incoming) {
+    return studentService.updateStudent(id, incoming);
+}
+
+// Service
+public Student updateStudent(Long id, Student incoming) {
+    Student existing = getStudentById(id); // Step 1: Find existing
+
+    // Step 2: Mutate fields
+    existing.setName(incoming.getName());
+    existing.setEmail(incoming.getEmail());
+    existing.setCourse(incoming.getCourse());
+    existing.setAge(incoming.getAge());
+    existing.setRollNo(incoming.getRollNo());
+
+    // Step 3: Persist changes
+    return studentRepository.save(existing);
+}
+```
+
+---
+
+## 4. End-to-End Request Execution Pipeline
+
+```text
+1. Postman / Client sends HTTP POST /api/students JSON Payload
+   │
+   ▼
+2. Tomcat receives raw TCP bytes and routes to DispatcherServlet
+   │
+   ▼
+3. DispatcherServlet inspects URL mapping and selects StudentController
+   │
+   ▼
+4. Jackson JSON deserializes request body into Student entity object
+   │
+   ▼
+5. StudentController passes Student object to StudentService.createStudent()
+   │
+   ▼
+6. StudentService applies validation rules and invokes StudentRepository.save()
+   │
+   ▼
+7. Hibernate ORM generates SQL: INSERT INTO students (name, email, ...) VALUES (...)
+   │
+   ▼
+8. mysql-connector-j sends SQL command across TCP socket to MySQL Server
+   │
+   ▼
+9. MySQL Server executes insert, updates primary key index, and returns auto-generated ID
+   │
+   ▼
+10. Entity returned back up stack: Database ──► Repository ──► Service ──► Controller ──► Response JSON
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="Which annotation extracts a template variable from the URL path, such as extracting '42' from GET /api/students/42?" options={["@RequestParam", "@RequestBody", "@PathVariable", "@ModelAttribute"]} answerIndex={2}>
+`@PathVariable` binds URI template variables (declared like `/{id}`) directly into controller method parameters.
+</Quiz>
+
+<Quiz question="What are the three essential steps in executing an HTTP PUT update operation in Spring Boot?" options={["1. Create table, 2. Drop table, 3. Recompile code", "1. Find existing record by ID, 2. Mutate entity fields, 3. Save modified entity", "1. Delete record, 2. Insert record, 3. Restart server", "1. Read JSON file, 2. Run SQL script, 3. Clear cache"]} answerIndex={1}>
+Updates require retrieving the persistent entity first, updating its properties with incoming payload values, and invoking `repository.save(existing)`.
+</Quiz>

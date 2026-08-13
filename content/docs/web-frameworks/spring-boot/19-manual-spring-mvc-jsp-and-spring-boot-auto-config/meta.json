@@ -1,0 +1,7 @@
+{
+  "title": "19. Manual Spring MVC, JSP & Spring Boot Auto-Config",
+  "pages": [
+    "01-manual-spring-mvc-and-embedded-tomcat-bootstrap",
+    "02-viewresolver-jsp-pipeline-and-spring-boot-automation"
+  ]
+}

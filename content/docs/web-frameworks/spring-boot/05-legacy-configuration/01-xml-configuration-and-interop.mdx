@@ -1,0 +1,203 @@
+---
+title: "Legacy XML Configuration & Hybrid Interop"
+description: "Complete guide to legacy Spring XML configuration blueprints, bean tags, ref vs value wiring, autowire modes, collection injection, and hybrid @ImportResource integration in modern Spring Boot."
+---
+Before annotation-driven component scanning (`@Component`) and Java configuration (`@Configuration`), traditional Spring enterprise applications were defined using **XML Configuration Blueprints**. 
+
+While modern Spring Boot applications favor annotations, understanding XML configuration is critical for maintaining legacy enterprise systems, working with banking/insurance platforms, and migrating legacy codebases to Spring Boot.
+
+---
+
+## 1. Anatomy of `beans.xml`
+
+An XML configuration blueprint is stored in an XML file (traditionally named `beans.xml` or `applicationContext.xml`) placed inside `src/main/resources`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- 1. Simple Bean Declaration -->
+    <bean id="accountRepository" class="com.kdev.demo.repository.AccountRepository" />
+
+    <!-- 2. Bean with Constructor Injection -->
+    <bean id="accountService" class="com.kdev.demo.service.AccountService">
+        <constructor-arg ref="accountRepository" />
+        <constructor-arg value="USD" />
+    </bean>
+
+</beans>
+```
+
+### Core XML Elements
+
+* **`<bean>`**: Registers a Java class with the container.
+  * **`id`**: Unique string identifier for the bean in the container.
+  * **`class`**: Fully qualified Java class name (`com.kdev.demo.service.AccountService`).
+* **`<constructor-arg>`**: Passes arguments to the constructor during instantiation.
+* **`<property>`**: Calls setter methods after instantiation.
+
+---
+
+## 2. `value` vs `ref` Wiring
+
+A common mistake in XML configuration is confusing **`value`** and **`ref`**:
+
+```text
+Wiring Rules:
+├── ref   -> References another Spring Bean registered in the container by ID.
+└── value -> Passes literal values (Strings, primitives, numbers, booleans).
+```
+
+```xml
+<bean id="databaseConfig" class="com.kdev.demo.config.DatabaseConfig">
+    <!-- Value: Literal primitive/String data -->
+    <property name="driverClassName" value="org.postgresql.Driver" />
+    <property name="port" value="5432" />
+    <property name="sslEnabled" value="true" />
+    
+    <!-- Ref: Injects another bean instance named 'connectionPool' -->
+    <property name="connectionPool" ref="customConnectionPool" />
+</bean>
+```
+
+---
+
+## 3. Setter vs Constructor Injection in XML
+
+### Setter Injection (`<property>`)
+
+Spring calls the zero-argument constructor first, then invokes matching setter methods:
+
+```xml
+<bean id="emailService" class="com.kdev.demo.service.EmailService">
+    <!-- Calls setEmailHost("smtp.company.com") -->
+    <property name="emailHost" value="smtp.company.com" />
+</bean>
+```
+
+### Constructor Injection (`<constructor-arg>`)
+
+Spring passes arguments into the class constructor during object instantiation:
+
+```xml
+<bean id="userService" class="com.kdev.demo.service.UserService">
+    <!-- Ambiguity resolution using type or index -->
+    <constructor-arg index="0" ref="userRepository" />
+    <constructor-arg index="1" value="30" /> <!-- timeout in seconds -->
+</bean>
+```
+
+---
+
+## 4. Collection Injection (`<list>`, `<map>`, `<props>`)
+
+XML supports injecting Java Collections directly into bean properties:
+
+```xml
+<bean id="notificationRouter" class="com.kdev.demo.service.NotificationRouter">
+    <property name="supportedChannels">
+        <list>
+            <value>EMAIL</value>
+            <value>SMS</value>
+            <value>WHATSAPP</value>
+        </list>
+    </property>
+
+    <property name="channelHandlers">
+        <map>
+            <entry key="EMAIL" value-ref="emailHandlerBean" />
+            <entry key="SMS" value-ref="smsHandlerBean" />
+        </map>
+    </property>
+</bean>
+```
+
+---
+
+## 5. XML Autowiring Modes
+
+Instead of declaring explicit `<ref>` elements for every dependency, XML supports automatic wiring via the `autowire` attribute:
+
+```xml
+<bean id="orderService" class="com.kdev.demo.service.OrderService" autowire="byType" />
+```
+
+| Autowire Mode | Mechanism |
+| :--- | :--- |
+| **`no`** (Default) | No autowiring. Dependencies must be declared explicitly using `<ref>`. |
+| **`byName`** | Inspects setter names (`setOrderRepository()`) and searches container for bean with ID `orderRepository`. |
+| **`byType`** | Inspects setter parameter types (`OrderRepository`) and injects matching bean type. Throws error if multiple exist. |
+| **`constructor`** | Similar to `byType`, but applies to constructor parameters instead of setters. |
+
+---
+
+## 6. Lifecycle Hooks in XML (`init-method` & `destroy-method`)
+
+Instead of `@PostConstruct` or `@PreDestroy`, legacy XML specifies method names explicitly:
+
+```xml
+<bean id="cacheManager" 
+      class="com.kdev.demo.service.CacheManager"
+      init-method="startCache" 
+      destroy-method="flushAndClose">
+</bean>
+```
+
+```java
+public class CacheManager {
+    // Executed during initialization
+    public void startCache() {
+        System.out.println("XML init-method: Cache started.");
+    }
+
+    // Executed during container shutdown
+    public void flushAndClose() {
+        System.out.println("XML destroy-method: Cache flushed.");
+    }
+}
+```
+
+---
+
+## 7. Hybrid Migration: Importing XML into Spring Boot
+
+When migrating a legacy Spring XML system to Spring Boot, you do **not** need to rewrite 5,000 lines of XML overnight. 
+
+Spring Boot can load legacy XML files alongside modern `@Component` annotations using **`@ImportResource`**:
+
+```java
+package com.kdev.demo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ImportResource;
+
+@SpringBootApplication
+// Imports legacy XML beans into the modern Spring Boot ApplicationContext
+@ImportResource("classpath:legacy-beans.xml")
+public class DemoApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(DemoApplication.class, args);
+    }
+}
+```
+
+### Seamless Interop
+
+Beans declared inside `legacy-beans.xml` can be injected into modern `@Service` components using standard Constructor Injection or `@Autowired`, and vice versa!
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="In Spring XML configuration, what is the crucial distinction between the 'value' and 'ref' attributes inside a <property> tag?" options={["'value' is used for database SQL, 'ref' is for HTML files", "'value' passes primitive data/literal Strings, whereas 'ref' injects a reference to another Spring Bean registered in the container", "'value' is used in Java 8, 'ref' is used in Java 17", "There is no difference; they can be used interchangeably"]} answerIndex={1}>
+`<property value="...">` passes literal string or primitive numbers, whereas `<property ref="...">` connects the property to another registered bean instance by its container `id`.
+</Quiz>
+
+<Quiz question="How can a modern Spring Boot application import and execute legacy XML bean definitions without modifying the XML files?" options={["By converting XML files into JSON format", "By annotating the main @SpringBootApplication class with @ImportResource(\"classpath:beans.xml\")", "By placing XML files inside the target/ directory manually", "Spring Boot cannot run XML files under any circumstances"]} answerIndex={1}>
+`@ImportResource` allows modern Spring Boot applications to load legacy XML blueprint files directly into the active `ApplicationContext`.
+</Quiz>

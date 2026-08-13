@@ -1,0 +1,151 @@
+---
+title: "OncePerRequestFilter & Architectural Layer Selection"
+description: "Master Spring's OncePerRequestFilter, doFilterInternal, shouldNotFilter exclusions, dispatch type nuances, and architectural layer selection rules."
+---
+
+# `OncePerRequestFilter` & Architectural Layer Selection
+
+Spring Framework provides **`OncePerRequestFilter`**, a specialized abstract class that guarantees single execution per dispatch while offering Spring HTTP conveniences.
+
+---
+
+## 1. `OncePerRequestFilter` Blueprint
+
+Instead of implementing `jakarta.servlet.Filter`, extend `OncePerRequestFilter` and override **`doFilterInternal()`**:
+
+```java
+@Component
+public class CorrelationIdFilter extends OncePerRequestFilter {
+
+    private static final String CORRELATION_HEADER = "X-Correlation-Id";
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+
+        String correlationId = request.getHeader(CORRELATION_HEADER);
+        if (correlationId == null || correlationId.isBlank()) {
+            correlationId = UUID.randomUUID().toString();
+        }
+
+        // Set response header
+        response.setHeader(CORRELATION_HEADER, correlationId);
+
+        // Continuation (No manual casting required!)
+        filterChain.doFilter(request, response);
+    }
+
+    // Programmatic Exclusion Hook
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        // Skip filter execution for health checks and static swagger docs
+        return path.startsWith("/actuator") || path.startsWith("/swagger-ui");
+    }
+}
+```
+
+---
+
+## 2. Comparison Matrix: Servlet `Filter` vs `OncePerRequestFilter`
+
+| Feature | `jakarta.servlet.Filter` | `OncePerRequestFilter` |
+| :--- | :--- | :--- |
+| **Framework Level** | Servlet Specification (Jakarta EE) | Spring Framework |
+| **Request/Response Arguments** | Generic `ServletRequest` / `ServletResponse` | Strongly-typed `HttpServletRequest` / `HttpServletResponse` |
+| **Manual Type Casting Required?** | ✅ Yes | ❌ **No** |
+| **Primary Method** | `doFilter(...)` | `doFilterInternal(...)` |
+| **Programmatic Exclusion Hook** | None | `shouldNotFilter(HttpServletRequest)` |
+| **Once-Per-Dispatch Protection** | Manual | ✅ **Built-in** |
+
+---
+
+## 3. Servlet Dispatch Nuances (`DispatcherType`)
+
+A single HTTP request can trigger multiple internal Servlet dispatches:
+
+```text
+DISPATCH TYPES:
+├── REQUEST  ──► Normal incoming HTTP client request
+├── ASYNC    ──► Asynchronous background processing dispatch
+├── ERROR    ──► Internal container dispatch to /error endpoint
+├── FORWARD  ──► Internal request forwarding (RequestDispatcher.forward())
+└── INCLUDE  ──► Internal request inclusion (RequestDispatcher.include())
+```
+
+`OncePerRequestFilter` ensures the filter executes once per dispatch type while allowing developers to override `shouldNotFilterAsyncDispatch()` or `shouldNotFilterErrorDispatch()` when handling async or error flows.
+
+---
+
+## 4. Architectural Layer Selection Map
+
+Choosing the right Spring layer for cross-cutting concerns is a critical architectural skill:
+
+```text
+WHICH LAYER SHOULD HANDLE THIS CONCERN?
+├── HTTP Correlation IDs / Trace IDs        ──► Servlet Filter (OncePerRequestFilter)
+├── Request Timing & Low-Level Headers      ──► Servlet Filter
+├── Global Enterprise Security / AuthN      ──► Spring Security Filter Chain
+├── Controller Method Pre/Post Interception ──► HandlerInterceptor
+├── Custom REST JSON Envelope Formatting    ──► ResponseBodyAdvice<T>
+├── Centralized Exception JSON Contracts   ──► @RestControllerAdvice + @ExceptionHandler
+└── Request DTO Field Validation           ──► Bean Validation (@Valid + @NotBlank)
+```
+
+---
+
+## ❓ Interactive Self-Assessment
+
+<Quiz question="What is the primary advantage of extending OncePerRequestFilter over implementing jakarta.servlet.Filter directly in Spring Boot?" options={["It deletes unneeded controllers", "It provides strongly-typed HttpServletRequest arguments without manual casting, built-in once-per-dispatch protection, and the shouldNotFilter() hook", "It bypasses Tomcat completely", "It converts SQL queries into JSON"]} answerIndex={1}>
+`OncePerRequestFilter` provides strongly-typed `HttpServletRequest` and `HttpServletResponse` arguments, built-in protection against duplicate dispatch execution, and the `shouldNotFilter()` exclusion hook.
+</Quiz>
+
+<Problem title="Refactoring a Stream-Consuming Logging Filter">
+<ProblemDescription>
+You are reviewing a legacy `Filter` implementation that reads `request.getInputStream()` to log JSON payloads. As a result, downstream `@RestController` endpoints fail with `Required request body is missing`.
+
+Refactor the code into a production-grade `OncePerRequestFilter` that:
+1. Skips execution for `/actuator/*` paths.
+2. Uses `CachedBodyHttpServletRequest` to log request body size without consuming downstream controller streams.
+</ProblemDescription>
+<ProblemSolution>
+
+```java
+@Component
+public class ProductionBodyLoggingFilter extends OncePerRequestFilter {
+
+    private static final Logger logger = LoggerFactory.getLogger(ProductionBodyLoggingFilter.class);
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        // 1. Exclude actuator endpoints
+        return request.getRequestURI().startsWith("/actuator");
+    }
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+
+        // 2. Wrap request to cache body bytes into memory
+        CachedBodyHttpServletRequest wrappedRequest = new CachedBodyHttpServletRequest(request);
+
+        // 3. Inspect cached body safely
+        byte[] body = wrappedRequest.getCachedBody();
+        logger.info("HTTP [{}] path={} bodySize={} bytes", 
+                wrappedRequest.getMethod(), 
+                wrappedRequest.getRequestURI(), 
+                body.length);
+
+        // 4. Pass WRAPPED request downstream to Spring MVC
+        filterChain.doFilter(wrappedRequest, response);
+    }
+}
+```
+</ProblemSolution>
+</Problem>

@@ -1,0 +1,7 @@
+{
+  "title": "3. Spring Core — IoC & Dependency Injection",
+  "pages": [
+    "01-ioc-and-dependency-injection",
+    "02-beans-and-component-scanning"
+  ]
+}

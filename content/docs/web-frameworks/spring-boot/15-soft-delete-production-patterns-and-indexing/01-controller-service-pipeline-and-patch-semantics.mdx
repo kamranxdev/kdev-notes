@@ -1,0 +1,152 @@
+---
+title: "Controller-Service Pipeline & PATCH Semantics"
+description: "Master REST controller API design for soft delete using PATCH semantics, service layer state mutations, and complete reference implementations."
+---
+
+# Controller-Service Pipeline & PATCH Semantics
+
+Designing a production-grade soft-delete feature requires clean separation of concerns across the REST Controller, Service, and Repository layers.
+
+---
+
+## 1. Clean Controller API Boundary (`@PatchMapping`)
+
+Since soft deletion alters only the `isDeleted` state flag of a resource, the API exposes a `PATCH` endpoint:
+
+```http
+PATCH /api/students/1/soft-delete
+```
+
+```java
+@RestController
+@RequestMapping("/api/students")
+public class StudentController {
+
+    private final StudentService service;
+
+    public StudentController(StudentService service) {
+        this.service = service;
+    }
+
+    @GetMapping
+    public List<Student> getActiveStudents() {
+        return service.getActiveStudents();
+    }
+
+    @GetMapping("/{id}")
+    public Student getActiveStudentById(@PathVariable Long id) {
+        return service.getActiveStudentById(id);
+    }
+
+    @PatchMapping("/{id}/soft-delete")
+    public ResponseEntity<Void> softDeleteStudent(@PathVariable Long id) {
+        service.softDeleteStudent(id);
+        return ResponseEntity.noContent().build(); // HTTP 204 No Content
+    }
+}
+```
+
+---
+
+## 2. Service Layer State Mutation
+
+```java
+@Service
+public class StudentService {
+
+    private final StudentRepository repository;
+
+    public StudentService(StudentRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<Student> getActiveStudents() {
+        return repository.findByIsDeletedFalse();
+    }
+
+    public Student getActiveStudentById(Long id) {
+        return repository.findByIdAndIsDeletedFalse(id)
+                .orElseThrow(() -> new RuntimeException("Active student not found with ID: " + id));
+    }
+
+    @Transactional
+    public void softDeleteStudent(Long id) {
+        // Step 1: Fetch physical entity by ID
+        Student student = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found with ID: " + id));
+
+        // Step 2: Mutate soft-delete flag
+        student.setIsDeleted(true);
+
+        // Step 3: Persist updated state
+        repository.save(student);
+    }
+}
+```
+
+---
+
+## 3. Complete Reference Architecture Flow
+
+```text
+HTTP PATCH /api/students/1/soft-delete
+                 │
+                 ▼
+     StudentController.softDeleteStudent(1)
+                 │
+                 ▼
+      StudentService.softDeleteStudent(1)
+                 │
+                 ├─► 1. repository.findById(1L)
+                 ├─► 2. student.setIsDeleted(true)
+                 └─► 3. repository.save(student)
+                 │
+                 ▼
+     StudentRepository Interface Proxy
+                 │
+                 ▼
+  Hibernate: UPDATE students SET is_deleted = true WHERE id = 1
+                 │
+                 ▼
+   MySQL Engine (Row State Mutated to Inactive)
+```
+
+---
+
+## 4. End-to-End Mental Model
+
+```text
+                                PHYSICAL STORE
+                          ┌────────────────────────┐
+                          │     students Table     │
+                          │                        │
+                          │ id = 1                 │
+                          │ name = "Rahul"         │
+                          │ is_deleted = true      │
+                          └───────────┬────────────┘
+                                      │
+                                      │ Filtered Out
+                                      ▼
+                        APPLICATION VISIBILITY BOUNDARY
+                          ┌────────────────────────┐
+                          │  findByIsDeletedFalse  │
+                          │                        │
+                          │  Priya (Active)        │
+                          │  Aman  (Active)        │
+                          │  (Rahul Hidden)        │
+                          └────────────────────────┘
+```
+
+> **The Core Insight**: Soft deletion is not merely a different SQL statement. It fundamentally redefines application-level visibility for all active read operations.
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="Which HTTP Status Code is most appropriate when a soft deletion operation completes successfully without returning a response body?" options={["200 OK", "201 Created", "204 No Content", "404 Not Found"]} answerIndex={2}>
+HTTP `204 No Content` signals that the server successfully processed the request (soft delete executed) and that no entity body is returned in the response.
+</Quiz>
+
+<Quiz question="What is the benefit of placing @Transactional on the softDeleteStudent service method?" options={["It deletes the database table if an error occurs", "It ensures atomic execution; if any step fails, the entire transaction is rolled back", "It converts JSON to XML", "It disables Hibernate logging"]} answerIndex={1}>
+`@Transactional` guarantees atomicity across the fetch, mutate, and save lifecycle, rolling back state changes if any unexpected exception occurs.
+</Quiz>

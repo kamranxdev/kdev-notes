@@ -1,0 +1,7 @@
+{
+  "title": "29. Advanced Filter Registration & OncePerRequestFilter",
+  "pages": [
+    "01-filter-registration-bean-and-url-scoping",
+    "02-onceperrequestfilter-and-architectural-layer-selection"
+  ]
+}

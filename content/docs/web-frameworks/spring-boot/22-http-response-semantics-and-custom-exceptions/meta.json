@@ -1,0 +1,7 @@
+{
+  "title": "22. HTTP Response Semantics & Custom Exceptions",
+  "pages": [
+    "01-http-response-anatomy-and-responseentity",
+    "02-custom-exceptions-and-service-layer-signaling"
+  ]
+}

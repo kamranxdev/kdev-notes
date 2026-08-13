@@ -1,0 +1,133 @@
+---
+title: "ViewResolver, JSP Pipeline & Spring Boot Automation"
+description: "Master server-rendered MVC using ViewResolver and JSP, WEB-INF security boundaries, and how Spring Boot automates manual MVC boilerplate."
+---
+
+# ViewResolver, JSP Pipeline & Spring Boot Automation
+
+In traditional server-rendered web applications, `@Controller` methods return logical view names that are resolved into physical HTML template resources (like JSP) using a **`ViewResolver`**.
+
+---
+
+## 1. Server-Rendered MVC Pipeline (`ViewResolver`)
+
+```java
+@Controller
+public class HomeController {
+
+    @GetMapping("/home")
+    public String renderHome(Model model) {
+        model.addAttribute("title", "Spring MVC Masterclass");
+        model.addAttribute("message", "Welcome to server-side rendering!");
+        return "home"; // Logical view name
+    }
+}
+```
+
+### Configuring `InternalResourceViewResolver`
+In `WebConfig.java`:
+
+```java
+@Bean
+public ViewResolver viewResolver() {
+    InternalResourceViewResolver resolver = new InternalResourceViewResolver();
+    resolver.setPrefix("/WEB-INF/views/");
+    resolver.setSuffix(".jsp");
+    return resolver;
+}
+```
+
+```text
+LOGICAL VIEW RESOLUTION:
+Controller returns "home" ──► ViewResolver appends Prefix + Suffix ──► /WEB-INF/views/home.jsp
+```
+
+---
+
+## 2. Model Data Flow & `WEB-INF` Security Boundary
+
+```jsp
+<%-- /WEB-INF/views/home.jsp --%>
+<!DOCTYPE html>
+<html>
+<head><title>${title}</title></head>
+<body>
+    <h1>${title}</h1>
+    <p>${message}</p>
+</body>
+</html>
+```
+
+### Why Place Views under `WEB-INF/views/`?
+The Servlet specification mandates that files placed inside `WEB-INF/` **cannot be accessed directly by clients via direct URL requests** (e.g., `http://localhost:8080/WEB-INF/views/home.jsp` returns HTTP 404).
+
+```text
+DIRECT CLIENT ACCESS:   GET /WEB-INF/views/home.jsp ──► BLOCKED by Servlet Container
+CONTROLLED MVC ACCESS:  GET /home ──► Controller adds Model Data ──► Internal Forward to JSP ──► Rendered HTML
+```
+
+---
+
+## 3. How Spring Boot Automates Infrastructure
+
+Spring Boot does NOT replace Spring MVC; it automates the manual bootstrap configuration using `spring-boot-starter-web`:
+
+```text
+MANUAL SPRING MVC:
+Developer manually instantiates Tomcat ──► Creates Spring Context ──► Registers DispatcherServlet ──► Configures ViewResolver
+
+SPRING BOOT AUTO-CONFIGURATION:
+Developer adds spring-boot-starter-web ──► Writes @SpringBootApplication ──► Spring Boot auto-configures embedded Tomcat & DispatcherServlet
+```
+
+---
+
+## 4. Engineering Deep Dive: `HashMap` In-Memory Data Storage
+
+In educational examples, an in-memory `HashMap` is often used to store domain objects:
+
+```java
+@Repository
+public class StudentRepository {
+    private final Map<Integer, Student> storage = new HashMap<>();
+}
+```
+
+### Complexity Comparison
+
+| Operation | `HashMap` Lookup Complexity | Relational DB Lookup Complexity (Indexed) |
+| :--- | :--- | :--- |
+| **Lookup by Primary Key** | $O(1)$ average expected | $O(\log_B N)$ B-Tree index lookup |
+| **Full Collection Traversal (`findAll`)** | $O(N)$ iteration | $O(N)$ full table scan |
+
+> [!WARNING]
+> In-memory maps lack durability, transactions, and multithreaded concurrency protection. Replace `HashMap` with persistent storage engines (MySQL + Spring Data JPA) in production applications.
+
+---
+
+## ❓ Interactive Self-Assessment
+
+<Quiz question="Why are JSP view files placed inside the WEB-INF folder in Java web applications?" options={["To make JSP files render 10x faster", "To prevent clients from accessing raw JSP pages directly via URL, forcing requests to pass through Controllers first for Model data binding", "To hide source code from Java compilers", "Because Tomcat requires XML"]} answerIndex={1}>
+Placing files inside `WEB-INF` prevents direct client HTTP access. Clients must request controller paths (e.g., `/home`), allowing controllers to bind `Model` attributes before forwarding to the view.
+</Quiz>
+
+<Problem title="Trace Request Execution: GET /students/10">
+<ProblemDescription>
+A client sends `GET /students/10` to a Spring Boot REST API. Trace the complete end-to-end execution flow across all 8 architectural layers, identifying argument resolution and JSON conversion.
+</ProblemDescription>
+<ProblemSolution>
+
+```text
+1. Client sends: GET /students/10 (HTTP Request)
+2. Apache Tomcat receives request on Port 8080 and passes stream to DispatcherServlet
+3. DispatcherServlet consults HandlerMapping to locate target: StudentController.getStudent(Integer)
+4. DispatcherServlet delegates to HandlerAdapter for execution
+5. HandlerMethodArgumentResolver extracts path variable "/10" ──► converts String to Integer id = 10
+6. StudentController invokes studentService.getStudent(10) ──► studentRepository.findById(10)
+7. Repository returns Student Java Object ──► Service ──► Controller
+8. Controller returns Student object to HandlerAdapter
+9. HttpMessageConverter (MappingJackson2HttpMessageConverter) invokes Jackson serializer
+10. Jackson converts Student object into JSON bytes ──► Tomcat writes HTTP 200 OK response to Client
+```
+</ProblemSolution>
+</Problem>

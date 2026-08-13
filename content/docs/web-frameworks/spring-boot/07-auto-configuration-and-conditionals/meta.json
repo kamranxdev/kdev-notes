@@ -1,0 +1,7 @@
+{
+  "title": "7. Auto-Configuration & Conditional Mechanics",
+  "pages": [
+    "01-auto-configuration-and-classpath-signals",
+    "02-conditional-beans-and-production-diagnostics"
+  ]
+}

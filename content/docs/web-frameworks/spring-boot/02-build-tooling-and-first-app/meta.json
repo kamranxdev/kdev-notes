@@ -1,0 +1,7 @@
+{
+  "title": "2. Build Tooling & Application Setup",
+  "pages": [
+    "01-maven-build-engineering",
+    "02-bootstrap-and-first-controller"
+  ]
+}

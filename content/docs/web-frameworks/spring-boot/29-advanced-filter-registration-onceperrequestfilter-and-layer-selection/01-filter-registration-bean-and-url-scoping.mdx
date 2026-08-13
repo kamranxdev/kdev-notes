@@ -1,0 +1,97 @@
+---
+title: "FilterRegistrationBean & URL Scoping"
+description: "Master FilterRegistrationBean, explicit URL mapping, preventing duplicate filter registration bugs, and URL scoping strategies."
+---
+
+# `FilterRegistrationBean` & URL Scoping
+
+While declaring a filter as a `@Component` automatically registers it for **all** URL paths (`/*`), production applications often require explicit URL scoping (e.g. applying filters strictly to `/api/*` endpoints).
+
+---
+
+## 1. Filter Registration Strategies
+
+### Approach A: Automatic Component Discovery (`@Component`)
+* **Usage**: Annotate filter class with `@Component`.
+* **Behavior**: Automatically registered by Spring Boot for all incoming paths (`/*`). Order defined via `@Order`.
+* **Limitation**: Cannot configure URL pattern exclusions or custom dispatcher types.
+
+---
+
+### Approach B: Programmatic `FilterRegistrationBean` (Recommended for Scoped Filters)
+Do NOT annotate the filter class with `@Component`. Instead, declare a `@Bean` returning a `FilterRegistrationBean`:
+
+```java
+@Configuration
+public class CustomFilterConfig {
+
+    @Bean
+    public FilterRegistrationBean<ApiLoggingFilter> apiLoggingFilterRegistration() {
+        FilterRegistrationBean<ApiLoggingFilter> registrationBean = new FilterRegistrationBean<>();
+
+        // 1. Set Filter Instance
+        registrationBean.setFilter(new ApiLoggingFilter());
+
+        // 2. Define Explicit URL Scoping Patterns
+        registrationBean.addUrlPatterns("/api/v1/*", "/api/v2/*");
+
+        // 3. Define Explicit Order
+        registrationBean.setOrder(1);
+
+        // 4. Set Filter Registration Name
+        registrationBean.setName("apiLoggingFilter");
+
+        // 5. Configure Specific Dispatcher Types
+        registrationBean.setDispatcherTypes(DispatcherType.REQUEST, DispatcherType.ASYNC);
+
+        return registrationBean;
+    }
+}
+```
+
+---
+
+## 2. The Duplicate Registration Trap!
+
+<Callout type="danger">
+
+**Duplicate Execution Bug**: Annotating a Filter class with `@Component` **AND** creating a `FilterRegistrationBean` for that same filter class causes Spring Boot to register the filter **TWICE**! The filter will execute twice on every request, producing duplicate logs or double-processing errors!
+
+</Callout>
+
+```java
+// BAD: Class has @Component...
+@Component 
+public class AuditFilter implements Filter { ... }
+
+// AND Configuration declares FilterRegistrationBean with new AuditFilter()...
+@Bean
+public FilterRegistrationBean<AuditFilter> auditFilterRegistration() {
+    // AuditFilter EXECUTES TWICE ON EVERY REQUEST!
+}
+```
+
+### Fix
+Remove `@Component` from the filter class when registering it via `FilterRegistrationBean`!
+
+---
+
+## 3. URL Scoping Comparison
+
+| Scoping Mechanism | Configuration Location | Execution Overhead | Best Suited For |
+| :--- | :--- | :--- | :--- |
+| **`FilterRegistrationBean.addUrlPatterns()`** | `@Configuration` Class | **Lowest** (Web container skips filter entirely for unmatched paths) | Broad, static path patterns (`/api/*`) |
+| **Manual `getRequestURI()` Check** | Inside `doFilter()` | **Medium** (Filter invoked, but short-circuits) | Dynamic, runtime URI checks |
+| **`OncePerRequestFilter.shouldNotFilter()`** | Inside Filter Class | **Low** (Spring hook skips `doFilterInternal()`) | Complex programmatic exclusions |
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="What happens if a developer annotates a Filter with @Component AND creates a FilterRegistrationBean for it in a @Configuration class?" options={["The application fails to compile", "The filter is registered TWICE and executes twice on every HTTP request", "Spring Boot deletes the filter", "Tomcat runs in single-threaded mode"]} answerIndex={1}>
+Annotating a filter with `@Component` triggers automatic registration for `/*`. Adding a `FilterRegistrationBean` registers it a second time, resulting in duplicate execution.
+</Quiz>
+
+<Quiz question="What is the advantage of using FilterRegistrationBean.addUrlPatterns('/api/*') over a manual path check inside doFilter()?" options={["It bypasses Tomcat completely", "The Servlet container skips invoking the filter entirely for unmatched URLs (e.g. /health), eliminating unnecessary method invocation overhead", "It converts JSON to XML", "It encrypts MySQL passwords"]} answerIndex={1}>
+`FilterRegistrationBean` configures container-level URL mapping. The web container skips invoking the filter altogether for non-matching URLs, saving CPU cycles.
+</Quiz>

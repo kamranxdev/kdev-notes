@@ -1,0 +1,187 @@
+---
+title: "Blocking, Anti-Patterns & Thread-Safety"
+description: "Master early request blocking, direct JSON error responses, filter thread-safety rules, production anti-patterns, and architectural decision trees."
+---
+
+# Blocking, Anti-Patterns & Thread-Safety
+
+Filters provide a powerful mechanism to inspect incoming requests early and block unauthorized calls before Spring MVC instantiates controllers.
+
+---
+
+## 1. Early Request Blocking & Direct JSON Error Responses
+
+When a Filter rejects a request (e.g. missing API key), it must set the HTTP status, write a structured JSON error body, and **`return` without calling `chain.doFilter()`**:
+
+```java
+@Component
+public class ApiKeyAuthFilter implements Filter {
+
+    private static final String API_KEY_HEADER = "X-API-KEY";
+    private static final String EXPECTED_KEY = "secret-api-key-123";
+
+    @Override
+    public void doFilter(
+            ServletRequest request,
+            ServletResponse response,
+            FilterChain chain
+    ) throws IOException, ServletException {
+
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
+
+        String apiKey = httpRequest.getHeader(API_KEY_HEADER);
+
+        // Validation Check
+        if (apiKey == null || !apiKey.equals(EXPECTED_KEY)) {
+            // 1. Set HTTP 401 Unauthorized
+            httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            httpResponse.setContentType("application/json");
+            httpResponse.setCharacterEncoding("UTF-8");
+
+            // 2. Write direct JSON error response
+            httpResponse.getWriter().write("""
+                {
+                  "status": 401,
+                  "error": "Unauthorized",
+                  "message": "Invalid or missing X-API-KEY header"
+                }
+                """);
+
+            // 3. RETURN IMMEDIATELY (Do NOT call chain.doFilter!)
+            return;
+        }
+
+        // Request valid -> continue downstream
+        chain.doFilter(request, response);
+    }
+}
+```
+
+---
+
+## 2. Thread-Safety & Stateless Filter Rules
+
+In Spring Boot, Filters declared as `@Component` are **Singleton Beans** shared across all concurrent HTTP threads:
+
+<Callout type="danger">
+
+**Thread-Safety Hazard**: NEVER store request-specific data in Filter instance fields! Mutable instance fields create severe multi-threaded race conditions where User A's data can leak to User B!
+
+</Callout>
+
+### Bad (Thread-Unsafe Anti-Pattern)
+```java
+@Component
+public class UnsafeFilter implements Filter {
+    // DANGEROUS! Instance field shared across all concurrent requests!
+    private String requestUser; 
+
+    @Override
+    public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) {
+        requestUser = req.getParameter("user"); // Thread Race Condition!
+        chain.doFilter(req, res);
+    }
+}
+```
+
+### Good (Thread-Safe Production Pattern)
+```java
+@Component
+public class SafeFilter implements Filter {
+
+    @Override
+    public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) {
+        // Thread-safe: Local method variable isolated to current execution stack
+        String requestUser = req.getParameter("user");
+        chain.doFilter(req, res);
+    }
+}
+```
+
+---
+
+## 3. Production Anti-Patterns Matrix
+
+| Anti-Pattern | Risk / Problem | Correct Engineering Solution |
+| :--- | :--- | :--- |
+| **1. Business Logic in Filter** | Couples domain rules to Servlet infrastructure | Keep business logic inside `@Service` classes |
+| **2. Database Query Per Request** | Creates global system latency bottlenecks ($10,000$ DB calls/sec) | Perform DB lookups in services or cache tokens in memory |
+| **3. Forgetting `chain.doFilter()`** | Requests hang or return blank responses unexpectedly | Call `chain.doFilter()` unless intentionally blocking |
+| **4. Logging Auth Passwords/Tokens** | Credentials leak into production log files | Mask or omit sensitive headers from logger outputs |
+| **5. Header Mutation After Response Committed** | Triggers `IllegalStateException` or silent header loss | Set mandatory response headers **before** `chain.doFilter()` |
+
+---
+
+## 4. Architectural Decision Tree
+
+```text
+DO I NEED A FILTER?
+        │
+        ├── Is the logic an HTTP/Servlet infrastructure concern? (Logging, headers, timing) ──► USE FILTER
+        ├── Does the logic need to run BEFORE DispatcherServlet? ─────────────────────────────► USE FILTER
+        ├── Does the logic depend on the target Controller handler method? ───────────────────► USE INTERCEPTOR
+        ├── Is it full enterprise authentication & authorization? ───────────────────────────► USE SPRING SECURITY
+        └── Is it core business domain logic? ────────────────────────────────────────────────► USE SERVICE LAYER
+```
+
+---
+
+## ❓ Interactive Self-Assessment
+
+<Quiz question="Why are instance fields inside a Spring-managed Filter bean unsafe for storing request parameters?" options={["Because Spring deletes instance fields automatically", "Because Spring Filter beans are singletons shared across concurrent HTTP request threads, causing race conditions", "Because Tomcat does not support instance variables", "Because Java 17 forbids fields in classes"]} answerIndex={1}>
+Spring Filter beans are singletons. Storing request-specific state in instance fields creates multi-threaded race conditions where data leaks between concurrent user threads. Always use local method variables inside `doFilter()`.
+</Quiz>
+
+<Problem title="Designing an Early Request Rejection Filter">
+<ProblemDescription>
+Requirements:
+1. Intercept all requests and inspect the `X-Client-ID` header.
+2. If `X-Client-ID` is missing or empty, return HTTP `400 Bad Request` with a JSON payload `{"error": "Missing X-Client-ID header"}`.
+3. Ensure no downstream filters or controllers execute when `X-Client-ID` is missing.
+4. Ensure the filter is completely thread-safe.
+</ProblemDescription>
+<ProblemSolution>
+
+```java
+@Component
+@Order(1)
+public class ClientIdValidationFilter implements Filter {
+
+    private static final String CLIENT_ID_HEADER = "X-Client-ID";
+
+    @Override
+    public void doFilter(
+            ServletRequest request,
+            ServletResponse response,
+            FilterChain chain
+    ) throws IOException, ServletException {
+
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
+
+        // Local variable -> Thread-safe!
+        String clientId = httpRequest.getHeader(CLIENT_ID_HEADER);
+
+        if (clientId == null || clientId.isBlank()) {
+            httpResponse.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            httpResponse.setContentType("application/json");
+            httpResponse.setCharacterEncoding("UTF-8");
+
+            httpResponse.getWriter().write("""
+                {
+                  "error": "Missing X-Client-ID header"
+                }
+                """);
+
+            // Return without chain.doFilter() -> Blocks downstream processing!
+            return;
+        }
+
+        // Continuation
+        chain.doFilter(request, response);
+    }
+}
+```
+</ProblemSolution>
+</Problem>

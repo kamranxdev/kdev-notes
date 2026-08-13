@@ -1,0 +1,7 @@
+{
+  "title": "16. Servlets Architecture & Container Lifecycle",
+  "pages": [
+    "01-servlets-fundamentals-and-restaurant-analogy",
+    "02-servlet-lifecycle-concurrency-and-request-pipeline"
+  ]
+}

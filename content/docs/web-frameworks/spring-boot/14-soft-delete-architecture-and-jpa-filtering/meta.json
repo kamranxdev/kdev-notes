@@ -1,0 +1,7 @@
+{
+  "title": "14. Soft Delete Architecture & JPA Filtering",
+  "pages": [
+    "01-logical-deletion-semantics-and-entity-mapping",
+    "02-derived-query-methods-and-the-findbyid-trap"
+  ]
+}

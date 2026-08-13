@@ -1,0 +1,7 @@
+{
+  "title": "12. Spring Data JPA, ORM & Repository Engineering",
+  "pages": [
+    "01-orm-hibernate-mechanics-and-datasource-config",
+    "02-entity-design-repository-proxies-and-persistence-context"
+  ]
+}

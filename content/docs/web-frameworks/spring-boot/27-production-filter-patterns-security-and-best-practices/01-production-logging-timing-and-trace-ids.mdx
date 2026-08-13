@@ -1,0 +1,135 @@
+---
+title: "Production Logging, Timing & Trace IDs"
+description: "Master production-grade filter patterns, request timing with try-finally, correlation IDs, response header injection, and sensitive data logging security."
+---
+
+# Production Logging, Timing & Trace IDs
+
+Filters excel at infrastructure tasks that measure, log, and trace HTTP traffic across microservice architectures.
+
+---
+
+## 1. Production Request Logging & Timing Pattern
+
+To guarantee that post-processing timing and logging **always execute**—even when downstream controllers throw exceptions—wrap `chain.doFilter()` inside a `try-finally` block:
+
+```java
+@Component
+@Order(1)
+public class RequestLoggingAndTimingFilter implements Filter {
+
+    private static final Logger logger = LoggerFactory.getLogger(RequestLoggingAndTimingFilter.class);
+
+    @Override
+    public void doFilter(
+            ServletRequest request,
+            ServletResponse response,
+            FilterChain chain
+    ) throws IOException, ServletException {
+
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
+
+        long startTime = System.currentTimeMillis();
+        String method = httpRequest.getMethod();
+        String path = httpRequest.getRequestURI();
+        String remoteIp = httpRequest.getRemoteAddr();
+
+        logger.info("HTTP IN  [{}] path={} ip={}", method, path, remoteIp);
+
+        try {
+            // Pass request downstream
+            chain.doFilter(request, response);
+        } finally {
+            long duration = System.currentTimeMillis() - startTime;
+            int status = httpResponse.getStatus();
+
+            // Executed unconditionally, even if an exception occurred!
+            logger.info("HTTP OUT [{}] path={} status={} duration={}ms", method, path, status, duration);
+        }
+    }
+}
+```
+
+---
+
+## 2. Distributed Correlation / Trace IDs (`X-Request-Id`)
+
+In distributed microservices, a single user request traverses multiple services. Injecting a unique **Correlation Trace ID** in a Filter allows logs across all services to be joined effortlessly:
+
+```java
+@Component
+@Order(0) // Highest priority: Assign trace ID before any logging occurs
+public class CorrelationTraceFilter implements Filter {
+
+    private static final String TRACE_HEADER = "X-Request-Id";
+
+    @Override
+    public void doFilter(
+            ServletRequest request,
+            ServletResponse response,
+            FilterChain chain
+    ) throws IOException, ServletException {
+
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
+
+        // Reuse existing upstream trace ID if present; otherwise generate a new UUID
+        String traceId = httpRequest.getHeader(TRACE_HEADER);
+        if (traceId == null || traceId.isBlank()) {
+            traceId = UUID.randomUUID().toString();
+        }
+
+        // Attach trace ID to outgoing response header
+        httpResponse.setHeader(TRACE_HEADER, traceId);
+
+        chain.doFilter(request, response);
+    }
+}
+```
+
+---
+
+## 3. Response Commitment & Header Modification Rules
+
+<Callout type="warning">
+
+**Response Commitment Alert**: Once the Servlet container begins writing the HTTP response body to the network stream, the response is **committed**. Attempting to add headers or change HTTP status codes **after** `chain.doFilter()` may throw an `IllegalStateException` or be silently ignored!
+
+</Callout>
+
+```java
+// SAFE: Set mandatory response headers BEFORE chain.doFilter()
+httpResponse.setHeader("X-Content-Type-Options", "nosniff");
+httpResponse.setHeader("X-Frame-Options", "DENY");
+
+chain.doFilter(request, response);
+
+// UNSAFE: Attempting to modify headers after chain.doFilter() may fail if response is committed!
+```
+
+---
+
+## 4. Production Sensitive Data Logging Rules
+
+Never log sensitive HTTP headers or payload data in production filters:
+
+```text
+NEVER LOG:
+├── Authorization Headers (Bearer JWT tokens)
+├── API Keys & Client Secrets
+├── Passwords & Passphrases
+└── Credit Card Numbers / PII
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="Why must request timing logic in a Filter be wrapped inside a try-finally block?" options={["To make Tomcat execute faster", "Because if downstream controllers throw an exception, post-processing after chain.doFilter() would be skipped without a finally block", "To convert HTTP responses to XML", "Because Java 17 requires try-finally for all classes"]} answerIndex={1}>
+If a downstream controller or service throws an unhandled exception, normal execution halts. A `finally` block guarantees that timing and exit logging execute unconditionally.
+</Quiz>
+
+<Quiz question="What is the main purpose of an X-Request-Id header in microservices?" options={["To encrypt MySQL passwords", "To correlate and trace log entries across multiple distributed microservices for a single request", "To speed up Spring Initializr builds", "To replace Spring Boot starters"]} answerIndex={1}>
+An `X-Request-Id` (Correlation ID) links log statements across separate services, making it easy to track a request's lifecycle across distributed systems.
+</Quiz>

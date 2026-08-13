@@ -1,0 +1,130 @@
+---
+title: "Custom Exceptions & Service-Layer Signaling"
+description: "Master domain-specific custom exceptions, unchecked exception design, Optional.orElseThrow() business signals, and clean controller decoupling."
+---
+
+# Custom Exceptions & Service-Layer Signaling
+
+To maintain clean separation of concerns, Controllers should focus exclusively on request dispatching and success responses, while Services signal business failures using domain-specific unchecked exceptions.
+
+---
+
+## 1. Why Error Handling Should Not Live Inside Controllers
+
+Consider an anti-pattern common in beginner applications:
+
+```java
+// ANTI-PATTERN: Polluted Controller method with inline null checks and error building
+@GetMapping("/{id}")
+public ResponseEntity<?> getStudentById(@PathVariable Long id) {
+    Student student = studentService.getStudentById(id);
+    if (student == null) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Student not found");
+    }
+    return ResponseEntity.ok(student);
+}
+```
+
+### Problems with Inline Controller Error Handling:
+1. **Code Duplication**: Every endpoint duplicates `if (x == null)` checks and status building.
+2. **Ambiguous Signals**: Returning `null` from services is ambiguous (Does it mean missing data, DB error, or bug?).
+3. **Bloated Controllers**: Controllers become mini-service layers responsible for error translation.
+
+---
+
+## 2. Domain-Specific Custom Exceptions
+
+Instead of generic Java exceptions (`RuntimeException` or `IllegalArgumentException`), define domain-specific exceptions extending `RuntimeException`:
+
+```java
+// 1. Missing Resource Exception
+public class ResourceNotFoundException extends RuntimeException {
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
+}
+
+// 2. Duplicate Resource Conflict Exception
+public class DuplicateResourceException extends RuntimeException {
+    public DuplicateResourceException(String message) {
+        super(message);
+    }
+}
+```
+
+> **Why `RuntimeException` (Unchecked Exception)?**
+> Extending `RuntimeException` eliminates mandatory `throws` clauses across method signatures in the Service and Repository layers, allowing exceptions to bubble up cleanly to global exception handlers.
+
+---
+
+## 3. `Optional.orElseThrow()` as a Business Signal
+
+Replace ambiguous `null` returns in the Service layer with explicit `Optional.orElseThrow()` signals:
+
+```java
+@Service
+public class StudentService {
+
+    private final StudentRepository repository;
+
+    public StudentService(StudentRepository repository) {
+        this.repository = repository;
+    }
+
+    public StudentResponseDto getStudentById(Long id) {
+        // Clean business signal: Return Entity if present, or throw ResourceNotFoundException
+        Student student = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Student with id " + id + " not found"));
+
+        return mapToResponseDto(student);
+    }
+
+    public StudentResponseDto createStudent(StudentRequestDto request) {
+        // Business Rule: Email uniqueness check
+        if (repository.existsByEmail(request.getEmail())) {
+            throw new DuplicateResourceException("Student with email " + request.getEmail() + " already exists");
+        }
+        
+        Student student = mapToEntity(request);
+        return mapToResponseDto(repository.save(student));
+    }
+}
+```
+
+---
+
+## 4. Clean Controller Architecture
+
+With custom exceptions and global exception handling, Controllers contain ZERO error-handling code:
+
+```java
+@RestController
+@RequestMapping("/api/students")
+public class StudentController {
+
+    private final StudentService service;
+
+    public StudentController(StudentService service) {
+        this.service = service;
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<StudentResponseDto> getStudentById(@PathVariable Long id) {
+        // Only handles the happy path! If student is missing, service throws ResourceNotFoundException
+        StudentResponseDto student = service.getStudentById(id);
+        return ResponseEntity.ok(student);
+    }
+}
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="Why do domain custom exceptions in Spring Boot extend RuntimeException instead of Exception?" options={["Because RuntimeException allows exceptions to remain unchecked, avoiding verbose throws clauses across every service method signature", "Because Exception is forbidden by Java", "Because RuntimeException automatically deletes database tables", "Because checked exceptions cannot be converted to JSON"]} answerIndex={0}>
+Unchecked exceptions (`RuntimeException`) do not require explicit `throws` declarations in Java method signatures, allowing exceptions thrown deep inside service logic to bubble up to global exception handlers cleanly.
+</Quiz>
+
+<Quiz question="What is the advantage of using repository.findById(id).orElseThrow(...) over returning null?" options={["It speeds up CPU execution by 10x", "It provides a clear, unambiguous domain signal (ResourceNotFoundException) rather than an ambiguous null reference", "It bypasses MySQL transaction logs", "It prevents garbage collection"]} answerIndex={1}>
+`orElseThrow()` transforms missing data into a clear domain signal (`ResourceNotFoundException`), removing ambiguity and allowing global handlers to catch it cleanly.
+</Quiz>

@@ -1,0 +1,8 @@
+{
+  "title": "1. Foundations & Architecture",
+  "pages": [
+    "01-client-server-and-http-protocol",
+    "02-servlets-and-servlet-containers",
+    "03-spring-ecosystem-and-boot-overview"
+  ]
+}

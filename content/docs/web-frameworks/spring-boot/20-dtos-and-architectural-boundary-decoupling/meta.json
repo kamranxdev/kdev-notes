@@ -1,0 +1,7 @@
+{
+  "title": "20. DTOs & Architectural Boundary Decoupling",
+  "pages": [
+    "01-entity-exposure-hazards-and-security-gate-model",
+    "02-request-response-dtos-and-mapping-pipelines"
+  ]
+}

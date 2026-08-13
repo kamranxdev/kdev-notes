@@ -1,0 +1,7 @@
+{
+  "title": "6. Spring Boot Annotations & Bootstrap",
+  "pages": [
+    "01-startup-mechanics-and-springapplication",
+    "02-springbootapplication-and-component-scan"
+  ]
+}

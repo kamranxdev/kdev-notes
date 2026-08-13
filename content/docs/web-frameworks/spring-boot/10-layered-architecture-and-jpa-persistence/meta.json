@@ -1,0 +1,7 @@
+{
+  "title": "10. Layered Architecture & JPA Persistence",
+  "pages": [
+    "01-layered-architecture-and-responsibilities",
+    "02-jpa-entities-orm-and-database-autoconfiguration"
+  ]
+}

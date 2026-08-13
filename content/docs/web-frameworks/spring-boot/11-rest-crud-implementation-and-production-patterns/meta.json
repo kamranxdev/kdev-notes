@@ -1,0 +1,7 @@
+{
+  "title": "11. REST CRUD Implementation & Production Patterns",
+  "pages": [
+    "01-rest-mapping-and-crud-operations",
+    "02-hard-vs-soft-delete-pitfalls-and-refactoring"
+  ]
+}

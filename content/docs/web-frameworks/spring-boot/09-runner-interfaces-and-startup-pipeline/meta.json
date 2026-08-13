@@ -1,0 +1,7 @@
+{
+  "title": "9. Runner Interfaces & Startup Pipeline",
+  "pages": [
+    "01-commandlinerunner-vs-applicationrunner",
+    "02-end-to-end-configuration-pipeline-and-pitfalls"
+  ]
+}

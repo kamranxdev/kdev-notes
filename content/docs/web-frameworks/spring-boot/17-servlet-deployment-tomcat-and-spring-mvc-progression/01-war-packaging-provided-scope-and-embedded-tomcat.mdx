@@ -1,0 +1,127 @@
+---
+title: "WAR Packaging, Provided Scope & Embedded Tomcat"
+description: "Master WAR deployment models, Maven provided dependency scope to prevent classloader collisions, external Tomcat management, and Spring Boot embedded container mechanics."
+---
+
+# WAR Packaging, Provided Scope & Embedded Tomcat
+
+Java web applications can be deployed either using traditional Web Application Archives (WARs) hosted inside an external Tomcat server or via self-contained executable JARs with embedded Tomcat containers in Spring Boot.
+
+---
+
+## 1. Web Application Archive (WAR) Packaging
+
+A **WAR (`.war`)** is a standardized Java zip archive structured specifically for Servlet Containers:
+
+```text
+servlet-crud.war
+├── META-INF/
+├── WEB-INF/
+│   ├── web.xml              ──► Deployment Descriptor (URL-to-Servlet Mappings)
+│   ├── classes/             ──► Compiled application .class files
+│   └── lib/                 ──► Third-party JAR dependencies
+└── index.html, static assets
+```
+
+### Deploying to External Tomcat
+1. Build the WAR artifact: `mvn clean package` ──► generates `target/myapp.war`
+2. Copy `myapp.war` into Tomcat's `webapps/` folder: `cp myapp.war ~/tools/apache-tomcat/webapps/`
+3. Tomcat auto-extracts `myapp.war` into an exploded directory `webapps/myapp/`
+4. Access via Context Path URL: `http://localhost:8080/myapp/hello`
+
+---
+
+## 2. The Maven `<scope>provided</scope>` Rule
+
+When developing Servlets for external Tomcat, your code imports classes like `jakarta.servlet.http.HttpServlet`.
+
+```xml
+<!-- Maven Dependency in pom.xml -->
+<dependency>
+    <groupId>jakarta.servlet</groupId>
+    <artifactId>jakarta.servlet-api</artifactId>
+    <version>6.0.0</version>
+    <scope>provided</scope> <!-- CRITICAL -->
+</dependency>
+```
+
+### Why `<scope>provided</scope>` Is Mandatory
+
+```text
+WITHOUT PROVIDED SCOPE (Default compile scope):
+Maven packages servlet-api.jar INSIDE the WAR (WEB-INF/lib/servlet-api.jar).
+Runtime Result: External Tomcat already has servlet-api.jar in its /lib folder!
+──► Classloader Conflict! (ClassCastException, LinkageError, unpredictable crashes)
+
+WITH PROVIDED SCOPE:
+Maven uses servlet-api.jar ONLY for compilation.
+Maven EXCLUDES servlet-api.jar from the packaged WAR.
+──► Clean Runtime! External Tomcat supplies its own container Servlet API classes.
+```
+
+> [!TIP]
+> **Dependency Ownership Rule**: When a runtime container (Tomcat) provides an infrastructure API, mark the Maven dependency as `provided` so it compiles successfully without bundling duplicate container classes into your WAR.
+
+---
+
+## 3. External Tomcat vs Embedded Tomcat in Spring Boot
+
+```text
+TRADITIONAL EXTERNAL TOMCAT:
+"Put the application INSIDE the server"
+Application (.war) ──► Copy to External Tomcat Server ──► Start Tomcat
+
+SPRING BOOT EMBEDDED TOMCAT:
+"Put the server INSIDE the application"
+Embedded Tomcat (.jar) ──► Embedded in Spring Boot App ──► java -jar app.jar
+```
+
+| Dimension | Traditional External Tomcat | Spring Boot Embedded Tomcat |
+| :--- | :--- | :--- |
+| **Server Installation** | Installed separately on OS host | Bundled inside application JAR via `spring-boot-starter-web` |
+| **Deployment Artifact** | `.war` (Web Application Archive) | `.jar` (Executable Java Archive) |
+| **Execution Command** | `./catalina.sh run` or `./startup.sh` | `java -jar myapp.jar` |
+| **Lifecycle Control** | Host administrator controls Tomcat process | Spring Boot `main()` starts embedded Tomcat on boot |
+
+---
+
+## 4. External Tomcat Administration & Port Troubleshooting
+
+### Starting & Stopping External Tomcat
+```bash
+# Linux / macOS
+cd ~/apache-tomcat-10.1.x
+chmod +x bin/*.sh
+./bin/startup.sh  # Run in background
+./bin/shutdown.sh # Graceful shutdown
+
+# Windows
+cd C:\apache-tomcat-10.1.x
+bin\startup.bat
+bin\shutdown.bat
+```
+
+### Port 8080 Collision Resolution
+If Tomcat fails to start due to `Port 8080 already in use`:
+
+```bash
+# Linux / macOS: Find PID on port 8080 and terminate
+lsof -i :8080
+kill -9 <PID>
+
+# Windows: Find PID on port 8080 and terminate
+netstat -ano | findstr :8080
+taskkill /PID <PID> /F
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="What happens if you omit <scope>provided</scope> for the Servlet API when building a WAR for external Tomcat?" options={["The project fails to compile", "Maven packages duplicate Servlet API JARs inside the WAR, causing runtime ClassCastExceptions and classloader collisions with Tomcat's container libraries", "Tomcat runs 500% faster", "The WAR is automatically converted into a ZIP file"]} answerIndex={1}>
+Omitting `<scope>provided</scope>` packages `servlet-api.jar` inside `WEB-INF/lib`. At runtime, Tomcat's container classloader and the WAR's application classloader both attempt to load `HttpServlet`, causing classloader conflicts.
+</Quiz>
+
+<Quiz question="What is the key architectural shift introduced by Spring Boot embedded Tomcat?" options={["Spring Boot eliminates the Servlet container entirely", "Spring Boot embeds Tomcat inside the executable JAR, moving from 'app inside server' to 'server inside app'", "Spring Boot replaces Tomcat with Nginx", "Spring Boot requires manual WAR copying to Tomcat"]} answerIndex={1}>
+Spring Boot embeds Tomcat inside the executable JAR artifact, allowing applications to start via `java -jar` without requiring a separately managed external Tomcat installation.
+</Quiz>

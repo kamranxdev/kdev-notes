@@ -1,0 +1,152 @@
+---
+title: "Error Contracts, Anti-Patterns & Refactoring"
+description: "Master structured validation error contracts, production anti-patterns, and refactoring entity-coupled CRUD APIs."
+---
+
+# Error Contracts, Anti-Patterns & Refactoring
+
+Returning clear, structured validation error responses when clients submit invalid inputs improves API usability and frontend integration.
+
+---
+
+## 1. Structured Validation Error Response Contracts
+
+By default, Spring Boot returns a generic `MethodArgumentNotValidException` response. In production systems, a custom `@RestControllerAdvice` translates validation exceptions into a structured JSON error contract:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed for request payload",
+  "errors": {
+    "name": "Student name is mandatory and cannot be blank",
+    "email": "Student email must be a valid email format",
+    "age": "Student age must be at least 18"
+  }
+}
+```
+
+```java
+// Standard production error DTO structure
+public class ValidationErrorResponseDto {
+    private boolean success = false;
+    private String message;
+    private Map<String, String> errors;
+
+    public ValidationErrorResponseDto(String message, Map<String, String> errors) {
+        this.message = message;
+        this.errors = errors;
+    }
+
+    public boolean isSuccess() { return success; }
+    public String getMessage() { return message; }
+    public Map<String, String> getErrors() { return errors; }
+}
+```
+
+---
+
+## 2. Production Anti-Patterns Matrix
+
+| Production Anti-Pattern | Operational Risk | Recommended Solution |
+| :--- | :--- | :--- |
+| **1. Direct `@Entity` Parameters** | Mass assignment & sensitive data leakage | Use explicit `StudentRequestDto` & `StudentResponseDto` |
+| **2. Single DTO for All Ops** | Leaks unmodifiable fields during update operations | Create specific `CreateStudentDto` & `UpdateStudentDto` |
+| **3. Missing `@Valid` Trigger** | DTO constraint annotations are ignored completely | Add `@Valid` to `@RequestBody` parameters in Controllers |
+| **4. Validation inside Service** | Pollutes business logic with basic string checks | Enforce input constraints on DTOs via Bean Validation |
+| **5. Returning HTTP 500 for Bad Input** | Confuses client developers & misleads monitoring | Return **HTTP 400 Bad Request** for validation failures |
+
+---
+
+## 3. Production Design Checklist
+
+Before marking a REST API implementation complete, verify:
+
+* [x] Request payloads use explicit Request DTOs (no Entities accepted at API boundary)
+* [x] Response payloads use explicit Response DTOs (no Entities returned to clients)
+* [x] DTO field validation uses appropriate constraints (`@NotBlank`, `@NotNull`, `@Min`)
+* [x] Controllers specify `@Valid @RequestBody` to trigger validation
+* [x] Invalid requests return **HTTP 400 Bad Request** short-circuiting Service execution
+* [x] Service layer performs DTO ↔ Entity mapping explicitly
+
+---
+
+## ❓ Interactive Self-Assessment
+
+<Quiz question="Why should validation failures return HTTP 400 Bad Request instead of HTTP 500 Internal Server Error?" options={["Because 500 is reserved for database maintenance", "Because 400 signals that the client provided invalid request data (client error), whereas 500 signals an unhandled server bug", "Because 400 runs faster than 500", "Because HTTP 500 is banned by REST specs"]} answerIndex={1}>
+HTTP 400 Bad Request accurately communicates that the client submitted invalid input data. HTTP 500 Internal Server Error falsely indicates an unhandled server crash.
+</Quiz>
+
+<Problem title="Refactoring an Entity-Coupled CRUD API">
+<ProblemDescription>
+A legacy controller method accepts a raw `@Entity Student` directly and returns `@Entity Student`:
+
+```java
+@PostMapping
+public Student createStudent(@RequestBody Student student) {
+    return studentService.save(student);
+}
+```
+
+Refactor this endpoint using DTOs, explicit mapping, and Bean Validation constraints.
+</ProblemDescription>
+<ProblemSolution>
+
+```java
+// 1. CREATE REQUEST DTO WITH VALIDATION CONSTRAINTS
+public class StudentRequestDto {
+    @NotBlank(message = "Name is required")
+    private String name;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email must be valid")
+    private String email;
+
+    @NotNull(message = "Age is required")
+    @Min(value = 18, message = "Age must be at least 18")
+    private Integer age;
+
+    // Getters and Setters
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
+}
+
+// 2. CREATE RESPONSE DTO
+public class StudentResponseDto {
+    private Long id;
+    private String name;
+    private String email;
+    private Integer age;
+
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
+}
+
+// 3. REFACTORED CONTROLLER
+@RestController
+@RequestMapping("/api/students")
+public class StudentController {
+    private final StudentService service;
+
+    public StudentController(StudentService service) {
+        this.service = service;
+    }
+
+    @PostMapping
+    public StudentResponseDto createStudent(@Valid @RequestBody StudentRequestDto requestDto) {
+        return service.createStudent(requestDto);
+    }
+}
+```
+</ProblemSolution>
+</Problem>

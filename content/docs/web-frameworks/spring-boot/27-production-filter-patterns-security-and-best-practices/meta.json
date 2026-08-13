@@ -1,0 +1,7 @@
+{
+  "title": "27. Production Filter Patterns & Security",
+  "pages": [
+    "01-production-logging-timing-and-trace-ids",
+    "02-blocking-anti-patterns-and-thread-safety"
+  ]
+}
