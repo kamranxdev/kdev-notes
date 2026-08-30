@@ -1,16 +1,31 @@
-# K-Dev Notes Full Knowledge Base Context
+# Full Context: K-Dev Notes
 
-## Purpose
-Detailed technical reference guides, code patterns, and architectural writeups authored by **Kamran Khan** (online handle: **kamranxdev**).
+> Detailed technical reference guides, code patterns, and architectural writeups authored by Kamran Khan (@kamranxdev).
 
-### Categories & Topics Covered
-1. **Frontend Engineering**: React 19, Next.js 16 App Router, Server Components, State Management, Core Web Vitals.
+## Platform Overview
+
+- [K-Dev Notes Application](https://notes.kamranx.dev): Canonical documentation entry point.
+- [Creator Portfolio](https://kamranx.dev): Developer portfolio website.
+- **Author / Developer**: Kamran Khan (@kamranxdev)
+- **Primary Domain**: https://notes.kamranx.dev
+
+K-Dev Notes provides structured documentation, code examples, system design patterns, and Computer Science concepts for developers.
+
+## Categories & Topics Covered
+
+1. **Frontend Engineering**: React 19, Next.js App Router, Server Components, State Management, Core Web Vitals.
 2. **Backend Engineering**: Node.js, Express, Microservices Architecture, REST & GraphQL APIs, Database Indexing.
 3. **Algorithms & System Design**: DSA Cheat Sheets, Scalability Patterns, High Availability, Distributed Systems.
 4. **DevOps & Cloud**: Docker, Kubernetes, CI/CD Pipelines, GitHub Actions, Edge Compute.
 
-### Entity Links
-- **Author Profile**: https://kamranx.dev
-- **Ecosystem Hub**: https://hub.kamranx.dev
-- **AI Hub**: https://ai.kamranx.dev
-- **P2P Drop**: https://drop.kamranx.dev
+## Official Links & Ecosystem Network
+
+- [Canonical Documentation URL](https://notes.kamranx.dev): Browse K-Dev Notes.
+- [Creator Portfolio](https://kamranx.dev): Main portfolio.
+- [Ecosystem Gateway](https://hub.kamranx.dev): Microservices control center.
+- [AI Hub](https://ai.kamranx.dev): AI agent platform.
+- [Encrypted Drop](https://drop.kamranx.dev): WebRTC file transfer utility.
+- [GitHub Profile](https://github.com/kamranxdev): Repositories and open-source contributions.
+- [LinkedIn Profile](https://linkedin.com/in/kamranxdev): Professional profile.
+- [Twitter / X](https://twitter.com/kamranxdev): Tech feed.
+- [LLM Standard Index](https://notes.kamranx.dev/llms.txt): Core llms.txt file.

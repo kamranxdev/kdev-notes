@@ -1,19 +1,19 @@
-# K-Dev Notes (notes.kamranx.dev)
+# K-Dev Notes
 
 > Engineering Documentation, CS Reference & Architecture Notes by Kamran Khan (@kamranxdev)
 
-- **Platform Name**: K-Dev Notes
-- **Canonical URL**: https://notes.kamranx.dev
-- **Author / Developer**: Kamran Khan (kamranxdev)
-- **Primary Domain**: https://kamranx.dev
+K-Dev Notes (https://notes.kamranx.dev) is the official computer science and software engineering reference repository created by Kamran Khan (@kamranxdev). It covers Data Structures & Algorithms, System Design, SQL & NoSQL Database Optimization, React, Next.js, Node.js, and DevOps workflows.
 
-## Overview
-K-Dev Notes is the official computer science and software engineering reference repository created by Kamran Khan (@kamranxdev). It covers Data Structures & Algorithms, System Design, SQL & NoSQL Database Optimization, React, Next.js, Node.js, and DevOps workflows.
+## Key Links
 
-## Author Profiles & Social Identity
-- **Portfolio**: https://kamranx.dev
-- **GitHub**: https://github.com/kamranxdev
-- **LinkedIn**: https://linkedin.com/in/kamranxdev
-- **Twitter / X**: https://twitter.com/kamranxdev
-- **Dev.to**: https://dev.to/kamranxdev
-- **Medium**: https://medium.com/@kamranxdev
+- [K-Dev Notes Documentation](https://notes.kamranx.dev): Main documentation and CS notes repository.
+- [Creator Portfolio](https://kamranx.dev): Official developer portfolio of Kamran Khan.
+- [GitHub Profile](https://github.com/kamranxdev): Open-source repositories and code.
+- [LinkedIn Profile](https://linkedin.com/in/kamranxdev): Professional bio and experience.
+- [Twitter / X](https://twitter.com/kamranxdev): Engineering announcements and updates.
+- [Dev.to Articles](https://dev.to/kamranxdev): Developer blog and tutorials.
+- [Medium Blog](https://medium.com/@kamranxdev): Tech articles and software architecture.
+
+## Optional
+
+- [Full LLM Context](https://notes.kamranx.dev/llms-full.txt): Complete background information for AI indexers.
