@@ -1,0 +1,7 @@
+{
+  "title": "12. Performance Optimization & Profiling",
+  "pages": [
+    "01-rendering-optimization-and-jank-elimination",
+    "02-devtools-memory-leaks-and-build-modes"
+  ]
+}

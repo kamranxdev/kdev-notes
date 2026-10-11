@@ -1,0 +1,7 @@
+{
+  "title": "11. Platform Channels & Native Interop",
+  "pages": [
+    "01-methodchannels-and-eventchannels",
+    "02-dart-ffi-and-pigeon-code-generation"
+  ]
+}

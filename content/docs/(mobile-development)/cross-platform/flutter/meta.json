@@ -1,0 +1,23 @@
+{
+  "title": "Flutter",
+  "icon": "Layers",
+  "root": true,
+  "pages": [
+    "index",
+    "01-architecture-and-rendering-pipeline",
+    "02-dart-deep-dive-and-runtime",
+    "03-widgets-and-lifecycle-mechanics",
+    "04-layout-engine-and-box-constraints",
+    "05-state-management-architecture",
+    "06-navigation-and-routing-systems",
+    "07-asynchronous-dart-and-reactive-ui",
+    "08-networking-rest-and-serialization",
+    "09-animations-and-motion-graphics",
+    "10-local-storage-and-persistence",
+    "11-platform-channels-and-native-interop",
+    "12-performance-optimization-and-profiling",
+    "13-testing-ci-cd-and-architecture",
+    "---Official Documentation---",
+    "external:[ExternalLink][Flutter Official Documentation](https://docs.flutter.dev/)"
+  ]
+}

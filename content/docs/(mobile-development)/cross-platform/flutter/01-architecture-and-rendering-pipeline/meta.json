@@ -1,0 +1,7 @@
+{
+  "title": "1. Architecture & Rendering",
+  "pages": [
+    "01-flutter-engine-and-three-tree-architecture",
+    "02-rendering-pipeline-and-frame-lifecycle"
+  ]
+}

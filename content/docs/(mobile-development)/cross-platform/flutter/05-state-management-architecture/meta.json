@@ -1,0 +1,7 @@
+{
+  "title": "5. State Management Architecture",
+  "pages": [
+    "01-inheritedwidget-and-changenotifier",
+    "02-provider-riverpod-and-bloc-patterns"
+  ]
+}

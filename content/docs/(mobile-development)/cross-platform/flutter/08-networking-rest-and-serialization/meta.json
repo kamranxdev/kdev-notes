@@ -1,0 +1,7 @@
+{
+  "title": "8. Networking & Serialization",
+  "pages": [
+    "01-http-client-dio-and-interceptors",
+    "02-json-serialization-and-data-models"
+  ]
+}

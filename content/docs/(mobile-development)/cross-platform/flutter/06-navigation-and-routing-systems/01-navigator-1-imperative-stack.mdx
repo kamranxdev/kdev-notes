@@ -1,0 +1,166 @@
+---
+title: "Navigator 1.0 & Imperative Stack Architecture"
+description: "Master Flutter's foundational Navigator 1.0 stack mechanics: route pushing/popping, returning results via Futures, onGenerateRoute mapping, and Android back-button interception with PopScope."
+---
+
+## 1. The LIFO Navigation Stack
+
+Navigator 1.0 models screens as a **Last-In, First-Out (LIFO) Stack** of `Route` objects managed by the root `NavigatorState`.
+
+```mermaid
+graph TD
+    subgraph Stack_Progression ["Navigator 1.0 Route Stack"]
+        R3["DetailScreen (Top of Stack - Visible)"]
+        R2["ProductListScreen (Middle)"]
+        R1["HomeScreen (Bottom / Root)"]
+
+        R1 -->|Navigator.push()| R2
+        R2 -->|Navigator.push()| R3
+        R3 -.->|Navigator.pop() returns result| R2
+    end
+
+    style R3 fill:#ea580c,color:#fff,stroke:#c2410c
+    style R2 fill:#0284c7,color:#fff,stroke:#0369a1
+    style R1 fill:#1e293b,color:#fff,stroke:#475569
+```
+
+---
+
+## 2. Core Imperative Navigation API
+
+```dart
+// 1. PUSH: Add a new screen to top of stack
+Navigator.push(
+  context,
+  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+);
+
+// 2. POP: Remove top screen and pass return data to previous caller
+Navigator.pop(context, {'saved': true});
+
+// 3. PUSH REPLACEMENT: Replace current screen (e.g. Splash -> Login)
+Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(builder: (context) => const LoginScreen()),
+);
+
+// 4. PUSH AND REMOVE UNTIL: Clear all history (e.g. Logout -> Login)
+Navigator.pushAndRemoveUntil(
+  context,
+  MaterialPageRoute(builder: (context) => const LoginScreen()),
+  (Route<dynamic> route) => false, // false removes ALL existing routes
+);
+```
+
+### Awaiting Results from Pushed Routes
+
+Routes in Flutter return typed `Future<T?>` instances:
+
+```dart
+// Caller screen:
+Future<void> _selectFilter(BuildContext context) async {
+  final String? selectedCategory = await Navigator.push<String>(
+    context,
+    MaterialPageRoute(builder: (context) => const FilterSelectionScreen()),
+  );
+
+  if (selectedCategory != null) {
+    print("User selected filter: $selectedCategory");
+  }
+}
+
+// Child screen:
+void _onCategoryTap(BuildContext context, String category) {
+  Navigator.pop(context, category); // Passes category back to caller's await!
+}
+```
+
+---
+
+## 3. Dynamic Routing with `onGenerateRoute`
+
+To centralize route definitions and enable deep argument parsing:
+
+```dart
+MaterialApp(
+  initialRoute: '/',
+  onGenerateRoute: (RouteSettings settings) {
+    switch (settings.name) {
+      case '/':
+        return MaterialPageRoute(builder: (_) => const HomeScreen());
+      case '/order-details':
+        // Extract typed arguments
+        final args = settings.arguments as OrderDetailsArguments;
+        return MaterialPageRoute(
+          builder: (_) => OrderDetailsScreen(orderId: args.orderId),
+        );
+      default:
+        return MaterialPageRoute(
+          builder: (_) => Scaffold(
+            body: Center(child: Text("Route not found: ${settings.name}")),
+          ),
+        );
+    }
+  },
+);
+```
+
+---
+
+## 4. Intercepting Android Back Navigation with `PopScope`
+
+In modern Flutter (Flutter 3.16+), the legacy `WillPopScope` widget is deprecated in favor of **`PopScope`**:
+
+```dart
+class FormEditorScreen extends StatefulWidget {
+  const FormEditorScreen({super.key});
+  @override
+  State<FormEditorScreen> createState() => _FormEditorScreenState();
+}
+
+class _FormEditorScreenState extends State<FormEditorScreen> {
+  bool _hasUnsavedChanges = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !_hasUnsavedChanges, // If false, prevents automatic OS back pop
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return; // Pop already succeeded
+        
+        // Show confirmation dialog before allowing user to discard changes
+        final bool shouldDiscard = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Discard changes?"),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("Discard")),
+            ],
+          ),
+        ) ?? false;
+
+        if (shouldDiscard && context.mounted) {
+          Navigator.pop(context); // Manually trigger exit
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text("Edit Record")),
+        body: const Center(child: Text("Form Fields")),
+      ),
+    );
+  }
+}
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="What is the function of the predicate function passed into Navigator.pushAndRemoveUntil(context, newRoute, predicate)?" options={["It determines whether the animation uses iOS or Android transition physics", "It is evaluated against each existing route in the stack; returning false deletes that route from memory, while returning true stops route deletion", "It validates the user's network connection", "It sets the HTTP cache headers"]} answerIndex={1}>
+The **predicate** `(Route<dynamic> route) => bool` inspects each route downwards in the navigation stack. Flutter removes every route for which the predicate returns `false` until it finds a route where it returns `true` (or the stack is empty). Passing `(route) => false` wipes the entire navigation history.
+</Quiz>
+
+<Quiz question="Why was WillPopScope replaced by PopScope in modern Flutter?" options={["WillPopScope only supported web browsers", "WillPopScope had synchronous blocking API design that could not support predictive back gestures in modern Android 14+ and iOS gesture systems", "PopScope uses C++ plugins", "WillPopScope was incompatible with Material 3"]} answerIndex={1}>
+`WillPopScope` forced synchronous blocking checks during back navigation, which conflicted with modern operating system features like **Android 14's Predictive Back Animations**. **`PopScope`** introduces an asynchronous event notification model that integrates cleanly with native predictive gesture engines.
+</Quiz>

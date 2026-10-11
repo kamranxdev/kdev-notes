@@ -1,0 +1,7 @@
+{
+  "title": "6. Navigation & Routing Systems",
+  "pages": [
+    "01-navigator-1-imperative-stack",
+    "02-declarative-routing-and-gorouter"
+  ]
+}

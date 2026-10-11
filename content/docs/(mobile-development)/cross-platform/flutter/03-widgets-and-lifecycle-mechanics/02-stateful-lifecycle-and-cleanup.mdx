@@ -1,0 +1,186 @@
+---
+title: "StatefulWidget Lifecycle & Resource Cleanup"
+description: "Master the 7-stage lifecycle of Flutter's State class. Learn when to initialize streams, respond to parent updates with didUpdateWidget, observe operating system lifecycle states, and guarantee leak-free cleanup in dispose."
+---
+
+## 1. The 7-Stage State Lifecycle Pipeline
+
+When a `StatefulWidget` enters and leaves the widget tree, its associated `State` instance undergoes a strictly defined lifecycle managed by the `StatefulElement`.
+
+```mermaid
+graph TD
+    Create["1. createState() (Invoked once by widget)"] --> Init["2. initState() (One-time state setup)"]
+    Init --> Deps["3. didChangeDependencies() (InheritedWidget ready)"]
+    Deps --> Build["4. build() (Returns widget tree)"]
+    
+    Build -->|setState() called| MarkDirty["Mark Element Dirty"]
+    MarkDirty --> Build
+
+    Build -->|Parent rebuilt with new config| DidUpdate["5. didUpdateWidget() (Diff old vs new)"]
+    DidUpdate --> Build
+
+    Build -->|Removed from tree temporarily| Deactivate["6. deactivate() (Unlinked from parent)"]
+    Deactivate -->|Re-inserted elsewhere| Deps
+    Deactivate -->|Permanently destroyed| Dispose["7. dispose() (Mandatory cleanup)"]
+
+    style Create fill:#3b82f6,color:#fff,stroke:#1d4ed8
+    style Init fill:#10b981,color:#fff,stroke:#047857
+    style Deps fill:#0284c7,color:#fff,stroke:#075985
+    style Build fill:#ea580c,color:#fff,stroke:#9a3412
+    style DidUpdate fill:#d97706,color:#fff,stroke:#92400e
+    style Deactivate fill:#64748b,color:#fff,stroke:#334155
+    style Dispose fill:#dc2626,color:#fff,stroke:#991b1b
+```
+
+---
+
+## 2. Deep Dive: Lifecycle Method Responsibilities
+
+| Lifecycle Hook | Invocation Timing | Allowed Operations | Forbidden Operations |
+| :--- | :--- | :--- | :--- |
+| **`createState()`** | When `StatefulWidget` is mounted. | Instantiate `State` class. | Heavy logic or async operations. |
+| **`initState()`** | Once per `State` lifetime after creation. | Initialize controllers, subscribe to streams, start timers, setup non-context listeners. | Calling `InheritedWidget` via `context.dependOnInheritedWidgetOfExactType` (context not fully wired). |
+| **`didChangeDependencies()`** | Right after `initState()`, and whenever an ancestor `InheritedWidget` changes. | Reading `Theme.of(context)`, `MediaQuery.of(context)`, initializing context-dependent resources. | Heavy computational tasks that block rendering. |
+| **`build()`** | On initial mount, `setState()`, or ancestor rebuild. | Pure declarative UI creation returning a `Widget`. | Triggering side-effects, starting HTTP calls, or mutating state. |
+| **`didUpdateWidget()`** | Whenever parent widget rebuilds and provides a new widget instance with identical `runtimeType` and `key`. | Comparing `oldWidget` properties against `widget` to restart animations or update internal caches. | Forgetting to check `if (oldWidget.id != widget.id)`. |
+| **`deactivate()`** | When Element is temporarily unlinked from tree (e.g. during GlobalKey reparenting). | Cleanup temporary hooks if reparenting. | Assuming the widget is permanently destroyed. |
+| **`dispose()`** | When Element is permanently destroyed and unmounted. | Disposing controllers, canceling stream subscriptions, closing sinks. | Calling `setState()` (throws `StateError`). |
+
+---
+
+## 3. Production Resource Cleanup Template
+
+Failing to dispose controllers and subscriptions leads to severe memory leaks where orphaned callbacks continue running in the background.
+
+```dart
+class ProductionDataFeedScreen extends StatefulWidget {
+  final String channelId;
+  const ProductionDataFeedScreen({required this.channelId, super.key});
+
+  @override
+  State<ProductionDataFeedScreen> createState() => _ProductionDataFeedScreenState();
+}
+
+class _ProductionDataFeedScreenState extends State<ProductionDataFeedScreen>
+    with SingleTickerProviderStateMixin {
+  late final TextEditingController _textController;
+  late final ScrollController _scrollController;
+  late final AnimationController _animController;
+  StreamSubscription<dynamic>? _feedSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // 1. Initialize local controllers
+    _textController = TextEditingController();
+    _scrollController = ScrollController();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    // 2. Start data stream subscription
+    _subscribeToChannel(widget.channelId);
+  }
+
+  void _subscribeToChannel(String channelId) {
+    _feedSubscription?.cancel();
+    _feedSubscription = MockEventBus.stream(channelId).listen((event) {
+      if (mounted) { // ⚡ Always check mounted before calling setState in callbacks
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant ProductionDataFeedScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 3. React to parent parameter updates
+    if (oldWidget.channelId != widget.channelId) {
+      _subscribeToChannel(widget.channelId);
+    }
+  }
+
+  @override
+  void dispose() {
+    // 4. MANDATORY: Clean up every single resource in reverse order
+    _feedSubscription?.cancel();
+    _textController.dispose();
+    _scrollController.dispose();
+    _animController.dispose();
+    super.dispose(); // Always call super.dispose() last
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: ListView(controller: _scrollController, children: const []),
+    );
+  }
+}
+```
+
+---
+
+## 4. App Lifecycle Tracking (`WidgetsBindingObserver`)
+
+To pause video playback, save unsaved state, or refresh auth tokens when the user backgrounds the mobile app:
+
+```dart
+class AppStateTracker extends StatefulWidget {
+  const AppStateTracker({super.key});
+  @override
+  State<AppStateTracker> createState() => _AppStateTrackerState();
+}
+
+class _AppStateTrackerState extends State<AppStateTracker> 
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this); // Register observer
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Unregister observer
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        print("📱 App is visible and interactive");
+        break;
+      case AppLifecycleState.inactive:
+        print("⏸️ App is transitioning (e.g. phone call / notification drawer)");
+        break;
+      case AppLifecycleState.paused:
+        print("🔒 App is in background (not visible)");
+        break;
+      case AppLifecycleState.detached:
+        print("💀 Flutter engine is still running but detached from view");
+        break;
+      case AppLifecycleState.hidden:
+        print("👁️ App is hidden by OS window manager");
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => const Placeholder();
+}
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="Why does calling setState() inside dispose() throw a Flutter runtime exception?" options={["Because dispose() runs on the C++ thread where Dart is inaccessible", "Because the State object is already unmounted and will never participate in another build/layout pass", "Because setState() can only be called from inside initState()", "Because Flutter requires an async await before calling setState()"]} answerIndex={1}>
+Once `dispose()` is reached, `mounted` is set to `false`. The Element has been permanently unlinked from the tree and will never be rendered again. Calling `setState()` is illegal because scheduling a rebuild for a destroyed element is a no-op that indicates a logic bug.
+</Quiz>
+
+<Quiz question="What is the purpose of the didUpdateWidget(covariant T oldWidget) lifecycle method?" options={["To delete the Element tree and restart the app", "To detect when the parent widget passes new configuration properties to the existing State instance, allowing the State to synchronize internal controllers or listeners", "To update the database schema", "To initialize hardware camera drivers"]} answerIndex={1}>
+`didUpdateWidget()` is invoked whenever the parent rebuilds with a new widget of the same type and key. It provides access to the `oldWidget` so the persistent `State` can compare previous parameters against `widget` (new parameters) and adjust controllers or re-fetch data.
+</Quiz>

@@ -1,0 +1,7 @@
+{
+  "title": "3. Widgets & Lifecycle Mechanics",
+  "pages": [
+    "01-stateless-vs-stateful-and-buildcontext",
+    "02-stateful-lifecycle-and-cleanup"
+  ]
+}

@@ -1,0 +1,160 @@
+---
+title: "JSON Serialization & Data Models"
+description: "Master serialization in Flutter without reflection: manual fromJson/toJson contracts, automated json_serializable code-gen, and immutable value objects with Freezed."
+---
+
+## 1. Why Flutter Disables Reflection (`dart:mirrors`)
+
+In backend Java (Jackson) or C# (Newtonsoft), JSON parsers inspect object fields dynamically at runtime via **reflection**. 
+
+In Flutter, **reflection (`dart:mirrors`) is disabled by design**:
+* **Tree Shaking & Binary Size**: Ahead-Of-Time (AOT) compilers can aggressively strip unused code only when field access is statically known at compile time.
+* **Startup Velocity**: Dynamic reflection incurs runtime lookup overhead that degrades app boot time.
+
+Consequently, Dart serialization relies on **explicit serialization methods** or **compile-time code generation**.
+
+```mermaid
+graph LR
+    RawJSON["Raw JSON String: '{\"id\": 1, \"name\": \"Alex\"}'"]
+    JsonDecode["jsonDecode() (dart:convert)"]
+    MapObject["Map<String, dynamic>"]
+    ModelClass["Typed Dart Model: User(id: 1, name: 'Alex')"]
+
+    RawJSON -->|1. Parse String| JsonDecode
+    JsonDecode -->|2. Produces Map| MapObject
+    MapObject -->|3. User.fromJson(map)| ModelClass
+
+    style RawJSON fill:#1e293b,color:#fff,stroke:#475569
+    style JsonDecode fill:#0284c7,color:#fff,stroke:#0369a1
+    style MapObject fill:#ea580c,color:#fff,stroke:#c2410c
+    style ModelClass fill:#059669,color:#fff,stroke:#047857
+```
+
+---
+
+## 2. Manual JSON Serialization
+
+For small projects or simple DTOs, hand-written `fromJson` and `toJson` methods work with zero extra dependencies:
+
+```dart
+class UserProfile {
+  final int id;
+  final String email;
+  final String? bio;
+  final DateTime createdAt;
+
+  const UserProfile({
+    required this.id,
+    required this.email,
+    this.bio,
+    required this.createdAt,
+  });
+
+  // Factory constructor: Converts Map<String, dynamic> -> UserProfile
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      id: json['id'] as int,
+      email: json['email'] as String,
+      bio: json['bio'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  // Converts UserProfile -> Map<String, dynamic> for POST/PUT payloads
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'email': email,
+      'bio': bio,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+}
+```
+
+---
+
+## 3. Automated Serialization with `json_serializable`
+
+For enterprise apps with hundreds of API entities, manual serialization is error-prone. **`json_serializable`** generates serialization logic during `dart run build_runner build`.
+
+```dart
+import 'package:json_annotation/json_annotation.dart';
+
+part 'order_model.g.dart'; // Generated file target
+
+@JsonSerializable()
+class OrderModel {
+  final String orderId;
+  
+  @JsonKey(name: 'total_amount_cents')
+  final int amountCents;
+
+  @JsonKey(defaultValue: 'PENDING')
+  final String status;
+
+  OrderModel({
+    required this.orderId,
+    required this.amountCents,
+    required this.status,
+  });
+
+  factory OrderModel.fromJson(Map<String, dynamic> json) => _$OrderModelFromJson(json);
+  Map<String, dynamic> toJson() => _$OrderModelToJson(this);
+}
+```
+
+---
+
+## 4. Modern Immutable Models with `Freezed`
+
+**`Freezed`** combines code-generation, deep immutability, `copyWith`, structural equality (`==`), and union types:
+
+```dart
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'transaction.freezed.dart';
+part 'transaction.g.dart';
+
+@freezed
+abstract class Transaction with _$Transaction {
+  const factory Transaction({
+    required String id,
+    required double amount,
+    @Default(false) bool isSettled,
+    @JsonKey(name: 'recipient_name') required String recipient,
+  }) = _Transaction;
+
+  factory Transaction.fromJson(Map<String, dynamic> json) => _$TransactionFromJson(json);
+}
+```
+
+### Freezed Capabilities
+
+```dart
+void demonstrateFreezed() {
+  final tx1 = Transaction(id: 'TX101', amount: 50.0, recipient: 'Alice');
+
+  // 1. Immutable modification via copyWith:
+  final tx2 = tx1.copyWith(isSettled: true);
+
+  // 2. Structural Value Equality (No custom hash code needed!):
+  final tx3 = Transaction(id: 'TX101', amount: 50.0, recipient: 'Alice');
+  print(tx1 == tx3); // ✅ true (compares values, not pointer memory addresses)
+
+  // 3. Readable toString representation:
+  print(tx1); // Transaction(id: TX101, amount: 50.0, isSettled: false, recipient: Alice)
+}
+```
+
+---
+
+## ❓ Knowledge Check
+
+<Quiz question="Why does Flutter not support dynamic reflection libraries like dart:mirrors for JSON serialization?" options={["Because Dart was designed without object-oriented features", "Because reflection prevents the AOT compiler from performing tree shaking, resulting in bloated binary sizes and slower startup execution", "Because JSON is an invalid format on mobile devices", "Because Android and iOS ban JSON serialization"]} answerIndex={1}>
+Disabling **`dart:mirrors`** allows the Dart Ahead-Of-Time (AOT) compiler to perform aggressive **tree shaking**—eliminating every class, method, and field that is not statically referenced in your code. This significantly reduces application download size and optimizes cold-start times.
+</Quiz>
+
+<Quiz question="What is the primary architectural advantage of using the Freezed package for domain models?" options={["It automatically connects to PostgreSQL databases", "It generates deeply immutable value objects with built-in structural equality (==), copyWith methods, and JSON serialization support", "It renders UI components directly on the GPU", "It compiles Dart code to WebAssembly"]} answerIndex={1}>
+**`Freezed`** generates fully immutable data classes with value-based equality (`==`), clean `copyWith()` modification patterns, exhaustive pattern matching, and type-safe JSON serialization, eliminating hundreds of lines of boilerplate.
+</Quiz>

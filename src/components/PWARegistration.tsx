@@ -22,16 +22,37 @@ export default function PWARegistration() {
         return;
       }
 
-      window.addEventListener('load', () => {
-        navigator.serviceWorker
-          .register('/sw.js')
-          .then((reg) => {
-            console.log('Service Worker registered successfully:', reg.scope);
-          })
-          .catch((err) => {
-            console.error('Service Worker registration failed:', err);
-          });
-      });
+      const registerSW = async () => {
+        try {
+          const reg = await navigator.serviceWorker.register('/sw.js');
+          console.log('Service Worker registered successfully:', reg.scope);
+
+          // Actively check for service worker updates
+          reg.update();
+
+          // Check for updates when user returns to tab
+          const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+              reg.update();
+            }
+          };
+
+          document.addEventListener('visibilitychange', handleVisibilityChange);
+
+          return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+          };
+        } catch (err) {
+          console.error('Service Worker registration failed:', err);
+        }
+      };
+
+      if (document.readyState === 'complete') {
+        registerSW();
+      } else {
+        window.addEventListener('load', registerSW);
+        return () => window.removeEventListener('load', registerSW);
+      }
     }
   }, []);
 
