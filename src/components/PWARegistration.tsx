@@ -2,57 +2,38 @@
 
 import { useEffect } from 'react';
 
+/**
+ * Service Worker Uninstaller & Cache Cleaner:
+ * Cleans up and unregisters any active service workers and legacy
+ * CacheStorage data left behind in visitors' browsers, restoring standard
+ * native HTTP caching behavior.
+ */
 export default function PWARegistration() {
   useEffect(() => {
-    if (
-      typeof window !== 'undefined' &&
-      'serviceWorker' in navigator
-    ) {
-      if (process.env.NODE_ENV === 'development') {
-        // Unregister service worker in development mode to avoid dev chunks / HMR caching issues
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-          for (const registration of registrations) {
-            registration.unregister().then((success) => {
-              if (success) {
-                console.log('Successfully unregistered service worker for development mode');
-              }
-            });
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+
+    // Unregister all existing service workers
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister().then((unregistered) => {
+          if (unregistered) {
+            console.log('[PWA] Unregistered active service worker:', registration.scope);
           }
         });
-        return;
       }
+    });
 
-      const registerSW = async () => {
-        try {
-          const reg = await navigator.serviceWorker.register('/sw.js');
-          console.log('Service Worker registered successfully:', reg.scope);
-
-          // Actively check for service worker updates
-          reg.update();
-
-          // Check for updates when user returns to tab
-          const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-              reg.update();
-            }
-          };
-
-          document.addEventListener('visibilitychange', handleVisibilityChange);
-
-          return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-          };
-        } catch (err) {
-          console.error('Service Worker registration failed:', err);
+    // Clear all CacheStorage instances from previous versions
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        for (const key of keys) {
+          caches.delete(key).then(() => {
+            console.log('[PWA] Purged legacy cache:', key);
+          });
         }
-      };
-
-      if (document.readyState === 'complete') {
-        registerSW();
-      } else {
-        window.addEventListener('load', registerSW);
-        return () => window.removeEventListener('load', registerSW);
-      }
+      });
     }
   }, []);
 

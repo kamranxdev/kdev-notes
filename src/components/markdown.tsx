@@ -107,10 +107,20 @@ export function Markdown({ text }: { text: string }) {
 }
 
 const cache = new Map<string, Promise<ReactNode>>();
+const MAX_CACHE_SIZE = 100;
 
 function Renderer({ text }: { text: string }) {
-  const result = cache.get(text) ?? processor.process(text);
-  cache.set(text, result);
+  let result = cache.get(text);
+  if (!result) {
+    result = processor.process(text);
+    if (cache.size >= MAX_CACHE_SIZE) {
+      const oldestKey = cache.keys().next().value;
+      if (oldestKey !== undefined) {
+        cache.delete(oldestKey);
+      }
+    }
+    cache.set(text, result);
+  }
 
   return use(result);
 }
