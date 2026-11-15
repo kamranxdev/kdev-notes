@@ -6,8 +6,8 @@ description: "Explore the 4-stage Flutter rendering pipeline: Animate, Build, La
 ## 1. The Frame Lifecycle & VSYNC Signal
 
 To achieve smooth 60 FPS (frames per second) or 120 FPS (ProMotion / high refresh rate displays), Flutter must complete all UI computations within a strict **frame budget**:
-* **60 Hz Display**: $\frac{1000\text{ ms}}{60} \approx \mathbf{16.6\text{ ms}}$ per frame.
-* **120 Hz Display**: $\frac{1000\text{ ms}}{120} \approx \mathbf{8.3\text{ ms}}$ per frame.
+* **60 Hz Display**: `1000ms / 60 ≈ 16.6ms` per frame.
+* **120 Hz Display**: `1000ms / 120 ≈ 8.3ms` per frame.
 
 ```mermaid
 sequenceDiagram

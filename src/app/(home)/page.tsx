@@ -2,7 +2,9 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Kamran Khan's Technical Notes - Web, Mobile, Databases & Systems",
+  title: {
+    absolute: "K-Dev Notes | Engineering Docs & Reference | Kamran Khan",
+  },
   description: "A detailed repository of reference guides, syntax cheat sheets, and technical writeups. Every explanation focuses on the \"why\" behind concepts.",
 };
 
@@ -98,8 +100,25 @@ export default function HomePage() {
     p.url.endsWith('web-fundamentals/javascript')
   ).slice(0, 4);
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'K-Dev Notes',
+    url: 'https://notes.kamranx.dev',
+    description: 'Official technical documentation, computer science notes, DSA cheat sheets, and production code patterns authored by Kamran Khan (kamranxdev).',
+    author: {
+      '@type': 'Person',
+      name: 'Kamran Khan',
+      url: 'https://kamranx.dev',
+    },
+  };
+
   return (
     <div className="flex flex-col flex-1 w-full bg-background text-foreground py-12 px-4 sm:px-6 md:px-8 max-w-7xl mx-auto space-y-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
       {/* 1. Hero Section */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8">

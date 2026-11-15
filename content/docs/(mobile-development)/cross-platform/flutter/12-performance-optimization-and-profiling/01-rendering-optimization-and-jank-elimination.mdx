@@ -80,7 +80,7 @@ class FavoriteButton extends StatelessWidget {
 ```
 
 ### 2. Image Memory Optimization with `cacheWidth` & `cacheHeight`
-Decoding a 4000x3000 pixel camera image directly into memory consumes ~48 MB of uncompressed bitmap RAM ($4000 \times 3000 \times 4\text{ bytes}$). Downsample images at decode time:
+Decoding a 4000x3000 pixel camera image directly into memory consumes ~48 MB of uncompressed bitmap RAM (`4000 × 3000 × 4 bytes`). Downsample images at decode time:
 
 ```dart
 // ❌ BAD: Decodes 48MB raw bitmap into memory for a 50x50 avatar!

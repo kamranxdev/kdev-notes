@@ -11,8 +11,8 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://notes.kamranx.dev'),
   title: {
-    template: "%s | K-Dev Notes | Kamran Khan (kamranxdev)",
-    default: "K-Dev Notes | Engineering Docs & Reference | Kamran Khan (kamranxdev)",
+    template: "%s | K-Dev Notes",
+    default: "K-Dev Notes | Engineering Docs & Reference | Kamran Khan",
   },
   description: "Official technical documentation, computer science notes, DSA cheat sheets, and production code patterns authored by Kamran Khan (kamranxdev).",
   keywords: [

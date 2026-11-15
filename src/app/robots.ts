@@ -17,11 +17,9 @@ export default function robots(): MetadataRoute.Robots {
           'Google-Extended',
           'Applebot-Extended',
           'CCBot',
-          'Bingbot',
-          'Googlebot'
         ],
         allow: ['/', '/llms.txt', '/llms-full.txt', '/sitemap.xml'],
-      }
+      },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
     host: baseUrl,
